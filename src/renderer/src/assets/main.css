@@ -143,35 +143,6 @@ button {
   justify-self: end;
 }
 
-.new-tab-icon {
-  position: relative;
-  display: block;
-  width: 13px;
-  height: 13px;
-}
-
-.new-tab-icon::before,
-.new-tab-icon::after {
-  content: '';
-  position: absolute;
-  border-radius: 999px;
-  background: currentColor;
-}
-
-.new-tab-icon::before {
-  top: 6px;
-  left: 1px;
-  width: 11px;
-  height: 1px;
-}
-
-.new-tab-icon::after {
-  top: 1px;
-  left: 6px;
-  width: 1px;
-  height: 11px;
-}
-
 .workspace-body {
   height: calc(100vh - 46px);
   padding: 8px;
@@ -191,12 +162,11 @@ button {
   top: 10px;
   left: 10px;
   z-index: 5;
-  display: grid;
-  grid-template-columns: repeat(2, 3px);
-  gap: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 24px;
   height: 24px;
-  place-content: center;
   padding: 0;
   color: rgba(125, 211, 252, 0.95);
   background: rgba(8, 13, 23, 0.76);
@@ -214,13 +184,6 @@ button {
 
 .split-group > .split-drag-handle:active {
   cursor: grabbing;
-}
-
-.split-group > .split-drag-handle span {
-  width: 3px;
-  height: 3px;
-  border-radius: 999px;
-  background: currentColor;
 }
 
 .split-node.vertical {
@@ -349,13 +312,12 @@ button {
 }
 
 .pane-drag-handle {
-  display: grid;
+  display: flex;
   flex: 0 0 auto;
-  grid-template-columns: repeat(2, 3px);
-  gap: 3px;
+  align-items: center;
+  justify-content: center;
   width: 24px;
   height: 22px;
-  place-content: center;
   padding: 0;
   color: rgba(148, 163, 184, 0.92);
   background: transparent;
@@ -376,11 +338,8 @@ button {
   cursor: grabbing;
 }
 
-.pane-drag-handle span {
-  width: 3px;
-  height: 3px;
-  border-radius: 999px;
-  background: currentColor;
+.drag-handle-icon {
+  font-size: 15px;
 }
 
 .pane-bar-spacer {
@@ -409,63 +368,6 @@ button {
   height: 15px;
   margin: 0 2px;
   background: rgba(148, 163, 184, 0.28);
-}
-
-.pane-action-icon {
-  position: relative;
-  display: block;
-  width: 13px;
-  height: 13px;
-}
-
-.pane-action-icon::before,
-.pane-action-icon::after {
-  content: '';
-  position: absolute;
-  border-color: currentColor;
-  border-style: solid;
-}
-
-.pane-action-icon.split-horizontal::before {
-  inset: 1px;
-  border-width: 1px;
-  border-radius: 2px;
-}
-
-.pane-action-icon.split-horizontal::after {
-  top: 1px;
-  bottom: 1px;
-  left: 6px;
-  border-width: 0 0 0 1px;
-}
-
-.pane-action-icon.split-vertical::before {
-  inset: 1px;
-  border-width: 1px;
-  border-radius: 2px;
-}
-
-.pane-action-icon.split-vertical::after {
-  right: 1px;
-  bottom: 6px;
-  left: 1px;
-  border-width: 1px 0 0;
-}
-
-.pane-action-icon.close::before,
-.pane-action-icon.close::after {
-  top: 6px;
-  left: 1px;
-  width: 11px;
-  border-width: 1px 0 0;
-}
-
-.pane-action-icon.close::before {
-  transform: rotate(45deg);
-}
-
-.pane-action-icon.close::after {
-  transform: rotate(-45deg);
 }
 
 .xterm {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { NIcon } from 'naive-ui'
+import { HolderOutlined } from '@vicons/antd'
 import TerminalPane from './TerminalPane.vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
 import type { PaneDropPayload, PaneNode, SplitDirection } from '../types/terminal'
@@ -74,12 +76,9 @@ function startGroupDrag(event: DragEvent): void {
       @dragstart="startGroupDrag"
       @dragend="clearDraggingNodeId"
     >
-      <span />
-      <span />
-      <span />
-      <span />
-      <span />
-      <span />
+      <NIcon class="drag-handle-icon" aria-hidden="true">
+        <HolderOutlined />
+      </NIcon>
     </button>
     <div class="split-child" :style="{ flexBasis: `${node.ratio * 100}%` }">
       <SplitNode

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { NButton, NLayout, NLayoutHeader, NTabPane, NTabs } from 'naive-ui'
+import { NButton, NIcon, NLayout, NLayoutHeader, NTabPane, NTabs } from 'naive-ui'
+import { PlusOutlined } from '@vicons/antd'
 import SplitNode from './SplitNode.vue'
 import type { PaneDropPayload, PaneNode, SplitDirection, TerminalTab } from '../types/terminal'
 
@@ -284,7 +285,11 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
         title="新建 Tab"
         @click="addTab"
       >
-        <span class="new-tab-icon" aria-hidden="true" />
+        <template #icon>
+          <NIcon>
+            <PlusOutlined />
+          </NIcon>
+        </template>
       </NButton>
     </NLayoutHeader>
 

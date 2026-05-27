@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { NButton } from 'naive-ui'
+import { NButton, NIcon } from 'naive-ui'
+import {
+  BorderHorizontalOutlined,
+  BorderVerticleOutlined,
+  CloseOutlined,
+  HolderOutlined
+} from '@vicons/antd'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -169,12 +175,9 @@ onBeforeUnmount(() => {
         @dragstart="handleDragStart"
         @dragend="handleDragEnd"
       >
-        <span />
-        <span />
-        <span />
-        <span />
-        <span />
-        <span />
+        <NIcon class="drag-handle-icon" aria-hidden="true">
+          <HolderOutlined />
+        </NIcon>
       </button>
 
       <div class="pane-bar-spacer" />
@@ -186,7 +189,11 @@ onBeforeUnmount(() => {
           title="左右分屏"
           @click.stop="emit('split', paneId, 'horizontal')"
         >
-          <span class="pane-action-icon split-horizontal" aria-hidden="true" />
+          <template #icon>
+            <NIcon>
+              <BorderVerticleOutlined />
+            </NIcon>
+          </template>
         </NButton>
         <NButton
           size="tiny"
@@ -194,7 +201,11 @@ onBeforeUnmount(() => {
           title="上下分屏"
           @click.stop="emit('split', paneId, 'vertical')"
         >
-          <span class="pane-action-icon split-vertical" aria-hidden="true" />
+          <template #icon>
+            <NIcon>
+              <BorderHorizontalOutlined />
+            </NIcon>
+          </template>
         </NButton>
         <span class="pane-action-divider" />
         <NButton
@@ -204,7 +215,11 @@ onBeforeUnmount(() => {
           title="关闭"
           @click.stop="emit('close', paneId)"
         >
-          <span class="pane-action-icon close" aria-hidden="true" />
+          <template #icon>
+            <NIcon>
+              <CloseOutlined />
+            </NIcon>
+          </template>
         </NButton>
       </div>
     </div>
