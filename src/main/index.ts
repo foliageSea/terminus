@@ -137,7 +137,8 @@ function registerTerminalIpc(): void {
 
     const shellPath =
       process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash'
-    const terminal = spawn(shellPath, [], {
+    const shellArgs = process.platform === 'win32' ? ['-NoLogo'] : []
+    const terminal = spawn(shellPath, shellArgs, {
       name: 'xterm-256color',
       cols,
       rows,
