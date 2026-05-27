@@ -16,6 +16,10 @@ export interface WindowApi {
   close: () => void
 }
 
+export interface ClipboardApi {
+  readText: () => string
+}
+
 export interface TerminalSettings {
   fontFamily: string
   fontSize: number
@@ -34,6 +38,7 @@ export interface SettingsApi {
 
 export interface AppApi {
   window: WindowApi
+  clipboard: ClipboardApi
   settings: SettingsApi
   terminal: TerminalApi
 }

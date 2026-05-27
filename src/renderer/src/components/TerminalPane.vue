@@ -109,6 +109,26 @@ function applyTerminalSettings(): void {
   fit()
 }
 
+function pasteClipboardText(): void {
+  const text = window.api.clipboard.readText()
+  if (!text) return
+
+  terminal?.paste(text)
+}
+
+function handleTerminalKey(event: KeyboardEvent): boolean {
+  const key = event.key.toLowerCase()
+  const isPasteShortcut =
+    (key === 'v' && (event.ctrlKey || event.metaKey) && !event.altKey) ||
+    (key === 'insert' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey)
+
+  if (!isPasteShortcut) return true
+
+  event.preventDefault()
+  pasteClipboardText()
+  return false
+}
+
 onMounted(async () => {
   if (!host.value) return
 
@@ -127,6 +147,7 @@ onMounted(async () => {
   fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
   terminal.loadAddon(new WebLinksAddon())
+  terminal.attachCustomKeyEventHandler(handleTerminalKey)
   terminal.open(host.value)
 
   terminal.onData((data) => window.api.terminal.write(props.paneId, data))

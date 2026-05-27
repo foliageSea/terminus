@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { clipboard, contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
@@ -7,6 +7,9 @@ const api = {
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close')
+  },
+  clipboard: {
+    readText: () => clipboard.readText()
   },
   settings: {
     getTerminal: () => ipcRenderer.invoke('settings:get-terminal'),
