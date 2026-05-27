@@ -15,8 +15,19 @@ export interface WindowApi {
   close: () => void
 }
 
+export interface TerminalSettings {
+  fontFamily: string
+  fontSize: number
+}
+
+export interface SettingsApi {
+  getTerminal: () => Promise<TerminalSettings>
+  setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
+}
+
 export interface AppApi {
   window: WindowApi
+  settings: SettingsApi
   terminal: TerminalApi
 }
 

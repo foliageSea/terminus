@@ -3,11 +3,12 @@ import { NIcon } from 'naive-ui'
 import { HolderOutlined } from '@vicons/antd'
 import TerminalPane from './TerminalPane.vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
-import type { PaneDropPayload, PaneNode, SplitDirection } from '../types/terminal'
+import type { PaneDropPayload, PaneNode, SplitDirection, TerminalSettings } from '../types/terminal'
 
 const props = defineProps<{
   node: PaneNode
   activePaneId: string
+  terminalSettings: TerminalSettings
 }>()
 
 const emit = defineEmits<{
@@ -60,6 +61,7 @@ function startGroupDrag(event: DragEvent): void {
     v-if="node.type === 'pane'"
     :pane-id="node.id"
     :active="node.id === activePaneId"
+    :terminal-settings="terminalSettings"
     @activate="emit('activate', $event)"
     @split="(id, direction) => emit('split', id, direction)"
     @close="emit('close', $event)"
@@ -84,6 +86,7 @@ function startGroupDrag(event: DragEvent): void {
       <SplitNode
         :node="node.children[0]"
         :active-pane-id="activePaneId"
+        :terminal-settings="terminalSettings"
         @activate="emit('activate', $event)"
         @split="(id, direction) => emit('split', id, direction)"
         @close="emit('close', $event)"
@@ -95,6 +98,7 @@ function startGroupDrag(event: DragEvent): void {
       <SplitNode
         :node="node.children[1]"
         :active-pane-id="activePaneId"
+        :terminal-settings="terminalSettings"
         @activate="emit('activate', $event)"
         @split="(id, direction) => emit('split', id, direction)"
         @close="emit('close', $event)"

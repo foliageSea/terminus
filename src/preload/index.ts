@@ -8,6 +8,11 @@ const api = {
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close')
   },
+  settings: {
+    getTerminal: () => ipcRenderer.invoke('settings:get-terminal'),
+    setTerminal: (settings: { fontFamily: string; fontSize: number }) =>
+      ipcRenderer.invoke('settings:set-terminal', settings)
+  },
   terminal: {
     create: (id: string, cols?: number, rows?: number) =>
       ipcRenderer.invoke('terminal:create', id, cols, rows),

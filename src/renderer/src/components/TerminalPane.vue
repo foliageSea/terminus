@@ -17,11 +17,12 @@ import {
   getDraggingNodeId,
   setDraggingNodeId
 } from './paneDragState'
-import type { DropSide, PaneDropPayload, SplitDirection } from '../types/terminal'
+import type { DropSide, PaneDropPayload, SplitDirection, TerminalSettings } from '../types/terminal'
 
 const props = defineProps<{
   paneId: string
   active: boolean
+  terminalSettings: TerminalSettings
 }>()
 
 const emit = defineEmits<{
@@ -99,13 +100,21 @@ function fit(): void {
   }
 }
 
+function applyTerminalSettings(): void {
+  if (!terminal) return
+
+  terminal.options.fontFamily = props.terminalSettings.fontFamily
+  terminal.options.fontSize = props.terminalSettings.fontSize
+  fit()
+}
+
 onMounted(async () => {
   if (!host.value) return
 
   terminal = new Terminal({
     cursorBlink: true,
-    fontFamily: 'Cascadia Mono, Consolas, monospace',
-    fontSize: 13,
+    fontFamily: props.terminalSettings.fontFamily,
+    fontSize: props.terminalSettings.fontSize,
     lineHeight: 1.2,
     theme: {
       background: '#0b0f17',
@@ -145,6 +154,12 @@ watch(
     terminal?.focus()
     fit()
   }
+)
+
+watch(
+  () => props.terminalSettings,
+  () => applyTerminalSettings(),
+  { deep: true }
 )
 
 onBeforeUnmount(() => {

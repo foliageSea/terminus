@@ -1,12 +1,34 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { NButton, NIcon, NLayout, NLayoutHeader, NTabPane, NTabs } from 'naive-ui'
-import { PlusOutlined } from '@vicons/antd'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import {
+  NButton,
+  NForm,
+  NFormItem,
+  NIcon,
+  NInput,
+  NInputNumber,
+  NLayout,
+  NLayoutHeader,
+  NPopover,
+  NTabPane,
+  NTabs
+} from 'naive-ui'
+import { PlusOutlined, SettingOutlined } from '@vicons/antd'
 import SplitNode from './SplitNode.vue'
-import type { PaneDropPayload, PaneNode, SplitDirection, TerminalTab } from '../types/terminal'
+import type {
+  PaneDropPayload,
+  PaneNode,
+  SplitDirection,
+  TerminalSettings,
+  TerminalTab
+} from '../types/terminal'
 
 let nextId = 1
 let nextShellNumber = 1
+const defaultTerminalSettings: TerminalSettings = {
+  fontFamily: 'Cascadia Mono, Consolas, monospace',
+  fontSize: 13
+}
 
 function createId(prefix: string): string {
   nextId += 1
@@ -24,10 +46,18 @@ function createTab(title?: string): TerminalTab {
   }
 }
 
+function normalizeFontSize(value: unknown): number {
+  const fontSize = Number(value)
+  if (!Number.isFinite(fontSize)) return defaultTerminalSettings.fontSize
+  return Math.min(32, Math.max(8, Math.round(fontSize)))
+}
+
 const tabs = ref<TerminalTab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
 const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
+const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
+const terminalSettingsLoaded = ref(false)
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -182,6 +212,15 @@ function closeWindow(): void {
   window.api.window.close()
 }
 
+function normalizeFontFamily(): void {
+  terminalSettings.fontFamily =
+    terminalSettings.fontFamily.trim() || defaultTerminalSettings.fontFamily
+}
+
+function updateFontSize(value: number | null): void {
+  terminalSettings.fontSize = normalizeFontSize(value)
+}
+
 function closeTab(tabId: string): void {
   if (tabs.value.length === 1) return
 
@@ -229,6 +268,21 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
   tab.activePaneId = firstPaneId(removed)
   tab.layoutVersion += 1
 }
+
+watch(
+  terminalSettings,
+  async () => {
+    if (!terminalSettingsLoaded.value) return
+    await window.api.settings.setTerminal({ ...terminalSettings })
+  },
+  { deep: true }
+)
+
+onMounted(async () => {
+  const savedSettings = await window.api.settings.getTerminal()
+  Object.assign(terminalSettings, savedSettings)
+  terminalSettingsLoaded.value = true
+})
 </script>
 
 <template>
@@ -277,20 +331,54 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
           </template>
         </NTabPane>
       </NTabs>
-      <NButton
-        class="new-tab-button"
-        size="small"
-        secondary
-        circle
-        title="新建 Tab"
-        @click="addTab"
-      >
-        <template #icon>
-          <NIcon>
-            <PlusOutlined />
-          </NIcon>
-        </template>
-      </NButton>
+      <div class="header-actions">
+        <NButton
+          class="new-tab-button"
+          size="small"
+          secondary
+          circle
+          title="新建 Tab"
+          @click="addTab"
+        >
+          <template #icon>
+            <NIcon>
+              <PlusOutlined />
+            </NIcon>
+          </template>
+        </NButton>
+        <NPopover trigger="click" placement="bottom-end">
+          <template #trigger>
+            <NButton class="settings-button" size="small" secondary circle title="终端设置">
+              <template #icon>
+                <NIcon>
+                  <SettingOutlined />
+                </NIcon>
+              </template>
+            </NButton>
+          </template>
+
+          <NForm class="terminal-settings" label-placement="top" size="small">
+            <NFormItem label="字体" path="fontFamily">
+              <NInput
+                v-model:value="terminalSettings.fontFamily"
+                placeholder="Cascadia Mono, Consolas, monospace"
+                clearable
+                @blur="normalizeFontFamily"
+              />
+            </NFormItem>
+            <NFormItem label="字号" path="fontSize">
+              <NInputNumber
+                :value="terminalSettings.fontSize"
+                :min="8"
+                :max="32"
+                :step="1"
+                button-placement="both"
+                @update:value="updateFontSize"
+              />
+            </NFormItem>
+          </NForm>
+        </NPopover>
+      </div>
     </NLayoutHeader>
 
     <main class="workspace-body">
@@ -298,6 +386,7 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
         :key="`${activeTab.id}:${activeTab.layoutVersion}`"
         :node="activeTab.root"
         :active-pane-id="activeTab.activePaneId"
+        :terminal-settings="terminalSettings"
         @activate="activeTab.activePaneId = $event"
         @split="handleSplit"
         @close="handleClosePane"
@@ -328,5 +417,14 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
   border: 1px solid var(--n-tab-text-color-active);
   border-radius: 4px;
   outline: none;
+}
+
+.settings-button {
+  margin-left: 6px;
+}
+
+.terminal-settings {
+  width: 260px;
+  padding: 4px;
 }
 </style>

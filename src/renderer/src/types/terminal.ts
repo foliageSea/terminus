@@ -30,3 +30,8 @@ export interface TerminalTab {
   activePaneId: string
   layoutVersion: number
 }
+
+export interface TerminalSettings {
+  fontFamily: string
+  fontSize: number
+}

@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import os from 'os'
 import { spawn, IPty } from 'node-pty'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -8,6 +9,60 @@ import icon from '../../resources/icon.png?asset'
 const terminals = new Map<string, IPty>()
 const terminalHistories = new Map<string, string>()
 const maxHistoryLength = 200_000
+
+interface TerminalSettings {
+  fontFamily: string
+  fontSize: number
+}
+
+const defaultTerminalSettings: TerminalSettings = {
+  fontFamily: 'Cascadia Mono, Consolas, monospace',
+  fontSize: 13
+}
+
+function normalizeFontSize(value: unknown): number {
+  const fontSize = Number(value)
+  if (!Number.isFinite(fontSize)) return defaultTerminalSettings.fontSize
+  return Math.min(32, Math.max(8, Math.round(fontSize)))
+}
+
+function normalizeTerminalSettings(value: unknown): TerminalSettings {
+  const settings = value && typeof value === 'object' ? (value as Partial<TerminalSettings>) : {}
+
+  return {
+    fontFamily: settings.fontFamily?.trim() || defaultTerminalSettings.fontFamily,
+    fontSize: normalizeFontSize(settings.fontSize)
+  }
+}
+
+function getSettingsPath(): string {
+  return join(app.getPath('userData'), 'settings.json')
+}
+
+function readTerminalSettings(): TerminalSettings {
+  const settingsPath = getSettingsPath()
+  if (!existsSync(settingsPath)) return { ...defaultTerminalSettings }
+
+  try {
+    return normalizeTerminalSettings(JSON.parse(readFileSync(settingsPath, 'utf-8')))
+  } catch {
+    return { ...defaultTerminalSettings }
+  }
+}
+
+function writeTerminalSettings(settings: TerminalSettings): TerminalSettings {
+  const normalizedSettings = normalizeTerminalSettings(settings)
+  mkdirSync(app.getPath('userData'), { recursive: true })
+  writeFileSync(getSettingsPath(), JSON.stringify(normalizedSettings, null, 2), 'utf-8')
+  return normalizedSettings
+}
+
+function registerSettingsIpc(): void {
+  ipcMain.handle('settings:get-terminal', () => readTerminalSettings())
+  ipcMain.handle('settings:set-terminal', (_, settings: TerminalSettings) =>
+    writeTerminalSettings(settings)
+  )
+}
 
 function registerTerminalIpc(): void {
   ipcMain.handle('terminal:create', (event, id: string, cols = 80, rows = 24) => {
@@ -128,6 +183,7 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+  registerSettingsIpc()
   registerTerminalIpc()
   registerWindowIpc()
 
