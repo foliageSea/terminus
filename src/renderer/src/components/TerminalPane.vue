@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
         >
           <template #icon>
             <NIcon>
-              <BorderVerticleOutlined />
+              <BorderHorizontalOutlined />
             </NIcon>
           </template>
         </NButton>
@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
         >
           <template #icon>
             <NIcon>
-              <BorderHorizontalOutlined />
+              <BorderVerticleOutlined />
             </NIcon>
           </template>
         </NButton>
