@@ -20,9 +20,15 @@ export interface TerminalSettings {
   fontSize: number
 }
 
+export interface ThemeSettings {
+  primaryColor: string
+}
+
 export interface SettingsApi {
   getTerminal: () => Promise<TerminalSettings>
   setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
+  getTheme: () => Promise<ThemeSettings>
+  setTheme: (settings: ThemeSettings) => Promise<ThemeSettings>
 }
 
 export interface AppApi {

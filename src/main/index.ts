@@ -15,9 +15,22 @@ interface TerminalSettings {
   fontSize: number
 }
 
+interface ThemeSettings {
+  primaryColor: string
+}
+
+interface AppSettings {
+  terminal: TerminalSettings
+  theme: ThemeSettings
+}
+
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
   fontSize: 13
+}
+
+const defaultThemeSettings: ThemeSettings = {
+  primaryColor: '#63e2b7'
 }
 
 function normalizeFontSize(value: unknown): number {
@@ -35,26 +48,74 @@ function normalizeTerminalSettings(value: unknown): TerminalSettings {
   }
 }
 
+function normalizeThemeColor(value: unknown): string {
+  if (typeof value !== 'string') return defaultThemeSettings.primaryColor
+
+  const color = value.trim()
+  if (/^#[\da-f]{6}$/i.test(color)) return color.toLowerCase()
+  if (/^#[\da-f]{3}$/i.test(color)) {
+    return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`.toLowerCase()
+  }
+  return defaultThemeSettings.primaryColor
+}
+
+function normalizeThemeSettings(value: unknown): ThemeSettings {
+  const settings = value && typeof value === 'object' ? (value as Partial<ThemeSettings>) : {}
+
+  return {
+    primaryColor: normalizeThemeColor(settings.primaryColor)
+  }
+}
+
+function normalizeAppSettings(value: unknown): AppSettings {
+  const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
+  const legacyTerminalSettings =
+    'fontFamily' in settings || 'fontSize' in settings ? value : undefined
+
+  return {
+    terminal: normalizeTerminalSettings(settings.terminal ?? legacyTerminalSettings),
+    theme: normalizeThemeSettings(settings.theme)
+  }
+}
+
 function getSettingsPath(): string {
   return join(app.getPath('userData'), 'settings.json')
 }
 
-function readTerminalSettings(): TerminalSettings {
+function readAppSettings(): AppSettings {
   const settingsPath = getSettingsPath()
-  if (!existsSync(settingsPath)) return { ...defaultTerminalSettings }
+  if (!existsSync(settingsPath)) return normalizeAppSettings(undefined)
 
   try {
-    return normalizeTerminalSettings(JSON.parse(readFileSync(settingsPath, 'utf-8')))
+    return normalizeAppSettings(JSON.parse(readFileSync(settingsPath, 'utf-8')))
   } catch {
-    return { ...defaultTerminalSettings }
+    return normalizeAppSettings(undefined)
   }
 }
 
-function writeTerminalSettings(settings: TerminalSettings): TerminalSettings {
-  const normalizedSettings = normalizeTerminalSettings(settings)
+function writeAppSettings(settings: AppSettings): AppSettings {
+  const normalizedSettings = normalizeAppSettings(settings)
   mkdirSync(app.getPath('userData'), { recursive: true })
   writeFileSync(getSettingsPath(), JSON.stringify(normalizedSettings, null, 2), 'utf-8')
   return normalizedSettings
+}
+
+function readTerminalSettings(): TerminalSettings {
+  return readAppSettings().terminal
+}
+
+function writeTerminalSettings(settings: TerminalSettings): TerminalSettings {
+  const nextSettings = writeAppSettings({ ...readAppSettings(), terminal: settings })
+  return nextSettings.terminal
+}
+
+function readThemeSettings(): ThemeSettings {
+  return readAppSettings().theme
+}
+
+function writeThemeSettings(settings: ThemeSettings): ThemeSettings {
+  const nextSettings = writeAppSettings({ ...readAppSettings(), theme: settings })
+  return nextSettings.theme
 }
 
 function registerSettingsIpc(): void {
@@ -62,6 +123,8 @@ function registerSettingsIpc(): void {
   ipcMain.handle('settings:set-terminal', (_, settings: TerminalSettings) =>
     writeTerminalSettings(settings)
   )
+  ipcMain.handle('settings:get-theme', () => readThemeSettings())
+  ipcMain.handle('settings:set-theme', (_, settings: ThemeSettings) => writeThemeSettings(settings))
 }
 
 function registerTerminalIpc(): void {

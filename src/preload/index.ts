@@ -11,7 +11,10 @@ const api = {
   settings: {
     getTerminal: () => ipcRenderer.invoke('settings:get-terminal'),
     setTerminal: (settings: { fontFamily: string; fontSize: number }) =>
-      ipcRenderer.invoke('settings:set-terminal', settings)
+      ipcRenderer.invoke('settings:set-terminal', settings),
+    getTheme: () => ipcRenderer.invoke('settings:get-theme'),
+    setTheme: (settings: { primaryColor: string }) =>
+      ipcRenderer.invoke('settings:set-theme', settings)
   },
   terminal: {
     create: (id: string, cols?: number, rows?: number) =>

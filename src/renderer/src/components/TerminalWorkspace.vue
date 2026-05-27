@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
+  NColorPicker,
   NForm,
   NFormItem,
   NIcon,
@@ -11,7 +12,8 @@ import {
   NLayoutHeader,
   NPopover,
   NTabPane,
-  NTabs
+  NTabs,
+  useThemeVars
 } from 'naive-ui'
 import { PlusOutlined, SettingOutlined } from '@vicons/antd'
 import SplitNode from './SplitNode.vue'
@@ -22,6 +24,14 @@ import type {
   TerminalSettings,
   TerminalTab
 } from '../types/terminal'
+
+const props = defineProps<{
+  primaryColor: string
+}>()
+
+const emit = defineEmits<{
+  updatePrimaryColor: [color: string]
+}>()
 
 let nextId = 1
 let nextShellNumber = 1
@@ -58,10 +68,15 @@ const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
+const themeVars = useThemeVars()
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
 )
+const workspaceThemeStyle = computed(() => ({
+  '--terminal-active-color': themeVars.value.primaryColor,
+  '--terminal-active-color-hover': themeVars.value.primaryColorHover
+}))
 
 function findPane(node: PaneNode, paneId: string): boolean {
   if (node.type === 'pane') return node.id === paneId
@@ -221,6 +236,10 @@ function updateFontSize(value: number | null): void {
   terminalSettings.fontSize = normalizeFontSize(value)
 }
 
+function updatePrimaryColor(color: string): void {
+  emit('updatePrimaryColor', color)
+}
+
 function closeTab(tabId: string): void {
   if (tabs.value.length === 1) return
 
@@ -286,7 +305,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <NLayout class="workspace" embedded>
+  <NLayout class="workspace" :style="workspaceThemeStyle" embedded>
     <NLayoutHeader class="workspace-header" bordered>
       <div class="window-controls" aria-label="窗口控制">
         <button
@@ -374,6 +393,14 @@ onMounted(async () => {
                 :step="1"
                 button-placement="both"
                 @update:value="updateFontSize"
+              />
+            </NFormItem>
+            <NFormItem label="主题色" path="primaryColor">
+              <NColorPicker
+                :value="props.primaryColor"
+                :show-alpha="false"
+                :modes="['hex']"
+                @update:value="updatePrimaryColor"
               />
             </NFormItem>
           </NForm>
