@@ -400,7 +400,9 @@ onMounted(async () => {
 .tab-title {
   display: inline-block;
   max-width: 120px;
+  padding: 0 8px;
   overflow: hidden;
+  font-weight: 600;
   text-overflow: ellipsis;
   vertical-align: bottom;
   white-space: nowrap;
@@ -410,9 +412,10 @@ onMounted(async () => {
   box-sizing: border-box;
   width: 92px;
   height: 22px;
-  padding: 0 6px;
+  padding: 0 8px;
   color: inherit;
   font: inherit;
+  font-weight: 600;
   background: transparent;
   border: 1px solid var(--n-tab-text-color-active);
   border-radius: 4px;
