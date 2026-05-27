@@ -5,6 +5,7 @@ import SplitNode from './SplitNode.vue'
 import type { PaneDropPayload, PaneNode, SplitDirection, TerminalTab } from '../types/terminal'
 
 let nextId = 1
+let nextShellNumber = 1
 
 function createId(prefix: string): string {
   nextId += 1
@@ -15,15 +16,17 @@ function createTab(title?: string): TerminalTab {
   const paneId = createId('pane')
   return {
     id: createId('tab'),
-    title: title ?? `终端 ${nextId}`,
+    title: title ?? `Shell${nextShellNumber++}`,
     root: { type: 'pane', id: paneId },
     activePaneId: paneId,
     layoutVersion: 0
   }
 }
 
-const tabs = ref<TerminalTab[]>([createTab('PowerShell')])
+const tabs = ref<TerminalTab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
+const editingTabId = ref<string | undefined>()
+const editingTitle = ref('')
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -149,6 +152,23 @@ function addTab(): void {
   activeTabId.value = tab.id
 }
 
+function startRenameTab(tab: TerminalTab): void {
+  editingTabId.value = tab.id
+  editingTitle.value = tab.title
+}
+
+function finishRenameTab(tab: TerminalTab): void {
+  if (editingTabId.value !== tab.id) return
+
+  const nextTitle = editingTitle.value.trim()
+  if (nextTitle) tab.title = nextTitle
+  editingTabId.value = undefined
+}
+
+function cancelRenameTab(): void {
+  editingTabId.value = undefined
+}
+
 function minimizeWindow(): void {
   window.api.window.minimize()
 }
@@ -237,7 +257,24 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
         />
       </div>
       <NTabs v-model:value="activeTabId" type="card" size="small" closable @close="closeTab">
-        <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab="tab.title" />
+        <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id">
+          <template #tab>
+            <input
+              v-if="editingTabId === tab.id"
+              v-model="editingTitle"
+              class="tab-title-input"
+              type="text"
+              autofocus
+              @click.stop
+              @blur="finishRenameTab(tab)"
+              @keydown.enter.prevent="finishRenameTab(tab)"
+              @keydown.esc.prevent="cancelRenameTab"
+            />
+            <span v-else class="tab-title" :title="tab.title" @dblclick.stop="startRenameTab(tab)">
+              {{ tab.title }}
+            </span>
+          </template>
+        </NTabPane>
       </NTabs>
       <NButton
         class="new-tab-button"
@@ -264,3 +301,27 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
     </main>
   </NLayout>
 </template>
+
+<style scoped>
+.tab-title {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.tab-title-input {
+  box-sizing: border-box;
+  width: 92px;
+  height: 22px;
+  padding: 0 6px;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 1px solid var(--n-tab-text-color-active);
+  border-radius: 4px;
+  outline: none;
+}
+</style>

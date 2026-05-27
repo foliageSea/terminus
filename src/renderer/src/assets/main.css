@@ -126,8 +126,16 @@ button {
 }
 
 .workspace-header .n-tabs,
-.workspace-header .n-tabs *,
-.new-tab-button {
+.workspace-header .n-tabs-nav,
+.workspace-header .n-tabs-nav-scroll-wrapper,
+.workspace-header .n-tabs-nav-scroll-content {
+  -webkit-app-region: drag;
+}
+
+.workspace-header .n-tabs-tab,
+.workspace-header .n-tabs-tab *,
+.new-tab-button,
+.new-tab-button * {
   -webkit-app-region: no-drag;
 }
 
