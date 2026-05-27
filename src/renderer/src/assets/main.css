@@ -141,6 +141,22 @@ button {
   -webkit-app-region: no-drag;
 }
 
+.workspace-header .n-tabs-tab {
+  position: relative;
+}
+
+.workspace-header .n-tabs-tab.n-tabs-tab--active::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 2px;
+  background: var(--terminal-active-color);
+  border-radius: 999px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--terminal-active-color) 55%, transparent);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
