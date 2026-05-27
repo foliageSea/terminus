@@ -21,6 +21,7 @@ import type { DropSide, PaneDropPayload, SplitDirection, TerminalSettings } from
 
 const props = defineProps<{
   paneId: string
+  cwd?: string
   active: boolean
   terminalSettings: TerminalSettings
 }>()
@@ -142,7 +143,7 @@ onMounted(async () => {
 
   await nextTick()
   fit()
-  await window.api.terminal.create(props.paneId, terminal.cols, terminal.rows)
+  await window.api.terminal.create(props.paneId, terminal.cols, terminal.rows, props.cwd)
   terminal.focus()
 })
 

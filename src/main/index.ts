@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import os from 'os'
 import { spawn, IPty } from 'node-pty'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -9,6 +9,12 @@ import icon from '../../resources/icon.png?asset'
 const terminals = new Map<string, IPty>()
 const terminalHistories = new Map<string, string>()
 const maxHistoryLength = 200_000
+const escapeCharacter = String.fromCharCode(27)
+const bellCharacter = String.fromCharCode(7)
+const cwdPattern = new RegExp(
+  `${escapeCharacter}\\]633;P;Cwd=([^${bellCharacter}${escapeCharacter}]*)(?:${bellCharacter}|${escapeCharacter}\\\\)`,
+  'g'
+)
 
 interface TerminalSettings {
   fontFamily: string
@@ -127,26 +133,63 @@ function registerSettingsIpc(): void {
   ipcMain.handle('settings:set-theme', (_, settings: ThemeSettings) => writeThemeSettings(settings))
 }
 
+function resolveTerminalCwd(cwd: unknown): string {
+  if (typeof cwd !== 'string') return os.homedir()
+
+  const trimmedCwd = cwd.trim()
+  if (!trimmedCwd) return os.homedir()
+
+  try {
+    return statSync(trimmedCwd).isDirectory() ? trimmedCwd : os.homedir()
+  } catch {
+    return os.homedir()
+  }
+}
+
+function powershellCwdPromptCommand(): string {
+  return '$function:__terminus_original_prompt = $function:prompt; function global:prompt { $esc = [char]27; $cwd = (Get-Location).ProviderPath; if ($cwd) { [Console]::Write("$esc]633;P;Cwd=$cwd$esc\\") }; & $function:__terminus_original_prompt }'
+}
+
+function extractTerminalCwd(data: string): string | undefined {
+  let cwd: string | undefined
+  let match: RegExpExecArray | null
+
+  cwdPattern.lastIndex = 0
+  while ((match = cwdPattern.exec(data))) {
+    cwd = match[1]
+  }
+  return cwd
+}
+
 function registerTerminalIpc(): void {
-  ipcMain.handle('terminal:create', (event, id: string, cols = 80, rows = 24) => {
+  ipcMain.handle('terminal:create', (event, id: string, cols = 80, rows = 24, cwd?: string) => {
     if (terminals.has(id)) {
       const history = terminalHistories.get(id)
       if (history) event.sender.send('terminal:data', { id, data: history })
       return
     }
 
+    const initialCwd = resolveTerminalCwd(cwd)
     const shellPath =
       process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash'
-    const shellArgs = process.platform === 'win32' ? ['-NoLogo'] : []
+    const shellArgs =
+      process.platform === 'win32'
+        ? ['-NoLogo', '-NoExit', '-Command', powershellCwdPromptCommand()]
+        : []
     const terminal = spawn(shellPath, shellArgs, {
       name: 'xterm-256color',
       cols,
       rows,
-      cwd: os.homedir(),
+      cwd: initialCwd,
       env: process.env
     })
 
+    event.sender.send('terminal:cwd', { id, cwd: initialCwd })
+
     terminal.onData((data) => {
+      const cwd = extractTerminalCwd(data)
+      if (cwd) event.sender.send('terminal:cwd', { id, cwd })
+
       const history = `${terminalHistories.get(id) ?? ''}${data}`
       terminalHistories.set(id, history.slice(-maxHistoryLength))
       event.sender.send('terminal:data', { id, data })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
   NColorPicker,
@@ -69,6 +69,7 @@ const editingTitle = ref('')
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
 const themeVars = useThemeVars()
+let removeCwdListener: (() => void) | undefined
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -94,6 +95,16 @@ function collectPaneIds(node: PaneNode): string[] {
   return node.children.flatMap((child) => collectPaneIds(child))
 }
 
+function updatePaneCwd(node: PaneNode, paneId: string, cwd: string): boolean {
+  if (node.type === 'split') {
+    return node.children.some((child) => updatePaneCwd(child, paneId, cwd))
+  }
+
+  if (node.id !== paneId) return false
+  node.cwd = cwd
+  return true
+}
+
 function splitPane(node: PaneNode, paneId: string, direction: SplitDirection): boolean {
   if (node.type === 'split') {
     return node.children.some((child) => splitPane(child, paneId, direction))
@@ -102,14 +113,15 @@ function splitPane(node: PaneNode, paneId: string, direction: SplitDirection): b
   if (node.id !== paneId) return false
 
   const nextPaneId = createId('pane')
+  const cwd = node.cwd
   Object.assign(node, {
     type: 'split',
     id: createId('split'),
     direction,
     ratio: 0.5,
     children: [
-      { type: 'pane', id: paneId },
-      { type: 'pane', id: nextPaneId }
+      { type: 'pane', id: paneId, cwd },
+      { type: 'pane', id: nextPaneId, cwd }
     ]
   })
   activeTab.value.activePaneId = nextPaneId
@@ -298,9 +310,17 @@ watch(
 )
 
 onMounted(async () => {
+  removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
+    tabs.value.some((tab) => updatePaneCwd(tab.root, id, cwd))
+  })
+
   const savedSettings = await window.api.settings.getTerminal()
   Object.assign(terminalSettings, savedSettings)
   terminalSettingsLoaded.value = true
+})
+
+onBeforeUnmount(() => {
+  removeCwdListener?.()
 })
 </script>
 

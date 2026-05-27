@@ -60,6 +60,7 @@ function startGroupDrag(event: DragEvent): void {
   <TerminalPane
     v-if="node.type === 'pane'"
     :pane-id="node.id"
+    :cwd="node.cwd"
     :active="node.id === activePaneId"
     :terminal-settings="terminalSettings"
     @activate="emit('activate', $event)"

@@ -17,8 +17,8 @@ const api = {
       ipcRenderer.invoke('settings:set-theme', settings)
   },
   terminal: {
-    create: (id: string, cols?: number, rows?: number) =>
-      ipcRenderer.invoke('terminal:create', id, cols, rows),
+    create: (id: string, cols?: number, rows?: number, cwd?: string) =>
+      ipcRenderer.invoke('terminal:create', id, cols, rows, cwd),
     write: (id: string, data: string) => ipcRenderer.send('terminal:input', id, data),
     resize: (id: string, cols: number, rows: number) =>
       ipcRenderer.send('terminal:resize', id, cols, rows),
@@ -38,6 +38,13 @@ const api = {
 
       ipcRenderer.on('terminal:exit', listener)
       return () => ipcRenderer.removeListener('terminal:exit', listener)
+    },
+    onCwd: (callback: (payload: { id: string; cwd: string }) => void) => {
+      const listener = (_: Electron.IpcRendererEvent, payload: { id: string; cwd: string }): void =>
+        callback(payload)
+
+      ipcRenderer.on('terminal:cwd', listener)
+      return () => ipcRenderer.removeListener('terminal:cwd', listener)
     }
   }
 }

@@ -11,6 +11,7 @@ export interface PaneDropPayload {
 export interface PaneLeaf {
   type: 'pane'
   id: string
+  cwd?: string
 }
 
 export interface SplitNode {
