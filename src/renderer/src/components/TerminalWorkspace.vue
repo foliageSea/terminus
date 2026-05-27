@@ -107,12 +107,19 @@ function removeNode(node: PaneNode, nodeId: string): { root?: PaneNode; removed?
   return { root: node }
 }
 
-function insertNode(node: PaneNode, targetPaneId: string, source: PaneNode, side: PaneDropPayload['side']): PaneNode {
+function insertNode(
+  node: PaneNode,
+  targetPaneId: string,
+  source: PaneNode,
+  side: PaneDropPayload['side']
+): PaneNode {
   if (node.type === 'pane') {
     if (node.id !== targetPaneId) return node
 
-    const direction: SplitDirection = side === 'left' || side === 'right' ? 'horizontal' : 'vertical'
-    const children: [PaneNode, PaneNode] = side === 'left' || side === 'top' ? [source, node] : [node, source]
+    const direction: SplitDirection =
+      side === 'left' || side === 'right' ? 'horizontal' : 'vertical'
+    const children: [PaneNode, PaneNode] =
+      side === 'left' || side === 'top' ? [source, node] : [node, source]
 
     return {
       type: 'split',
@@ -140,6 +147,18 @@ function addTab(): void {
   const tab = createTab()
   tabs.value.push(tab)
   activeTabId.value = tab.id
+}
+
+function minimizeWindow(): void {
+  window.api.window.minimize()
+}
+
+function toggleMaximizeWindow(): void {
+  window.api.window.toggleMaximize()
+}
+
+function closeWindow(): void {
+  window.api.window.close()
 }
 
 function closeTab(tabId: string): void {
@@ -194,11 +213,42 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
 <template>
   <NLayout class="workspace" embedded>
     <NLayoutHeader class="workspace-header" bordered>
-      <div class="brand">Terminus</div>
+      <div class="window-controls" aria-label="窗口控制">
+        <button
+          class="window-control close"
+          type="button"
+          aria-label="关闭窗口"
+          title="关闭"
+          @click="closeWindow"
+        />
+        <button
+          class="window-control minimize"
+          type="button"
+          aria-label="最小化窗口"
+          title="最小化"
+          @click="minimizeWindow"
+        />
+        <button
+          class="window-control maximize"
+          type="button"
+          aria-label="最大化或还原窗口"
+          title="最大化/还原"
+          @click="toggleMaximizeWindow"
+        />
+      </div>
       <NTabs v-model:value="activeTabId" type="card" size="small" closable @close="closeTab">
         <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab="tab.title" />
       </NTabs>
-      <NButton size="small" secondary @click="addTab">新建 Tab</NButton>
+      <NButton
+        class="new-tab-button"
+        size="small"
+        secondary
+        circle
+        title="新建 Tab"
+        @click="addTab"
+      >
+        <span class="new-tab-icon" aria-hidden="true" />
+      </NButton>
     </NLayoutHeader>
 
     <main class="workspace-body">

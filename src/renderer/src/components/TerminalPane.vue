@@ -5,7 +5,12 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
-import { clearDraggingNodeId, dragDataType, getDraggingNodeId, setDraggingNodeId } from './paneDragState'
+import {
+  clearDraggingNodeId,
+  dragDataType,
+  getDraggingNodeId,
+  setDraggingNodeId
+} from './paneDragState'
 import type { DropSide, PaneDropPayload, SplitDirection } from '../types/terminal'
 
 const props = defineProps<{
@@ -153,34 +158,55 @@ onBeforeUnmount(() => {
     @dragleave="dropSide = undefined"
     @drop="handleDrop"
   >
-    <button
-      class="pane-drag-handle"
-      type="button"
-      draggable="true"
-      aria-label="拖动分屏"
-      title="拖动分屏"
-      @pointerdown.stop="emit('activate', paneId)"
-      @dragstart="handleDragStart"
-      @dragend="handleDragEnd"
-    >
-      <span />
-      <span />
-      <span />
-      <span />
-      <span />
-      <span />
-    </button>
+    <div class="pane-bar">
+      <button
+        class="pane-drag-handle"
+        type="button"
+        draggable="true"
+        aria-label="拖动分屏"
+        title="拖动分屏"
+        @pointerdown.stop="emit('activate', paneId)"
+        @dragstart="handleDragStart"
+        @dragend="handleDragEnd"
+      >
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+      </button>
 
-    <div class="pane-toolbar" aria-label="分屏操作">
-      <NButton size="tiny" secondary circle title="左右分屏" @click.stop="emit('split', paneId, 'horizontal')">
-        <span class="pane-action-icon split-horizontal" aria-hidden="true" />
-      </NButton>
-      <NButton size="tiny" secondary circle title="上下分屏" @click.stop="emit('split', paneId, 'vertical')">
-        <span class="pane-action-icon split-vertical" aria-hidden="true" />
-      </NButton>
-      <NButton size="tiny" secondary circle type="error" title="关闭" @click.stop="emit('close', paneId)">
-        <span class="pane-action-icon close" aria-hidden="true" />
-      </NButton>
+      <div class="pane-bar-spacer" />
+
+      <div class="pane-action-bar" aria-label="分屏操作">
+        <NButton
+          size="tiny"
+          quaternary
+          title="左右分屏"
+          @click.stop="emit('split', paneId, 'horizontal')"
+        >
+          <span class="pane-action-icon split-horizontal" aria-hidden="true" />
+        </NButton>
+        <NButton
+          size="tiny"
+          quaternary
+          title="上下分屏"
+          @click.stop="emit('split', paneId, 'vertical')"
+        >
+          <span class="pane-action-icon split-vertical" aria-hidden="true" />
+        </NButton>
+        <span class="pane-action-divider" />
+        <NButton
+          size="tiny"
+          quaternary
+          type="error"
+          title="关闭"
+          @click.stop="emit('close', paneId)"
+        >
+          <span class="pane-action-icon close" aria-hidden="true" />
+        </NButton>
+      </div>
     </div>
     <div ref="host" class="terminal-host" />
   </section>

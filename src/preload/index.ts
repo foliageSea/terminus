@@ -3,6 +3,11 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
+  window: {
+    minimize: () => ipcRenderer.send('window:minimize'),
+    toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
+    close: () => ipcRenderer.send('window:close')
+  },
   terminal: {
     create: (id: string, cols?: number, rows?: number) =>
       ipcRenderer.invoke('terminal:create', id, cols, rows),

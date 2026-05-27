@@ -9,7 +9,14 @@ export interface TerminalApi {
   onExit: (callback: (payload: { id: string }) => void) => () => void
 }
 
+export interface WindowApi {
+  minimize: () => void
+  toggleMaximize: () => void
+  close: () => void
+}
+
 export interface AppApi {
+  window: WindowApi
   terminal: TerminalApi
 }
 
