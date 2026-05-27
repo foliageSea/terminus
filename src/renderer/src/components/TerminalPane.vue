@@ -129,6 +129,12 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
   return false
 }
 
+function handleTerminalWheel(event: WheelEvent): boolean {
+  // Keep wheel input inside xterm so TUI apps with mouse support can receive it.
+  event.stopPropagation()
+  return true
+}
+
 onMounted(async () => {
   if (!host.value) return
 
@@ -148,6 +154,7 @@ onMounted(async () => {
   terminal.loadAddon(fitAddon)
   terminal.loadAddon(new WebLinksAddon())
   terminal.attachCustomKeyEventHandler(handleTerminalKey)
+  terminal.attachCustomWheelEventHandler(handleTerminalWheel)
   terminal.open(host.value)
 
   terminal.onData((data) => window.api.terminal.write(props.paneId, data))
