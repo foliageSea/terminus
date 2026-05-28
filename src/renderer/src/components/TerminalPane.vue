@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
-import {
-  BorderHorizontalOutlined,
-  BorderVerticleOutlined,
-  CloseOutlined
-} from '@vicons/antd'
+import { BorderHorizontalOutlined, BorderVerticleOutlined, CloseOutlined } from '@vicons/antd'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -34,11 +30,13 @@ const emit = defineEmits<{
 
 const host = ref<HTMLDivElement>()
 const dropSide = ref<DropSide>()
+const copyBubbleVisible = ref(false)
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
 let resizeObserver: ResizeObserver | undefined
 let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
+let copyBubbleTimer: number | undefined
 
 function resolveDropSide(event: DragEvent): DropSide {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -121,18 +119,29 @@ function pasteClipboardText(): void {
   terminal?.paste(text)
 }
 
+function showCopyBubble(): void {
+  copyBubbleVisible.value = true
+  if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
+  copyBubbleTimer = window.setTimeout(() => {
+    copyBubbleVisible.value = false
+    copyBubbleTimer = undefined
+  }, 1200)
+}
+
 function copySelectedText(): void {
   const text = terminal?.getSelection()
   if (!text) return
 
   window.api.clipboard.writeText(text)
+  showCopyBubble()
 }
 
 function handleTerminalKey(event: KeyboardEvent): boolean {
   if (event.type !== 'keydown' || event.repeat) return true
 
   const key = event.key.toLowerCase()
-  const isCopyShortcut = key === 'c' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
+  const isCopyShortcut =
+    key === 'c' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
   const isPasteShortcut =
     (key === 'v' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) ||
     (key === 'insert' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey)
@@ -214,6 +223,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
   removeDataListener?.()
   removeExitListener?.()
   resizeObserver?.disconnect()
@@ -230,6 +240,9 @@ onBeforeUnmount(() => {
     @dragleave="dropSide = undefined"
     @drop="handleDrop"
   >
+    <Transition name="copy-bubble">
+      <div v-if="copyBubbleVisible" class="copy-bubble" role="status">已复制</div>
+    </Transition>
     <div
       class="pane-bar"
       draggable="true"
@@ -240,12 +253,7 @@ onBeforeUnmount(() => {
     >
       <div class="pane-bar-spacer" />
 
-      <div
-        class="pane-action-bar"
-        aria-label="分屏操作"
-        draggable="false"
-        @dragstart.stop.prevent
-      >
+      <div class="pane-action-bar" aria-label="分屏操作" draggable="false" @dragstart.stop.prevent>
         <NButton
           size="tiny"
           quaternary

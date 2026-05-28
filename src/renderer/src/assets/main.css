@@ -293,6 +293,38 @@ button {
     0 0 32px color-mix(in srgb, var(--terminal-active-color-hover) 16%, transparent);
 }
 
+.copy-bubble {
+  position: absolute;
+  top: 42px;
+  right: 12px;
+  z-index: 6;
+  padding: 5px 10px;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid color-mix(in srgb, var(--terminal-active-color) 56%, rgba(148, 163, 184, 0.34));
+  border-radius: 999px;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.26),
+    0 0 18px color-mix(in srgb, var(--terminal-active-color) 18%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.copy-bubble-enter-active,
+.copy-bubble-leave-active {
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.copy-bubble-enter-from,
+.copy-bubble-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.96);
+}
+
 .terminal-pane::after {
   content: '';
   position: absolute;
