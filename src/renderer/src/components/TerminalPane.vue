@@ -117,6 +117,8 @@ function pasteClipboardText(): void {
 }
 
 function handleTerminalKey(event: KeyboardEvent): boolean {
+  if (event.type !== 'keydown' || event.repeat) return true
+
   const key = event.key.toLowerCase()
   const isPasteShortcut =
     (key === 'v' && (event.ctrlKey || event.metaKey) && !event.altKey) ||
