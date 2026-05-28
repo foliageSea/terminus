@@ -143,6 +143,22 @@ button {
 
 .workspace-header .n-tabs-tab {
   position: relative;
+  overflow: hidden;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.workspace-header .n-tabs-tab.n-tabs-tab--active {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--terminal-active-color) 18%, transparent),
+    rgba(15, 23, 42, 0.24)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--terminal-active-color) 24%, transparent);
+  transform: translateY(-1px);
 }
 
 .workspace-header .n-tabs-tab.n-tabs-tab--active::after {
@@ -155,6 +171,30 @@ button {
   background: var(--terminal-active-color);
   border-radius: 999px;
   box-shadow: 0 0 10px color-mix(in srgb, var(--terminal-active-color) 55%, transparent);
+  transform-origin: center;
+  animation: active-tab-indicator 220ms ease-out;
+}
+
+@keyframes active-tab-indicator {
+  from {
+    opacity: 0;
+    transform: scaleX(0.2);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-header .n-tabs-tab {
+    transition: none;
+  }
+
+  .workspace-header .n-tabs-tab.n-tabs-tab--active::after {
+    animation: none;
+  }
 }
 
 .header-actions {
