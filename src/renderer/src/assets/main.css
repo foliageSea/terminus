@@ -422,6 +422,33 @@ button {
   color: inherit;
 }
 
+.renderer-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  margin-right: 4px;
+  color: rgba(226, 232, 240, 0.92);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+}
+
+.renderer-mode-badge-webgl {
+  color: #bae6fd;
+  background: rgba(14, 116, 144, 0.22);
+  border-color: rgba(56, 189, 248, 0.38);
+}
+
+.renderer-mode-badge-canvas {
+  color: #cbd5e1;
+  background: rgba(71, 85, 105, 0.24);
+}
+
 .pane-action-divider {
   width: 1px;
   height: 15px;

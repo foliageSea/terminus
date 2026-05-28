@@ -5,6 +5,7 @@ import { BorderHorizontalOutlined, BorderVerticleOutlined, CloseOutlined } from 
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { WebglAddon } from '@xterm/addon-webgl'
 import '@xterm/xterm/css/xterm.css'
 import {
   clearDraggingNodeId,
@@ -31,11 +32,14 @@ const emit = defineEmits<{
 const host = ref<HTMLDivElement>()
 const dropSide = ref<DropSide>()
 const copyBubbleVisible = ref(false)
+const rendererMode = ref<'canvas' | 'webgl'>('canvas')
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
+let webglAddon: WebglAddon | undefined
 let resizeObserver: ResizeObserver | undefined
 let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
+let removeWebglContextLossListener: { dispose: () => void } | undefined
 let copyBubbleTimer: number | undefined
 
 function resolveDropSide(event: DragEvent): DropSide {
@@ -165,6 +169,28 @@ function handleTerminalWheel(event: WheelEvent): boolean {
   return true
 }
 
+function enableWebglRenderer(): void {
+  if (!terminal) return
+
+  try {
+    webglAddon = new WebglAddon()
+    removeWebglContextLossListener = webglAddon.onContextLoss(() => {
+      removeWebglContextLossListener?.dispose()
+      removeWebglContextLossListener = undefined
+      webglAddon?.dispose()
+      webglAddon = undefined
+      rendererMode.value = 'canvas'
+    })
+    terminal.loadAddon(webglAddon)
+    rendererMode.value = 'webgl'
+  } catch (error) {
+    webglAddon?.dispose()
+    webglAddon = undefined
+    rendererMode.value = 'canvas'
+    console.warn('WebGL terminal renderer unavailable, using default renderer.', error)
+  }
+}
+
 onMounted(async () => {
   if (!host.value) return
 
@@ -187,6 +213,7 @@ onMounted(async () => {
   terminal.attachCustomKeyEventHandler(handleTerminalKey)
   terminal.attachCustomWheelEventHandler(handleTerminalWheel)
   terminal.open(host.value)
+  enableWebglRenderer()
 
   terminal.onData((data) => window.api.terminal.write(props.paneId, data))
 
@@ -226,7 +253,9 @@ onBeforeUnmount(() => {
   if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
   removeDataListener?.()
   removeExitListener?.()
+  removeWebglContextLossListener?.dispose()
   resizeObserver?.disconnect()
+  webglAddon?.dispose()
   terminal?.dispose()
 })
 </script>
@@ -254,6 +283,13 @@ onBeforeUnmount(() => {
       <div class="pane-bar-spacer" />
 
       <div class="pane-action-bar" aria-label="分屏操作" draggable="false" @dragstart.stop.prevent>
+        <span
+          class="renderer-mode-badge"
+          :class="`renderer-mode-badge-${rendererMode}`"
+          :title="rendererMode === 'webgl' ? '当前使用 WebGL 渲染' : '当前使用 Canvas 渲染'"
+        >
+          {{ rendererMode === 'webgl' ? 'WebGL' : 'Canvas' }}
+        </span>
         <NButton
           size="tiny"
           quaternary
