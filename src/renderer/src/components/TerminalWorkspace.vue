@@ -37,6 +37,7 @@ const emit = defineEmits<{
 
 let nextId = 1
 let nextShellNumber = 1
+const tabDragDataType = 'application/x-terminus-tab'
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
   fontSize: 13
@@ -70,6 +71,8 @@ const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
 const renameDialogVisible = ref(false)
 const renameInputRef = ref<InputInst>()
+const draggingTabId = ref<string | undefined>()
+const dragOverTabId = ref<string | undefined>()
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
 const themeVars = useThemeVars()
@@ -214,6 +217,61 @@ function addTab(): void {
   activeTabId.value = tab.id
 }
 
+function switchTab(direction: 1 | -1): void {
+  const currentIndex = tabs.value.findIndex((tab) => tab.id === activeTabId.value)
+  if (currentIndex < 0 || tabs.value.length < 2) return
+
+  const nextIndex = (currentIndex + direction + tabs.value.length) % tabs.value.length
+  activeTabId.value = tabs.value[nextIndex].id
+}
+
+function handleGlobalKeydown(event: KeyboardEvent): void {
+  if (renameDialogVisible.value) return
+  if (event.key !== 'Tab' || !event.ctrlKey || event.altKey || event.metaKey) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  switchTab(event.shiftKey ? -1 : 1)
+}
+
+function startTabDrag(event: DragEvent, tabId: string): void {
+  draggingTabId.value = tabId
+  event.dataTransfer?.setData(tabDragDataType, tabId)
+  event.dataTransfer?.setData('text/plain', tabId)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function handleTabDragOver(event: DragEvent, tabId: string): void {
+  const sourceTabId = draggingTabId.value || event.dataTransfer?.getData(tabDragDataType)
+  if (!sourceTabId || sourceTabId === tabId) return
+
+  event.preventDefault()
+  dragOverTabId.value = tabId
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+}
+
+function finishTabDrag(): void {
+  draggingTabId.value = undefined
+  dragOverTabId.value = undefined
+}
+
+function dropTab(event: DragEvent, targetTabId: string): void {
+  const sourceTabId = draggingTabId.value || event.dataTransfer?.getData(tabDragDataType)
+  finishTabDrag()
+
+  if (!sourceTabId || sourceTabId === targetTabId) return
+  event.preventDefault()
+
+  const sourceIndex = tabs.value.findIndex((tab) => tab.id === sourceTabId)
+  if (sourceIndex < 0 || !tabs.value.some((tab) => tab.id === targetTabId)) return
+
+  const nextTabs = [...tabs.value]
+  const [sourceTab] = nextTabs.splice(sourceIndex, 1)
+  const targetIndex = nextTabs.findIndex((tab) => tab.id === targetTabId)
+  nextTabs.splice(targetIndex, 0, sourceTab)
+  tabs.value = nextTabs
+}
+
 async function startRenameTab(tab: TerminalTab): Promise<void> {
   editingTabId.value = tab.id
   editingTitle.value = tab.title
@@ -322,6 +380,8 @@ watch(
 )
 
 onMounted(async () => {
+  window.addEventListener('keydown', handleGlobalKeydown, true)
+
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
     tabs.value.some((tab) => updatePaneCwd(tab.root, id, cwd))
   })
@@ -332,6 +392,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown, true)
   removeCwdListener?.()
 })
 </script>
@@ -367,9 +428,19 @@ onBeforeUnmount(() => {
           <template #tab>
             <span
               class="tab-title"
+              :class="{
+                dragging: draggingTabId === tab.id,
+                'drag-over': dragOverTabId === tab.id
+              }"
               :title="tab.title"
+              draggable="true"
               @dblclick.stop="startRenameTab(tab)"
               @auxclick.middle.prevent.stop="closeTab(tab.id)"
+              @dragstart="startTabDrag($event, tab.id)"
+              @dragover="handleTabDragOver($event, tab.id)"
+              @dragleave="dragOverTabId === tab.id && (dragOverTabId = undefined)"
+              @drop="dropTab($event, tab.id)"
+              @dragend="finishTabDrag"
             >
               {{ tab.title }}
             </span>
@@ -475,10 +546,20 @@ onBeforeUnmount(() => {
   max-width: 120px;
   padding: 0 8px;
   overflow: hidden;
+  cursor: grab;
   font-weight: 600;
   text-overflow: ellipsis;
   vertical-align: bottom;
   white-space: nowrap;
+}
+
+.tab-title.dragging {
+  cursor: grabbing;
+  opacity: 0.45;
+}
+
+.tab-title.drag-over {
+  color: var(--terminal-active-color);
 }
 
 .settings-button {
