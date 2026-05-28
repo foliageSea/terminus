@@ -116,13 +116,27 @@ function pasteClipboardText(): void {
   terminal?.paste(text)
 }
 
+function copySelectedText(): void {
+  const text = terminal?.getSelection()
+  if (!text) return
+
+  window.api.clipboard.writeText(text)
+}
+
 function handleTerminalKey(event: KeyboardEvent): boolean {
   if (event.type !== 'keydown' || event.repeat) return true
 
   const key = event.key.toLowerCase()
+  const isCopyShortcut = key === 'c' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
   const isPasteShortcut =
-    (key === 'v' && (event.ctrlKey || event.metaKey) && !event.altKey) ||
+    (key === 'v' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) ||
     (key === 'insert' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey)
+
+  if (isCopyShortcut) {
+    event.preventDefault()
+    copySelectedText()
+    return false
+  }
 
   if (!isPasteShortcut) return true
 
@@ -142,6 +156,7 @@ onMounted(async () => {
 
   terminal = new Terminal({
     cursorBlink: true,
+    cursorStyle: 'bar',
     fontFamily: props.terminalSettings.fontFamily,
     fontSize: props.terminalSettings.fontSize,
     lineHeight: 1.2,

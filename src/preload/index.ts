@@ -9,7 +9,8 @@ const api = {
     close: () => ipcRenderer.send('window:close')
   },
   clipboard: {
-    readText: () => clipboard.readText()
+    readText: () => clipboard.readText(),
+    writeText: (text: string) => clipboard.writeText(text)
   },
   settings: {
     getTerminal: () => ipcRenderer.invoke('settings:get-terminal'),

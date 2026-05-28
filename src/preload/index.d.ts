@@ -18,6 +18,7 @@ export interface WindowApi {
 
 export interface ClipboardApi {
   readText: () => string
+  writeText: (text: string) => void
 }
 
 export interface TerminalSettings {
