@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import type { WebContents } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import os from 'os'
@@ -161,11 +162,16 @@ function extractTerminalCwd(data: string): string | undefined {
   return cwd
 }
 
+function sendToRenderer(sender: WebContents, channel: string, payload: unknown): void {
+  if (sender.isDestroyed()) return
+  sender.send(channel, payload)
+}
+
 function registerTerminalIpc(): void {
   ipcMain.handle('terminal:create', (event, id: string, cols = 80, rows = 24, cwd?: string) => {
     if (terminals.has(id)) {
       const history = terminalHistories.get(id)
-      if (history) event.sender.send('terminal:data', { id, data: history })
+      if (history) sendToRenderer(event.sender, 'terminal:data', { id, data: history })
       return
     }
 
@@ -184,20 +190,20 @@ function registerTerminalIpc(): void {
       env: process.env
     })
 
-    event.sender.send('terminal:cwd', { id, cwd: initialCwd })
+    sendToRenderer(event.sender, 'terminal:cwd', { id, cwd: initialCwd })
 
     terminal.onData((data) => {
       const cwd = extractTerminalCwd(data)
-      if (cwd) event.sender.send('terminal:cwd', { id, cwd })
+      if (cwd) sendToRenderer(event.sender, 'terminal:cwd', { id, cwd })
 
       const history = `${terminalHistories.get(id) ?? ''}${data}`
       terminalHistories.set(id, history.slice(-maxHistoryLength))
-      event.sender.send('terminal:data', { id, data })
+      sendToRenderer(event.sender, 'terminal:data', { id, data })
     })
 
     terminal.onExit(() => {
       terminals.delete(id)
-      event.sender.send('terminal:exit', { id })
+      sendToRenderer(event.sender, 'terminal:exit', { id })
     })
 
     terminals.set(id, terminal)
