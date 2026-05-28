@@ -408,6 +408,7 @@ onBeforeUnmount(() => {
             </NFormItem>
             <NFormItem label="字号" path="fontSize">
               <NInputNumber
+                class="font-size-input"
                 :value="terminalSettings.fontSize"
                 :min="8"
                 :max="32"
@@ -482,5 +483,9 @@ onBeforeUnmount(() => {
 .terminal-settings {
   width: 260px;
   padding: 4px;
+}
+
+.font-size-input :deep(input) {
+  text-align: center;
 }
 </style>
