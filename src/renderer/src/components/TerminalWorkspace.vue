@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   NButton,
   NColorPicker,
@@ -10,11 +10,13 @@ import {
   NInputNumber,
   NLayout,
   NLayoutHeader,
+  NModal,
   NPopover,
   NTabPane,
   NTabs,
   useThemeVars
 } from 'naive-ui'
+import type { InputInst } from 'naive-ui'
 import { PlusOutlined, SettingOutlined } from '@vicons/antd'
 import SplitNode from './SplitNode.vue'
 import type {
@@ -66,6 +68,8 @@ const tabs = ref<TerminalTab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
 const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
+const renameDialogVisible = ref(false)
+const renameInputRef = ref<InputInst>()
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
 const themeVars = useThemeVars()
@@ -210,20 +214,28 @@ function addTab(): void {
   activeTabId.value = tab.id
 }
 
-function startRenameTab(tab: TerminalTab): void {
+async function startRenameTab(tab: TerminalTab): Promise<void> {
   editingTabId.value = tab.id
   editingTitle.value = tab.title
+  renameDialogVisible.value = true
+
+  await nextTick()
+  renameInputRef.value?.focus()
+  renameInputRef.value?.select()
 }
 
-function finishRenameTab(tab: TerminalTab): void {
-  if (editingTabId.value !== tab.id) return
+function finishRenameTab(): void {
+  const tab = tabs.value.find((item) => item.id === editingTabId.value)
+  if (!tab) return
 
   const nextTitle = editingTitle.value.trim()
   if (nextTitle) tab.title = nextTitle
+  renameDialogVisible.value = false
   editingTabId.value = undefined
 }
 
 function cancelRenameTab(): void {
+  renameDialogVisible.value = false
   editingTabId.value = undefined
 }
 
@@ -353,18 +365,7 @@ onBeforeUnmount(() => {
       <NTabs v-model:value="activeTabId" type="card" size="small" closable @close="closeTab">
         <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id">
           <template #tab>
-            <input
-              v-if="editingTabId === tab.id"
-              v-model="editingTitle"
-              class="tab-title-input"
-              type="text"
-              autofocus
-              @click.stop
-              @blur="finishRenameTab(tab)"
-              @keydown.enter.prevent="finishRenameTab(tab)"
-              @keydown.esc.prevent="cancelRenameTab"
-            />
-            <span v-else class="tab-title" :title="tab.title" @dblclick.stop="startRenameTab(tab)">
+            <span class="tab-title" :title="tab.title" @dblclick.stop="startRenameTab(tab)">
               {{ tab.title }}
             </span>
           </template>
@@ -428,6 +429,25 @@ onBeforeUnmount(() => {
       </div>
     </NLayoutHeader>
 
+    <NModal
+      v-model:show="renameDialogVisible"
+      preset="dialog"
+      title="修改 Tab 名称"
+      positive-text="保存"
+      negative-text="取消"
+      @positive-click="finishRenameTab"
+      @negative-click="cancelRenameTab"
+      @close="cancelRenameTab"
+    >
+      <NInput
+        ref="renameInputRef"
+        v-model:value="editingTitle"
+        placeholder="请输入 Tab 名称"
+        @keydown.enter.prevent="finishRenameTab"
+        @keydown.esc.prevent="cancelRenameTab"
+      />
+    </NModal>
+
     <main class="workspace-body">
       <SplitNode
         :key="`${activeTab.id}:${activeTab.layoutVersion}`"
@@ -453,20 +473,6 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   vertical-align: bottom;
   white-space: nowrap;
-}
-
-.tab-title-input {
-  box-sizing: border-box;
-  width: 92px;
-  height: 22px;
-  padding: 0 8px;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  background: transparent;
-  border: 1px solid var(--n-tab-text-color-active);
-  border-radius: 4px;
-  outline: none;
 }
 
 .settings-button {
