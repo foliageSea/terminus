@@ -219,32 +219,18 @@ button {
   min-height: 0;
 }
 
-.split-group > .split-drag-handle {
+.split-group > .split-drag-zone {
   position: absolute;
   top: 10px;
   left: 10px;
   z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  color: rgba(125, 211, 252, 0.95);
-  background: rgba(8, 13, 23, 0.76);
-  border: 1px solid rgba(56, 189, 248, 0.72);
-  border-radius: 7px;
   cursor: grab;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  backdrop-filter: blur(12px);
 }
 
-.split-group:hover > .split-drag-handle {
-  opacity: 1;
-}
-
-.split-group > .split-drag-handle:active {
+.split-group > .split-drag-zone:active {
   cursor: grabbing;
 }
 
@@ -370,38 +356,12 @@ button {
   background:
     linear-gradient(180deg, rgba(21, 29, 43, 0.92), rgba(10, 15, 24, 0.88)), rgba(15, 23, 42, 0.88);
   border-bottom: 1px solid rgba(51, 65, 85, 0.78);
+  cursor: grab;
   backdrop-filter: blur(14px);
 }
 
-.pane-drag-handle {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 22px;
-  padding: 0;
-  color: rgba(148, 163, 184, 0.92);
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  cursor: grab;
-  transition:
-    color 120ms ease,
-    background 120ms ease;
-}
-
-.pane-drag-handle:hover {
-  color: rgba(226, 232, 240, 0.96);
-  background: rgba(148, 163, 184, 0.12);
-}
-
-.pane-drag-handle:active {
+.pane-bar:active {
   cursor: grabbing;
-}
-
-.drag-handle-icon {
-  font-size: 15px;
 }
 
 .pane-bar-spacer {
@@ -417,6 +377,11 @@ button {
   gap: 2px;
   min-width: 0;
   color: inherit;
+  cursor: default;
+}
+
+.pane-action-bar * {
+  cursor: default;
 }
 
 .pane-action-bar .n-button {

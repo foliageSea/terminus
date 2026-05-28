@@ -4,8 +4,7 @@ import { NButton, NIcon } from 'naive-ui'
 import {
   BorderHorizontalOutlined,
   BorderVerticleOutlined,
-  CloseOutlined,
-  HolderOutlined
+  CloseOutlined
 } from '@vicons/antd'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
@@ -58,6 +57,12 @@ function resolveDropSide(event: DragEvent): DropSide {
 }
 
 function handleDragStart(event: DragEvent): void {
+  const target = event.target as HTMLElement | null
+  if (target?.closest('.pane-action-bar')) {
+    event.preventDefault()
+    return
+  }
+
   emit('activate', props.paneId)
   setDraggingNodeId(props.paneId)
   event.dataTransfer?.setData(dragDataType, props.paneId)
@@ -225,25 +230,22 @@ onBeforeUnmount(() => {
     @dragleave="dropSide = undefined"
     @drop="handleDrop"
   >
-    <div class="pane-bar">
-      <button
-        class="pane-drag-handle"
-        type="button"
-        draggable="true"
-        aria-label="拖动分屏"
-        title="拖动分屏"
-        @pointerdown.stop="emit('activate', paneId)"
-        @dragstart="handleDragStart"
-        @dragend="handleDragEnd"
-      >
-        <NIcon class="drag-handle-icon" aria-hidden="true">
-          <HolderOutlined />
-        </NIcon>
-      </button>
-
+    <div
+      class="pane-bar"
+      draggable="true"
+      title="拖动分屏"
+      @pointerdown.stop="emit('activate', paneId)"
+      @dragstart="handleDragStart"
+      @dragend="handleDragEnd"
+    >
       <div class="pane-bar-spacer" />
 
-      <div class="pane-action-bar" aria-label="分屏操作">
+      <div
+        class="pane-action-bar"
+        aria-label="分屏操作"
+        draggable="false"
+        @dragstart.stop.prevent
+      >
         <NButton
           size="tiny"
           quaternary

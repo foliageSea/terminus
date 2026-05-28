@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { NIcon } from 'naive-ui'
-import { HolderOutlined } from '@vicons/antd'
 import TerminalPane from './TerminalPane.vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
 import type { PaneDropPayload, PaneNode, SplitDirection, TerminalSettings } from '../types/terminal'
@@ -70,19 +68,14 @@ function startGroupDrag(event: DragEvent): void {
   />
 
   <div v-else class="split-node split-group" :class="node.direction">
-    <button
-      class="split-drag-handle"
-      type="button"
+    <div
+      class="split-drag-zone"
       draggable="true"
       aria-label="拖动整个分屏组"
       title="拖动整个分屏组"
       @dragstart="startGroupDrag"
       @dragend="clearDraggingNodeId"
-    >
-      <NIcon class="drag-handle-icon" aria-hidden="true">
-        <HolderOutlined />
-      </NIcon>
-    </button>
+    />
     <div class="split-child" :style="{ flexBasis: `${node.ratio * 100}%` }">
       <SplitNode
         :node="node.children[0]"
