@@ -365,7 +365,12 @@ onBeforeUnmount(() => {
       <NTabs v-model:value="activeTabId" type="card" size="small" closable @close="closeTab">
         <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id">
           <template #tab>
-            <span class="tab-title" :title="tab.title" @dblclick.stop="startRenameTab(tab)">
+            <span
+              class="tab-title"
+              :title="tab.title"
+              @dblclick.stop="startRenameTab(tab)"
+              @auxclick.middle.prevent.stop="closeTab(tab.id)"
+            >
               {{ tab.title }}
             </span>
           </template>
