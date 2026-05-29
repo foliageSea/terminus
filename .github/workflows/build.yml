@@ -8,6 +8,9 @@ on:
     types: [created, published]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build ${{ matrix.platform }} ${{ matrix.arch }}
@@ -70,3 +73,11 @@ jobs:
           path: ${{ matrix.artifact_files }}
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload release assets
+        if: github.event_name == 'push' || github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name || github.ref_name }}
+          files: ${{ matrix.artifact_files }}
+          fail_on_unmatched_files: true
