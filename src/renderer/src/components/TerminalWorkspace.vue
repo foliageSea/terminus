@@ -17,7 +17,7 @@ import {
   useThemeVars
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
-import { PlusOutlined, SettingOutlined } from '@vicons/antd'
+import { PlusOutlined, QuestionCircleOutlined, SettingOutlined } from '@vicons/antd'
 import SplitNode from './SplitNode.vue'
 import type {
   PaneDropPayload,
@@ -560,6 +560,45 @@ onBeforeUnmount(() => {
             </NFormItem>
           </NForm>
         </NPopover>
+        <NPopover trigger="click" placement="bottom-end">
+          <template #trigger>
+            <NButton class="shortcut-help-button" size="small" secondary circle title="快捷键">
+              <template #icon>
+                <NIcon>
+                  <QuestionCircleOutlined />
+                </NIcon>
+              </template>
+            </NButton>
+          </template>
+
+          <div class="shortcut-popover" aria-label="快捷键列表">
+            <div class="shortcut-section-title">快捷键</div>
+            <div class="shortcut-row">
+              <span>下一个 Tab</span>
+              <kbd>Ctrl</kbd><kbd>Tab</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>上一个 Tab</span>
+              <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Tab</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>切换分屏焦点</span>
+              <kbd>Ctrl</kbd><kbd>`</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>复制选中文本</span>
+              <kbd>Alt</kbd><kbd>C</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>粘贴</span>
+              <kbd>Alt</kbd><kbd>V</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>粘贴</span>
+              <kbd>Shift</kbd><kbd>Insert</kbd>
+            </div>
+          </div>
+        </NPopover>
       </div>
     </NLayoutHeader>
 
@@ -626,6 +665,40 @@ onBeforeUnmount(() => {
 
 .settings-button {
   margin-left: 6px;
+}
+
+.shortcut-popover {
+  display: grid;
+  gap: 8px;
+  width: 240px;
+  padding: 4px;
+}
+
+.shortcut-section-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+}
+
+.shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+.shortcut-row kbd {
+  min-width: 20px;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
 }
 
 .terminal-settings {

@@ -136,7 +136,9 @@ button {
 .new-tab-button,
 .new-tab-button *,
 .settings-button,
-.settings-button * {
+.settings-button *,
+.shortcut-help-button,
+.shortcut-help-button * {
   -webkit-app-region: no-drag;
 }
 
