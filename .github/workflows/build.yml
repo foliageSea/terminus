@@ -25,15 +25,15 @@ jobs:
               dist/*.exe
               dist/*.blockmap
               dist/latest.yml
-          - platform: macos
-            os: macos-14
-            arch: arm64
-            build_command: pnpm build:mac -- --arm64
-            artifact_files: |
-              dist/*.dmg
-              dist/*.zip
-              dist/*.blockmap
-              dist/latest-mac.yml
+          # - platform: macos
+          #   os: macos-14
+          #   arch: arm64
+          #   build_command: pnpm build:mac -- --arm64
+          #   artifact_files: |
+          #     dist/*.dmg
+          #     dist/*.zip
+          #     dist/*.blockmap
+          #     dist/latest-mac.yml
 
     steps:
       - name: Checkout
