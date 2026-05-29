@@ -188,6 +188,13 @@ button {
   .workspace-header .n-tabs-tab.n-tabs-tab--active::after {
     animation: none;
   }
+
+  .terminal-slide-next-enter-active,
+  .terminal-slide-next-leave-active,
+  .terminal-slide-prev-enter-active,
+  .terminal-slide-prev-leave-active {
+    transition: none;
+  }
 }
 
 .header-actions {
@@ -199,8 +206,46 @@ button {
 }
 
 .workspace-body {
+  position: relative;
   height: calc(100vh - 46px);
   padding: 8px;
+  overflow: hidden;
+}
+
+.tab-terminal-view {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.terminal-slide-next-enter-active,
+.terminal-slide-next-leave-active,
+.terminal-slide-prev-enter-active,
+.terminal-slide-prev-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.terminal-slide-next-enter-from {
+  opacity: 0;
+  transform: translateX(18px);
+}
+
+.terminal-slide-next-leave-to {
+  opacity: 0;
+  transform: translateX(-18px);
+}
+
+.terminal-slide-prev-enter-from {
+  opacity: 0;
+  transform: translateX(-18px);
+}
+
+.terminal-slide-prev-leave-to {
+  opacity: 0;
+  transform: translateX(18px);
 }
 
 .split-node {

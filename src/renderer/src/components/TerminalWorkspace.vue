@@ -76,6 +76,7 @@ const renameDialogVisible = ref(false)
 const renameInputRef = ref<InputInst>()
 const draggingTabId = ref<string | undefined>()
 const dragOverTabId = ref<string | undefined>()
+const tabTransitionName = ref('terminal-slide-next')
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
 const themeVars = useThemeVars()
@@ -374,6 +375,23 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
 }
 
 watch(
+  activeTabId,
+  (nextTabId, previousTabId) => {
+    const previousIndex = tabs.value.findIndex((tab) => tab.id === previousTabId)
+    const nextIndex = tabs.value.findIndex((tab) => tab.id === nextTabId)
+
+    if (previousIndex < 0 || nextIndex < 0) {
+      tabTransitionName.value = 'terminal-slide-next'
+      return
+    }
+
+    tabTransitionName.value =
+      nextIndex >= previousIndex ? 'terminal-slide-next' : 'terminal-slide-prev'
+  },
+  { flush: 'sync' }
+)
+
+watch(
   terminalSettings,
   async () => {
     if (!terminalSettingsLoaded.value) return
@@ -529,16 +547,20 @@ onBeforeUnmount(() => {
     </NModal>
 
     <main class="workspace-body">
-      <SplitNode
-        :key="`${activeTab.id}:${activeTab.layoutVersion}`"
-        :node="activeTab.root"
-        :active-pane-id="activeTab.activePaneId"
-        :terminal-settings="terminalSettings"
-        @activate="activeTab.activePaneId = $event"
-        @split="handleSplit"
-        @close="handleClosePane"
-        @drop-pane="handleDropPane"
-      />
+      <Transition :name="tabTransitionName" mode="out-in">
+        <div :key="activeTab.id" class="tab-terminal-view">
+          <SplitNode
+            :key="activeTab.layoutVersion"
+            :node="activeTab.root"
+            :active-pane-id="activeTab.activePaneId"
+            :terminal-settings="terminalSettings"
+            @activate="activeTab.activePaneId = $event"
+            @split="handleSplit"
+            @close="handleClosePane"
+            @drop-pane="handleDropPane"
+          />
+        </div>
+      </Transition>
     </main>
   </NLayout>
 </template>
