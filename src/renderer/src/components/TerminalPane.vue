@@ -201,7 +201,7 @@ onMounted(async () => {
     fontSize: props.terminalSettings.fontSize,
     lineHeight: 1.2,
     theme: {
-      background: '#0b0f17',
+      background: '#000000',
       foreground: '#d7deea',
       cursor: '#7dd3fc',
       selectionBackground: '#334155'
