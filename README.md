@@ -1,18 +1,23 @@
 # terminus
 
+<p align="center">
+  <img src="resources/icon.png" alt="terminus 应用图标" width="128" />
+</p>
+
 一个基于 Electron、Vue 3 和 TypeScript 构建的现代桌面终端工作区。
 
 ## 功能特性
 
 - 原生终端能力：主进程通过 `node-pty` 启动系统 Shell，渲染进程使用 `xterm.js` 展示和交互。
-- 多 Tab 工作区：支持新建、关闭和双击重命名 Tab。
+- 多 Tab 工作区：支持新建、关闭、中键关闭、拖拽排序、双击重命名和 `Ctrl+Tab` / `Ctrl+Shift+Tab` 切换。
 - 分屏布局：支持左右分屏、上下分屏、拖动分隔条调整比例。
 - 拖拽重排：支持拖动单个终端 Pane 或整个分屏组到目标 Pane 的上下左右位置。
 - 路径继承：新建分屏会继承当前 Pane 的工作目录。
+- 终端渲染：优先使用 WebGL 渲染，WebGL 不可用或上下文丢失时自动回退 Canvas。
 - 终端设置：支持配置字体、字号，并持久化到应用数据目录。
 - 主题设置：支持自定义主题色，并持久化保存。
 - 无边框窗口：应用内提供关闭、最小化、最大化/还原窗口控制。
-- 复制粘贴快捷键：支持 `Alt+C` 复制选中文本，`Alt+V` 或 `Shift+Insert` 粘贴剪贴板内容。
+- 复制粘贴快捷键：支持 `Alt+C` 复制选中文本并显示提示，`Alt+V` 或 `Shift+Insert` 粘贴剪贴板内容。
 
 ## 技术栈
 
@@ -29,16 +34,21 @@
 
 ```text
 src/
-  main/              Electron 主进程，负责窗口、设置持久化和终端 PTY 管理
-  preload/           预加载脚本，向渲染进程暴露安全的 IPC API
-  renderer/src/      Vue 渲染进程，负责终端工作区 UI 和交互
-    components/      TerminalWorkspace、TerminalPane、SplitNode 等核心组件
-    types/           终端布局和设置相关类型
+  main/                Electron 主进程
+    app/               窗口创建和生命周期
+    ipc/               settings、terminal、window IPC 注册
+    settings/          设置持久化和默认值
+    terminal/          node-pty 管理和 cwd 追踪
+  preload/             预加载脚本，向渲染进程暴露安全的 IPC API
+  renderer/src/        Vue 渲染进程，负责终端工作区 UI 和交互
+    components/        TerminalWorkspace、TerminalPane、SplitNode 等核心组件
+    types/             终端布局和设置相关类型
 ```
 
 关键入口：
 
-- `src/main/index.ts`：主进程入口，注册窗口、设置和终端 IPC。
+- `src/main/index.ts`：主进程入口，注册应用生命周期、IPC 和窗口。
+- `src/main/ipc/registerIpc.ts`：集中注册设置、终端和窗口 IPC。
 - `src/preload/index.ts`：暴露 `window.api`，渲染进程通过它访问终端、设置、剪贴板和窗口能力。
 - `src/renderer/src/App.vue`：应用根组件，注入 Naive UI 暗色主题。
 - `src/renderer/src/components/TerminalWorkspace.vue`：管理 Tab、分屏布局、设置面板和主题色。
@@ -46,8 +56,8 @@ src/
 
 ## 环境要求
 
-- Node.js
-- pnpm
+- Node.js 22（CI 使用版本）
+- pnpm 10（CI 使用版本）
 
 本项目包含原生依赖 `node-pty`，安装依赖后会通过 `electron-builder install-app-deps` 安装 Electron 原生模块依赖。
 
@@ -89,6 +99,12 @@ pnpm typecheck:web
 pnpm build
 ```
 
+如需只生成未打包目录：
+
+```bash
+pnpm build:unpack
+```
+
 ## 平台打包
 
 ```bash
@@ -102,11 +118,14 @@ pnpm build:mac
 pnpm build:linux
 ```
 
+GitHub Actions 当前发布构建使用 Windows x64：`pnpm build:win -- --x64`。
+
 ## 终端行为
 
-- Windows 默认启动 `powershell.exe`。
+- Windows 默认启动 `powershell.exe -NoLogo -NoExit -Command <cwd prompt hook>`。
 - 非 Windows 平台默认使用 `process.env.SHELL`，未配置时回退到 `/bin/bash`。
 - 终端 Pane 的 ID 由渲染进程生成，并作为主进程 PTY Map 的 key。
+- 主进程通过 PowerShell prompt hook 追踪当前工作目录，新建分屏会继承来源 Pane 的 cwd。
 - 关闭 Tab 或 Pane 时会调用 `window.api.terminal.kill` 清理对应 PTY，避免残留进程。
 
 ## 设置持久化
