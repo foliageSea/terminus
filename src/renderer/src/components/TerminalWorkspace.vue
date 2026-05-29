@@ -244,9 +244,27 @@ function switchTab(direction: 1 | -1): void {
   activeTabId.value = tabs.value[nextIndex].id
 }
 
+function switchPane(): void {
+  const paneIds = collectPaneIds(activeTab.value.root)
+  if (paneIds.length < 2) return
+
+  const currentIndex = paneIds.findIndex((paneId) => paneId === activeTab.value.activePaneId)
+  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % paneIds.length
+  activeTab.value.activePaneId = paneIds[nextIndex]
+}
+
 function handleGlobalKeydown(event: KeyboardEvent): void {
   if (renameDialogVisible.value) return
-  if (event.key !== 'Tab' || !event.ctrlKey || event.altKey || event.metaKey) return
+  if (!event.ctrlKey || event.altKey || event.metaKey) return
+
+  if (event.code === 'Backquote') {
+    event.preventDefault()
+    event.stopPropagation()
+    switchPane()
+    return
+  }
+
+  if (event.key !== 'Tab') return
 
   event.preventDefault()
   event.stopPropagation()
