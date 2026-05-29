@@ -36,7 +36,7 @@ const emit = defineEmits<{
 }>()
 
 let nextId = 1
-let nextShellNumber = 1
+let nextTabNumber = 1
 const tabDragDataType = 'application/x-terminus-tab'
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
@@ -50,9 +50,12 @@ function createId(prefix: string): string {
 
 function createTab(title?: string): TerminalTab {
   const paneId = createId('pane')
+  const tabTitle = title ?? `#${nextTabNumber}`
+  if (!title) nextTabNumber = (nextTabNumber % 12) + 1
+
   return {
     id: createId('tab'),
-    title: title ?? `Shell${nextShellNumber++}`,
+    title: tabTitle,
     root: { type: 'pane', id: paneId },
     activePaneId: paneId,
     layoutVersion: 0
