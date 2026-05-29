@@ -144,6 +144,11 @@ button {
 
 .workspace-header .n-tabs-tab {
   position: relative;
+  box-sizing: border-box;
+  flex: 0 0 148px;
+  width: 148px;
+  min-width: 148px;
+  max-width: 148px;
   overflow: hidden;
   transition:
     color 180ms ease,

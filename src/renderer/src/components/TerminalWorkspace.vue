@@ -643,8 +643,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .tab-title {
-  display: inline-block;
-  max-width: 120px;
+  display: block;
+  width: 100%;
+  min-width: 0;
   padding: 0 8px;
   overflow: hidden;
   cursor: pointer;
