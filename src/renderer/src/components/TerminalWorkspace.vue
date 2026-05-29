@@ -549,7 +549,7 @@ onBeforeUnmount(() => {
   max-width: 120px;
   padding: 0 8px;
   overflow: hidden;
-  cursor: grab;
+  cursor: pointer;
   font-weight: 600;
   text-overflow: ellipsis;
   vertical-align: bottom;
