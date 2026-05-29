@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import TerminalPane from './TerminalPane.vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
 import type { PaneDropPayload, PaneNode, SplitDirection, TerminalSettings } from '../types/terminal'
@@ -7,6 +8,8 @@ const props = defineProps<{
   node: PaneNode
   activePaneId: string
   terminalSettings: TerminalSettings
+  animatedPaneId?: string
+  animatedNodeId?: string
 }>()
 
 const emit = defineEmits<{
@@ -15,6 +18,8 @@ const emit = defineEmits<{
   close: [id: string]
   dropPane: [payload: PaneDropPayload]
 }>()
+
+const draggingGroup = ref(false)
 
 function startResize(event: PointerEvent): void {
   if (props.node.type !== 'split') return
@@ -47,10 +52,16 @@ function startResize(event: PointerEvent): void {
 function startGroupDrag(event: DragEvent): void {
   if (props.node.type !== 'split') return
 
+  draggingGroup.value = true
   setDraggingNodeId(props.node.id)
   event.dataTransfer?.setData(dragDataType, props.node.id)
   event.dataTransfer?.setData('text/plain', props.node.id)
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function finishGroupDrag(): void {
+  draggingGroup.value = false
+  clearDraggingNodeId()
 }
 </script>
 
@@ -61,26 +72,37 @@ function startGroupDrag(event: DragEvent): void {
     :cwd="node.cwd"
     :active="node.id === activePaneId"
     :terminal-settings="terminalSettings"
+    :animated-pane-id="animatedPaneId"
+    :animated-node-id="animatedNodeId"
     @activate="emit('activate', $event)"
     @split="(id, direction) => emit('split', id, direction)"
     @close="emit('close', $event)"
     @drop-pane="emit('dropPane', $event)"
   />
 
-  <div v-else class="split-node split-group" :class="node.direction">
+  <div
+    v-else
+    class="split-node split-group"
+    :class="[
+      node.direction,
+      { dragging: draggingGroup, 'split-dropped': animatedNodeId === node.id }
+    ]"
+  >
     <div
       class="split-drag-zone"
       draggable="true"
       aria-label="拖动整个分屏组"
       title="拖动整个分屏组"
       @dragstart="startGroupDrag"
-      @dragend="clearDraggingNodeId"
+      @dragend="finishGroupDrag"
     />
     <div class="split-child" :style="{ flexBasis: `${node.ratio * 100}%` }">
       <SplitNode
         :node="node.children[0]"
         :active-pane-id="activePaneId"
         :terminal-settings="terminalSettings"
+        :animated-pane-id="animatedPaneId"
+        :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"
         @split="(id, direction) => emit('split', id, direction)"
         @close="emit('close', $event)"
@@ -93,6 +115,8 @@ function startGroupDrag(event: DragEvent): void {
         :node="node.children[1]"
         :active-pane-id="activePaneId"
         :terminal-settings="terminalSettings"
+        :animated-pane-id="animatedPaneId"
+        :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"
         @split="(id, direction) => emit('split', id, direction)"
         @close="emit('close', $event)"

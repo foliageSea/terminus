@@ -266,10 +266,27 @@ button {
   height: 32px;
   padding: 0;
   cursor: grab;
+  border-radius: 9px;
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 .split-group > .split-drag-zone:active {
   cursor: grabbing;
+  background: color-mix(in srgb, var(--terminal-active-color) 14%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--terminal-active-color) 18%, transparent);
+  transform: scale(0.94);
+}
+
+.split-group.dragging {
+  opacity: 0.72;
+  transform: scale(0.992);
+}
+
+.split-group.split-dropped {
+  animation: split-drop-settle 320ms ease-out;
 }
 
 .split-node.vertical {
@@ -279,6 +296,10 @@ button {
 .split-child {
   min-width: 0;
   min-height: 0;
+  transition:
+    flex-basis 180ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .splitter {
@@ -302,11 +323,30 @@ button {
   inset: 2px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.16);
-  transition: background 120ms ease;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
 .splitter:hover::after {
   background: rgba(56, 189, 248, 0.68);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.34);
+}
+
+.splitter:active::after {
+  background: color-mix(in srgb, var(--terminal-active-color) 78%, #38bdf8);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--terminal-active-color) 34%, transparent);
+}
+
+.split-node.horizontal > .splitter:hover::after,
+.split-node.horizontal > .splitter:active::after {
+  transform: scaleX(1.45);
+}
+
+.split-node.vertical > .splitter:hover::after,
+.split-node.vertical > .splitter:active::after {
+  transform: scaleY(1.45);
 }
 
 .terminal-pane {
@@ -322,6 +362,11 @@ button {
   border-radius: 0;
   background: #000000;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
 }
 
 .terminal-pane.active {
@@ -329,6 +374,23 @@ button {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 28%, transparent),
     0 0 32px color-mix(in srgb, var(--terminal-active-color-hover) 16%, transparent);
+}
+
+.terminal-pane.dragging {
+  opacity: 0.62;
+  transform: scale(0.992);
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.72),
+    0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 30%, transparent),
+    0 18px 46px rgba(0, 0, 0, 0.24);
+}
+
+.terminal-pane.pane-entering {
+  animation: pane-enter 320ms cubic-bezier(0.2, 0.85, 0.22, 1);
+}
+
+.terminal-pane.pane-dropped {
+  animation: pane-drop-settle 320ms ease-out;
 }
 
 .copy-bubble {
@@ -368,10 +430,20 @@ button {
   position: absolute;
   z-index: 3;
   pointer-events: none;
-  background: rgba(56, 189, 248, 0.2);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--terminal-active-color) 26%, transparent),
+    rgba(56, 189, 248, 0.08)
+  );
   border: 1px solid rgba(125, 211, 252, 0.75);
   opacity: 0;
-  transition: opacity 80ms ease;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 18%, transparent),
+    0 0 22px color-mix(in srgb, var(--terminal-active-color) 18%, transparent);
+  transition:
+    opacity 120ms ease,
+    transform 160ms ease;
+  transform: scale(0.985);
 }
 
 .terminal-pane.drop-left::after,
@@ -379,6 +451,7 @@ button {
 .terminal-pane.drop-top::after,
 .terminal-pane.drop-bottom::after {
   opacity: 1;
+  transform: none;
 }
 
 .terminal-pane.drop-left::after {
@@ -495,6 +568,48 @@ button {
 
 .xterm {
   height: 100%;
+}
+
+@keyframes pane-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.965) translateY(6px);
+    box-shadow:
+      inset 0 0 0 1px rgba(15, 23, 42, 0.72),
+      0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 55%, transparent),
+      0 0 36px color-mix(in srgb, var(--terminal-active-color) 24%, transparent);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pane-drop-settle {
+  0% {
+    transform: scale(0.985);
+    box-shadow:
+      inset 0 0 0 1px rgba(15, 23, 42, 0.72),
+      0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 58%, transparent),
+      0 0 34px color-mix(in srgb, var(--terminal-active-color) 24%, transparent);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes split-drop-settle {
+  0% {
+    transform: scale(0.99);
+    filter: drop-shadow(0 0 20px color-mix(in srgb, var(--terminal-active-color) 24%, transparent));
+  }
+
+  100% {
+    transform: none;
+    filter: none;
+  }
 }
 
 .xterm .xterm-viewport {

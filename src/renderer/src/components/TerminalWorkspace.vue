@@ -77,10 +77,13 @@ const renameInputRef = ref<InputInst>()
 const draggingTabId = ref<string | undefined>()
 const dragOverTabId = ref<string | undefined>()
 const tabTransitionName = ref('terminal-slide-next')
+const animatedPaneId = ref<string | undefined>()
+const animatedNodeId = ref<string | undefined>()
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
+let layoutAnimationTimer: number | undefined
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -116,12 +119,12 @@ function updatePaneCwd(node: PaneNode, paneId: string, cwd: string): boolean {
   return true
 }
 
-function splitPane(node: PaneNode, paneId: string, direction: SplitDirection): boolean {
+function splitPane(node: PaneNode, paneId: string, direction: SplitDirection): string | undefined {
   if (node.type === 'split') {
-    return node.children.some((child) => splitPane(child, paneId, direction))
+    return node.children.map((child) => splitPane(child, paneId, direction)).find(Boolean)
   }
 
-  if (node.id !== paneId) return false
+  if (node.id !== paneId) return undefined
 
   const nextPaneId = createId('pane')
   const cwd = node.cwd
@@ -137,7 +140,19 @@ function splitPane(node: PaneNode, paneId: string, direction: SplitDirection): b
   })
   activeTab.value.activePaneId = nextPaneId
   activeTab.value.layoutVersion += 1
-  return true
+  return nextPaneId
+}
+
+function setLayoutAnimation(paneId?: string, nodeId?: string): void {
+  animatedPaneId.value = paneId
+  animatedNodeId.value = nodeId
+  if (layoutAnimationTimer) window.clearTimeout(layoutAnimationTimer)
+
+  layoutAnimationTimer = window.setTimeout(() => {
+    animatedPaneId.value = undefined
+    animatedNodeId.value = undefined
+    layoutAnimationTimer = undefined
+  }, 360)
 }
 
 function closePane(node: PaneNode, paneId: string): PaneNode | undefined {
@@ -341,7 +356,8 @@ function closeTab(tabId: string): void {
 }
 
 function handleSplit(paneId: string, direction: SplitDirection): void {
-  splitPane(activeTab.value.root, paneId, direction)
+  const nextPaneId = splitPane(activeTab.value.root, paneId, direction)
+  if (nextPaneId) setLayoutAnimation(nextPaneId)
 }
 
 function handleClosePane(paneId: string): void {
@@ -372,6 +388,7 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
   tab.root = insertNode(root, targetPaneId, removed, side)
   tab.activePaneId = firstPaneId(removed)
   tab.layoutVersion += 1
+  setLayoutAnimation(undefined, sourceNodeId)
 }
 
 watch(
@@ -413,6 +430,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  if (layoutAnimationTimer) window.clearTimeout(layoutAnimationTimer)
   window.removeEventListener('keydown', handleGlobalKeydown, true)
   removeCwdListener?.()
 })
@@ -550,10 +568,11 @@ onBeforeUnmount(() => {
       <Transition :name="tabTransitionName" mode="out-in">
         <div :key="activeTab.id" class="tab-terminal-view">
           <SplitNode
-            :key="activeTab.layoutVersion"
             :node="activeTab.root"
             :active-pane-id="activeTab.activePaneId"
             :terminal-settings="terminalSettings"
+            :animated-pane-id="animatedPaneId"
+            :animated-node-id="animatedNodeId"
             @activate="activeTab.activePaneId = $event"
             @split="handleSplit"
             @close="handleClosePane"

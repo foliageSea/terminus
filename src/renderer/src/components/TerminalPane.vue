@@ -20,6 +20,8 @@ const props = defineProps<{
   cwd?: string
   active: boolean
   terminalSettings: TerminalSettings
+  animatedPaneId?: string
+  animatedNodeId?: string
 }>()
 
 const emit = defineEmits<{
@@ -31,6 +33,7 @@ const emit = defineEmits<{
 
 const host = ref<HTMLDivElement>()
 const dropSide = ref<DropSide>()
+const dragging = ref(false)
 const copyBubbleVisible = ref(false)
 const rendererMode = ref<'canvas' | 'webgl'>('canvas')
 let terminal: Terminal | undefined
@@ -66,6 +69,7 @@ function handleDragStart(event: DragEvent): void {
   }
 
   emit('activate', props.paneId)
+  dragging.value = true
   setDraggingNodeId(props.paneId)
   event.dataTransfer?.setData(dragDataType, props.paneId)
   event.dataTransfer?.setData('text/plain', props.paneId)
@@ -93,6 +97,7 @@ function handleDrop(event: DragEvent): void {
 }
 
 function handleDragEnd(): void {
+  dragging.value = false
   dropSide.value = undefined
   clearDraggingNodeId()
 }
@@ -263,7 +268,15 @@ onBeforeUnmount(() => {
 <template>
   <section
     class="terminal-pane"
-    :class="[{ active }, dropSide ? `drop-${dropSide}` : '']"
+    :class="[
+      {
+        active,
+        dragging,
+        'pane-entering': animatedPaneId === paneId,
+        'pane-dropped': animatedNodeId === paneId
+      },
+      dropSide ? `drop-${dropSide}` : ''
+    ]"
     @pointerdown="emit('activate', paneId)"
     @dragover="handleDragOver"
     @dragleave="dropSide = undefined"
