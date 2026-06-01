@@ -13,8 +13,8 @@ export interface AppSettings {
 }
 
 export const defaultTerminalSettings: TerminalSettings = {
-  fontFamily: 'Cascadia Mono, Consolas, monospace',
-  fontSize: 13
+  fontFamily: '"Maple Mono NF CN", Cascadia Mono, Consolas, monospace',
+  fontSize: 14
 }
 
 export const defaultThemeSettings: ThemeSettings = {
