@@ -168,12 +168,6 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
   return false
 }
 
-function handleTerminalWheel(event: WheelEvent): boolean {
-  // Keep wheel input inside xterm so TUI apps with mouse support can receive it.
-  event.stopPropagation()
-  return true
-}
-
 function enableWebglRenderer(): void {
   if (!terminal) return
 
@@ -221,7 +215,6 @@ onMounted(async () => {
     })
   )
   terminal.attachCustomKeyEventHandler(handleTerminalKey)
-  terminal.attachCustomWheelEventHandler(handleTerminalWheel)
   terminal.open(host.value)
   enableWebglRenderer()
 
