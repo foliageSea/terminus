@@ -14,6 +14,7 @@ export interface WindowApi {
   minimize: () => void
   toggleMaximize: () => void
   close: () => void
+  openExternal: (url: string) => void
 }
 
 export interface ClipboardApi {

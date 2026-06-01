@@ -214,7 +214,12 @@ onMounted(async () => {
   })
   fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
-  terminal.loadAddon(new WebLinksAddon())
+  terminal.loadAddon(
+    new WebLinksAddon((event, uri) => {
+      event.preventDefault()
+      window.api.window.openExternal(uri)
+    })
+  )
   terminal.attachCustomKeyEventHandler(handleTerminalKey)
   terminal.attachCustomWheelEventHandler(handleTerminalWheel)
   terminal.open(host.value)
