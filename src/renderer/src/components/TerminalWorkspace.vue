@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import type { HTMLAttributes } from 'vue'
 import {
   NButton,
   NColorPicker,
@@ -309,6 +310,34 @@ function dropTab(event: DragEvent, targetTabId: string): void {
   tabs.value = nextTabs
 }
 
+function createTabProps(tab: TerminalTab): HTMLAttributes {
+  return {
+    class: {
+      'terminal-tab-dragging': draggingTabId.value === tab.id,
+      'terminal-tab-drag-over': dragOverTabId.value === tab.id
+    },
+    title: tab.title,
+    draggable: 'true',
+    onDblclick: (event) => {
+      event.stopPropagation()
+      startRenameTab(tab)
+    },
+    onAuxclick: (event) => {
+      if (event.button !== 1) return
+      event.preventDefault()
+      event.stopPropagation()
+      closeTab(tab.id)
+    },
+    onDragstart: (event) => startTabDrag(event, tab.id),
+    onDragover: (event) => handleTabDragOver(event, tab.id),
+    onDragleave: () => {
+      if (dragOverTabId.value === tab.id) dragOverTabId.value = undefined
+    },
+    onDrop: (event) => dropTab(event, tab.id),
+    onDragend: finishTabDrag
+  }
+}
+
 async function startRenameTab(tab: TerminalTab): Promise<void> {
   editingTabId.value = tab.id
   editingTitle.value = tab.title
@@ -481,25 +510,10 @@ onBeforeUnmount(() => {
         />
       </div>
       <NTabs v-model:value="activeTabId" type="card" size="small" closable @close="closeTab">
-        <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id">
+        <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab-props="createTabProps(tab)">
           <template #tab>
-            <span
-              class="tab-title"
-              :class="{
-                dragging: draggingTabId === tab.id,
-                'drag-over': dragOverTabId === tab.id
-              }"
-              :title="tab.title"
-              draggable="true"
-              @dblclick.stop="startRenameTab(tab)"
-              @auxclick.middle.prevent.stop="closeTab(tab.id)"
-              @dragstart="startTabDrag($event, tab.id)"
-              @dragover="handleTabDragOver($event, tab.id)"
-              @dragleave="dragOverTabId === tab.id && (dragOverTabId = undefined)"
-              @drop="dropTab($event, tab.id)"
-              @dragend="finishTabDrag"
-            >
-              {{ tab.title }}
+            <span class="tab-content">
+              <span class="tab-title">{{ tab.title }}</span>
             </span>
           </template>
         </NTabPane>
@@ -642,26 +656,22 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.tab-title {
-  display: block;
+.tab-content {
+  display: flex;
+  align-items: center;
   width: 100%;
+  height: 100%;
   min-width: 0;
   padding: 0 8px;
+}
+
+.tab-title {
+  display: block;
+  min-width: 0;
   overflow: hidden;
-  cursor: pointer;
   font-weight: 600;
   text-overflow: ellipsis;
-  vertical-align: bottom;
   white-space: nowrap;
-}
-
-.tab-title.dragging {
-  cursor: grabbing;
-  opacity: 0.45;
-}
-
-.tab-title.drag-over {
-  color: var(--terminal-active-color);
 }
 
 .settings-button {

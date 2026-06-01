@@ -157,6 +157,22 @@ button {
     transform 180ms ease;
 }
 
+.workspace-header .n-tabs-tab__label {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.workspace-header .n-tabs-tab.terminal-tab-dragging {
+  cursor: grabbing;
+  opacity: 0.45;
+}
+
+.workspace-header .n-tabs-tab.terminal-tab-drag-over {
+  color: var(--terminal-active-color);
+}
+
 .workspace-header .n-tabs-tab.n-tabs-tab--active {
   transform: translateY(-1px);
 }
