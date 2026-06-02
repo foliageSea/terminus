@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
-import { BorderHorizontalOutlined, BorderVerticleOutlined, CloseOutlined } from '@vicons/antd'
+import { Dismiss20Regular, SplitHorizontal20Regular, SplitVertical20Regular } from '@vicons/fluent'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -309,7 +309,7 @@ onBeforeUnmount(() => {
         >
           <template #icon>
             <NIcon>
-              <BorderHorizontalOutlined />
+              <SplitVertical20Regular />
             </NIcon>
           </template>
         </NButton>
@@ -321,7 +321,7 @@ onBeforeUnmount(() => {
         >
           <template #icon>
             <NIcon>
-              <BorderVerticleOutlined />
+              <SplitHorizontal20Regular />
             </NIcon>
           </template>
         </NButton>
@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
         >
           <template #icon>
             <NIcon>
-              <CloseOutlined />
+              <Dismiss20Regular />
             </NIcon>
           </template>
         </NButton>

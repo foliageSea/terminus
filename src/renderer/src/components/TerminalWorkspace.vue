@@ -18,7 +18,7 @@ import {
   useThemeVars
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
-import { PlusOutlined, QuestionCircleOutlined, SettingOutlined } from '@vicons/antd'
+import { Add20Regular, QuestionCircle20Regular, Settings20Regular } from '@vicons/fluent'
 import SplitNode from './SplitNode.vue'
 import type {
   PaneDropPayload,
@@ -529,7 +529,7 @@ onBeforeUnmount(() => {
         >
           <template #icon>
             <NIcon>
-              <PlusOutlined />
+              <Add20Regular />
             </NIcon>
           </template>
         </NButton>
@@ -538,7 +538,7 @@ onBeforeUnmount(() => {
             <NButton class="settings-button" size="small" secondary circle title="终端设置">
               <template #icon>
                 <NIcon>
-                  <SettingOutlined />
+                  <Settings20Regular />
                 </NIcon>
               </template>
             </NButton>
@@ -579,7 +579,7 @@ onBeforeUnmount(() => {
             <NButton class="shortcut-help-button" size="small" secondary circle title="快捷键">
               <template #icon>
                 <NIcon>
-                  <QuestionCircleOutlined />
+                  <QuestionCircle20Regular />
                 </NIcon>
               </template>
             </NButton>
