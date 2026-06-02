@@ -20,8 +20,10 @@ import {
 import type { InputInst } from 'naive-ui'
 import { Add20Regular, QuestionCircle20Regular, Settings20Regular } from '@vicons/fluent'
 import SplitNode from './SplitNode.vue'
+import TerminalPane from './TerminalPane.vue'
 import type {
   PaneDropPayload,
+  PaneLeaf,
   PaneNode,
   SplitDirection,
   TerminalSettings,
@@ -89,6 +91,7 @@ let layoutAnimationTimer: number | undefined
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
 )
+const activePaneLeaves = computed(() => collectPaneLeaves(activeTab.value.root))
 const workspaceThemeStyle = computed(() => ({
   '--terminal-active-color': themeVars.value.primaryColor,
   '--terminal-active-color-hover': themeVars.value.primaryColorHover
@@ -108,6 +111,11 @@ function findNode(node: PaneNode, nodeId: string): PaneNode | undefined {
 function collectPaneIds(node: PaneNode): string[] {
   if (node.type === 'pane') return [node.id]
   return node.children.flatMap((child) => collectPaneIds(child))
+}
+
+function collectPaneLeaves(node: PaneNode): PaneLeaf[] {
+  if (node.type === 'pane') return [node]
+  return node.children.flatMap((child) => collectPaneLeaves(child))
 }
 
 function updatePaneCwd(node: PaneNode, paneId: string, cwd: string): boolean {
@@ -641,6 +649,7 @@ onBeforeUnmount(() => {
           <SplitNode
             :node="activeTab.root"
             :active-pane-id="activeTab.activePaneId"
+            :layout-version="activeTab.layoutVersion"
             :terminal-settings="terminalSettings"
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
@@ -649,6 +658,25 @@ onBeforeUnmount(() => {
             @close="handleClosePane"
             @drop-pane="handleDropPane"
           />
+          <Teleport
+            v-for="pane in activePaneLeaves"
+            :key="pane.id"
+            defer
+            :to="`#terminal-pane-slot-${pane.id}-${activeTab.layoutVersion}`"
+          >
+            <TerminalPane
+              :pane-id="pane.id"
+              :cwd="pane.cwd"
+              :active="pane.id === activeTab.activePaneId"
+              :terminal-settings="terminalSettings"
+              :animated-pane-id="animatedPaneId"
+              :animated-node-id="animatedNodeId"
+              @activate="activeTab.activePaneId = $event"
+              @split="handleSplit"
+              @close="handleClosePane"
+              @drop-pane="handleDropPane"
+            />
+          </Teleport>
         </div>
       </Transition>
     </main>

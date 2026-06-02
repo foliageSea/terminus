@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import TerminalPane from './TerminalPane.vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
 import type { PaneDropPayload, PaneNode, SplitDirection, TerminalSettings } from '../types/terminal'
 
 const props = defineProps<{
   node: PaneNode
   activePaneId: string
+  layoutVersion: number
   terminalSettings: TerminalSettings
   animatedPaneId?: string
   animatedNodeId?: string
@@ -66,18 +66,10 @@ function finishGroupDrag(): void {
 </script>
 
 <template>
-  <TerminalPane
+  <div
     v-if="node.type === 'pane'"
-    :pane-id="node.id"
-    :cwd="node.cwd"
-    :active="node.id === activePaneId"
-    :terminal-settings="terminalSettings"
-    :animated-pane-id="animatedPaneId"
-    :animated-node-id="animatedNodeId"
-    @activate="emit('activate', $event)"
-    @split="(id, direction) => emit('split', id, direction)"
-    @close="emit('close', $event)"
-    @drop-pane="emit('dropPane', $event)"
+    :id="`terminal-pane-slot-${node.id}-${layoutVersion}`"
+    class="terminal-pane-slot"
   />
 
   <div
@@ -100,6 +92,7 @@ function finishGroupDrag(): void {
       <SplitNode
         :node="node.children[0]"
         :active-pane-id="activePaneId"
+        :layout-version="layoutVersion"
         :terminal-settings="terminalSettings"
         :animated-pane-id="animatedPaneId"
         :animated-node-id="animatedNodeId"
@@ -114,6 +107,7 @@ function finishGroupDrag(): void {
       <SplitNode
         :node="node.children[1]"
         :active-pane-id="activePaneId"
+        :layout-version="layoutVersion"
         :terminal-settings="terminalSettings"
         :animated-pane-id="animatedPaneId"
         :animated-node-id="animatedNodeId"
