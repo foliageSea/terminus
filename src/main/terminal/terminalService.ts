@@ -2,8 +2,6 @@ import { spawn, IPty } from 'node-pty'
 import { extractTerminalCwd, powershellCwdPromptCommand, resolveTerminalCwd } from './terminalCwd'
 
 const terminals = new Map<string, IPty>()
-const terminalHistories = new Map<string, string>()
-const maxHistoryLength = 200_000
 
 interface CreateTerminalOptions {
   id: string
@@ -24,11 +22,7 @@ export function createTerminal({
   onCwd,
   onExit
 }: CreateTerminalOptions): void {
-  if (terminals.has(id)) {
-    const history = terminalHistories.get(id)
-    if (history) onData({ id, data: history })
-    return
-  }
+  if (terminals.has(id)) return
 
   const initialCwd = resolveTerminalCwd(cwd)
   const shellPath =
@@ -51,8 +45,6 @@ export function createTerminal({
     const cwd = extractTerminalCwd(data)
     if (cwd) onCwd({ id, cwd })
 
-    const history = `${terminalHistories.get(id) ?? ''}${data}`
-    terminalHistories.set(id, history.slice(-maxHistoryLength))
     onData({ id, data })
   })
 
@@ -77,11 +69,9 @@ export function resizeTerminal(id: string, cols: number, rows: number): void {
 export function killTerminal(id: string): void {
   terminals.get(id)?.kill()
   terminals.delete(id)
-  terminalHistories.delete(id)
 }
 
 export function killAllTerminals(): void {
   terminals.forEach((terminal) => terminal.kill())
   terminals.clear()
-  terminalHistories.clear()
 }
