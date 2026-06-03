@@ -96,7 +96,7 @@ echo "  版本：$current_version -> $version"
 echo "  Tag：$tag"
 echo "  Remote：$remote"
 echo
-echo "注意：当前 GitHub Actions 保留 push.tags 触发，推送 tag 后会触发构建；随后创建 Release 也可能触发一次 release 事件构建。"
+echo "注意：当前 GitHub Actions 仅通过 push.tags 触发发版构建；创建 Release 不会再次触发构建。"
 confirm "确认继续？" || die "已取消"
 
 echo "更新 package.json 版本..."
