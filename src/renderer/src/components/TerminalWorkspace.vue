@@ -530,7 +530,9 @@ watch(
   pathFavorites,
   async () => {
     if (!pathFavoritesLoaded.value) return
-    await window.api.settings.setPathFavorites({ ...pathFavorites })
+    await window.api.settings.setPathFavorites({
+      items: pathFavorites.items.map((favorite) => ({ ...favorite }))
+    })
   },
   { deep: true }
 )
