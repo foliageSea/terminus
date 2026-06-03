@@ -40,3 +40,13 @@ export interface TerminalSettings {
 export interface ThemeSettings {
   primaryColor: string
 }
+
+export interface PathFavorite {
+  id: string
+  name: string
+  path: string
+}
+
+export interface PathFavoritesSettings {
+  items: PathFavorite[]
+}

@@ -19,7 +19,10 @@ const api = {
       ipcRenderer.invoke('settings:set-terminal', settings),
     getTheme: () => ipcRenderer.invoke('settings:get-theme'),
     setTheme: (settings: { primaryColor: string }) =>
-      ipcRenderer.invoke('settings:set-theme', settings)
+      ipcRenderer.invoke('settings:set-theme', settings),
+    getPathFavorites: () => ipcRenderer.invoke('settings:get-path-favorites'),
+    setPathFavorites: (settings: { items: { id: string; name: string; path: string }[] }) =>
+      ipcRenderer.invoke('settings:set-path-favorites', settings)
   },
   terminal: {
     create: (id: string, cols?: number, rows?: number, cwd?: string) =>

@@ -7,9 +7,20 @@ export interface ThemeSettings {
   primaryColor: string
 }
 
+export interface PathFavorite {
+  id: string
+  name: string
+  path: string
+}
+
+export interface PathFavoritesSettings {
+  items: PathFavorite[]
+}
+
 export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
+  pathFavorites: PathFavoritesSettings
 }
 
 export const defaultTerminalSettings: TerminalSettings = {
@@ -19,4 +30,8 @@ export const defaultTerminalSettings: TerminalSettings = {
 
 export const defaultThemeSettings: ThemeSettings = {
   primaryColor: '#63e2b7'
+}
+
+export const defaultPathFavoritesSettings: PathFavoritesSettings = {
+  items: []
 }

@@ -3,11 +3,16 @@ import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import {
   AppSettings,
+  PathFavorite,
+  PathFavoritesSettings,
   TerminalSettings,
   ThemeSettings,
+  defaultPathFavoritesSettings,
   defaultTerminalSettings,
   defaultThemeSettings
 } from './settingsTypes'
+
+const maxPathFavorites = 50
 
 function normalizeFontSize(value: unknown): number {
   const fontSize = Number(value)
@@ -43,6 +48,30 @@ function normalizeThemeSettings(value: unknown): ThemeSettings {
   }
 }
 
+function normalizePathFavoritesSettings(value: unknown): PathFavoritesSettings {
+  const settings =
+    value && typeof value === 'object' ? (value as Partial<PathFavoritesSettings>) : {}
+  const items = Array.isArray(settings.items) ? settings.items : defaultPathFavoritesSettings.items
+  const seenPaths = new Set<string>()
+  const normalizedItems: PathFavorite[] = []
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue
+
+    const favorite = item as Partial<PathFavorite>
+    const id = favorite.id?.trim()
+    const name = favorite.name?.trim()
+    const path = favorite.path?.trim()
+    if (!id || !name || !path || seenPaths.has(path)) continue
+
+    seenPaths.add(path)
+    normalizedItems.push({ id, name, path })
+    if (normalizedItems.length >= maxPathFavorites) break
+  }
+
+  return { items: normalizedItems }
+}
+
 function normalizeAppSettings(value: unknown): AppSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
   const legacyTerminalSettings =
@@ -50,7 +79,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
 
   return {
     terminal: normalizeTerminalSettings(settings.terminal ?? legacyTerminalSettings),
-    theme: normalizeThemeSettings(settings.theme)
+    theme: normalizeThemeSettings(settings.theme),
+    pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites)
   }
 }
 
@@ -92,4 +122,13 @@ export function readThemeSettings(): ThemeSettings {
 export function writeThemeSettings(settings: ThemeSettings): ThemeSettings {
   const nextSettings = writeAppSettings({ ...readAppSettings(), theme: settings })
   return nextSettings.theme
+}
+
+export function readPathFavoritesSettings(): PathFavoritesSettings {
+  return readAppSettings().pathFavorites
+}
+
+export function writePathFavoritesSettings(settings: PathFavoritesSettings): PathFavoritesSettings {
+  const nextSettings = writeAppSettings({ ...readAppSettings(), pathFavorites: settings })
+  return nextSettings.pathFavorites
 }

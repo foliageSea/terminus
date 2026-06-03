@@ -18,11 +18,19 @@ import {
   useThemeVars
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
-import { Add20Regular, QuestionCircle20Regular, Settings20Regular } from '@vicons/fluent'
+import {
+  Add20Regular,
+  Delete20Regular,
+  FolderOpenVertical20Regular,
+  QuestionCircle20Regular,
+  Settings20Regular
+} from '@vicons/fluent'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
 import type {
   PaneDropPayload,
+  PathFavorite,
+  PathFavoritesSettings,
   PaneLeaf,
   PaneNode,
   SplitDirection,
@@ -45,13 +53,16 @@ const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
   fontSize: 13
 }
+const defaultPathFavoritesSettings: PathFavoritesSettings = {
+  items: []
+}
 
 function createId(prefix: string): string {
   nextId += 1
   return `${prefix}-${nextId}`
 }
 
-function createTab(title?: string): TerminalTab {
+function createTab(title?: string, cwd?: string): TerminalTab {
   const paneId = createId('pane')
   const tabTitle = title ?? `#${nextTabNumber}`
   if (!title) nextTabNumber = (nextTabNumber % 12) + 1
@@ -59,7 +70,7 @@ function createTab(title?: string): TerminalTab {
   return {
     id: createId('tab'),
     title: tabTitle,
-    root: { type: 'pane', id: paneId },
+    root: { type: 'pane', id: paneId, cwd },
     activePaneId: paneId,
     layoutVersion: 0
   }
@@ -84,6 +95,8 @@ const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
+const pathFavorites = reactive<PathFavoritesSettings>({ ...defaultPathFavoritesSettings })
+const pathFavoritesLoaded = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
@@ -92,6 +105,13 @@ const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
 )
 const activePaneLeaves = computed(() => collectPaneLeaves(activeTab.value.root))
+const activePane = computed(() => findPaneLeaf(activeTab.value.root, activeTab.value.activePaneId))
+const activePaneCwd = computed(() => activePane.value?.cwd?.trim() || '')
+const canFavoriteActivePath = computed(
+  () =>
+    Boolean(activePaneCwd.value) &&
+    !pathFavorites.items.some((favorite) => favorite.path === activePaneCwd.value)
+)
 const workspaceThemeStyle = computed(() => ({
   '--terminal-active-color': themeVars.value.primaryColor,
   '--terminal-active-color-hover': themeVars.value.primaryColorHover
@@ -116,6 +136,11 @@ function collectPaneIds(node: PaneNode): string[] {
 function collectPaneLeaves(node: PaneNode): PaneLeaf[] {
   if (node.type === 'pane') return [node]
   return node.children.flatMap((child) => collectPaneLeaves(child))
+}
+
+function findPaneLeaf(node: PaneNode, paneId: string): PaneLeaf | undefined {
+  if (node.type === 'pane') return node.id === paneId ? node : undefined
+  return node.children.map((child) => findPaneLeaf(child, paneId)).find(Boolean)
 }
 
 function updatePaneCwd(node: PaneNode, paneId: string, cwd: string): boolean {
@@ -239,10 +264,39 @@ function firstPaneId(node: PaneNode): string {
   return node.type === 'pane' ? node.id : firstPaneId(node.children[0])
 }
 
-function addTab(): void {
-  const tab = createTab()
+function openTab(cwd?: string, title?: string): void {
+  const tab = createTab(title, cwd)
   tabs.value.push(tab)
   activeTabId.value = tab.id
+}
+
+function addTab(): void {
+  openTab()
+}
+
+function createFavoriteName(path: string): string {
+  const normalizedPath = path.replace(/[\\/]+$/, '')
+  const name = normalizedPath.split(/[\\/]/).filter(Boolean).pop()
+  return name || path
+}
+
+function addCurrentPathFavorite(): void {
+  const path = activePaneCwd.value
+  if (!path || pathFavorites.items.some((favorite) => favorite.path === path)) return
+
+  pathFavorites.items.unshift({
+    id: createId('path'),
+    name: createFavoriteName(path),
+    path
+  })
+}
+
+function removePathFavorite(id: string): void {
+  pathFavorites.items = pathFavorites.items.filter((favorite) => favorite.id !== id)
+}
+
+function openPathFavorite(favorite: PathFavorite): void {
+  openTab(favorite.path, favorite.name)
 }
 
 function switchTab(direction: 1 | -1): void {
@@ -472,6 +526,15 @@ watch(
   { deep: true }
 )
 
+watch(
+  pathFavorites,
+  async () => {
+    if (!pathFavoritesLoaded.value) return
+    await window.api.settings.setPathFavorites({ ...pathFavorites })
+  },
+  { deep: true }
+)
+
 onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown, true)
 
@@ -482,6 +545,10 @@ onMounted(async () => {
   const savedSettings = await window.api.settings.getTerminal()
   Object.assign(terminalSettings, savedSettings)
   terminalSettingsLoaded.value = true
+
+  const savedPathFavorites = await window.api.settings.getPathFavorites()
+  Object.assign(pathFavorites, savedPathFavorites)
+  pathFavoritesLoaded.value = true
 })
 
 onBeforeUnmount(() => {
@@ -541,6 +608,65 @@ onBeforeUnmount(() => {
             </NIcon>
           </template>
         </NButton>
+        <NPopover trigger="click" placement="bottom-end">
+          <template #trigger>
+            <NButton class="path-favorites-button" size="small" secondary circle title="路径收藏">
+              <template #icon>
+                <NIcon>
+                  <FolderOpenVertical20Regular />
+                </NIcon>
+              </template>
+            </NButton>
+          </template>
+
+          <div class="path-favorites-popover" aria-label="路径收藏">
+            <div class="path-favorites-header">
+              <div>
+                <div class="path-favorites-title">路径收藏</div>
+                <div class="path-favorites-subtitle">点击收藏项会在新 Tab 打开</div>
+              </div>
+              <NButton
+                size="tiny"
+                secondary
+                :disabled="!canFavoriteActivePath"
+                :title="activePaneCwd || '当前终端路径未就绪'"
+                @click="addCurrentPathFavorite"
+              >
+                收藏当前
+              </NButton>
+            </div>
+
+            <div v-if="pathFavorites.items.length" class="path-favorites-list">
+              <button
+                v-for="favorite in pathFavorites.items"
+                :key="favorite.id"
+                class="path-favorite-item"
+                type="button"
+                :title="favorite.path"
+                @click="openPathFavorite(favorite)"
+              >
+                <span class="path-favorite-text">
+                  <span class="path-favorite-name">{{ favorite.name }}</span>
+                  <span class="path-favorite-path">{{ favorite.path }}</span>
+                </span>
+                <NButton
+                  size="tiny"
+                  quaternary
+                  type="error"
+                  title="删除收藏"
+                  @click.stop="removePathFavorite(favorite.id)"
+                >
+                  <template #icon>
+                    <NIcon>
+                      <Delete20Regular />
+                    </NIcon>
+                  </template>
+                </NButton>
+              </button>
+            </div>
+            <div v-else class="path-favorites-empty">暂无收藏路径</div>
+          </div>
+        </NPopover>
         <NPopover trigger="click" placement="bottom-end">
           <template #trigger>
             <NButton class="settings-button" size="small" secondary circle title="终端设置">
@@ -704,6 +830,92 @@ onBeforeUnmount(() => {
 
 .settings-button {
   margin-left: 6px;
+}
+
+.path-favorites-button {
+  margin-left: 6px;
+}
+
+.path-favorites-popover {
+  display: grid;
+  gap: 10px;
+  width: 340px;
+  padding: 4px;
+}
+
+.path-favorites-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.path-favorites-title {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+}
+
+.path-favorites-subtitle {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.path-favorites-list {
+  display: grid;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.path-favorite-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.path-favorite-item:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.path-favorite-text {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.path-favorite-name,
+.path-favorite-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path-favorite-name {
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 650;
+}
+
+.path-favorite-path {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12px;
+}
+
+.path-favorites-empty {
+  padding: 18px 8px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 13px;
+  text-align: center;
 }
 
 .shortcut-popover {

@@ -31,11 +31,23 @@ export interface ThemeSettings {
   primaryColor: string
 }
 
+export interface PathFavorite {
+  id: string
+  name: string
+  path: string
+}
+
+export interface PathFavoritesSettings {
+  items: PathFavorite[]
+}
+
 export interface SettingsApi {
   getTerminal: () => Promise<TerminalSettings>
   setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
   getTheme: () => Promise<ThemeSettings>
   setTheme: (settings: ThemeSettings) => Promise<ThemeSettings>
+  getPathFavorites: () => Promise<PathFavoritesSettings>
+  setPathFavorites: (settings: PathFavoritesSettings) => Promise<PathFavoritesSettings>
 }
 
 export interface AppApi {
