@@ -1,16 +1,32 @@
-import { ipcMain } from 'electron'
+import { ipcMain, WebContents } from 'electron'
 import { sendToRenderer } from '../shared/sendToRenderer'
 import {
   createTerminal,
+  killTerminalsForOwner,
   killTerminal,
   resizeTerminal,
   writeTerminal
 } from '../terminal/terminalService'
 
+const terminalOwners = new Set<number>()
+
+function registerTerminalOwner(sender: WebContents): void {
+  if (terminalOwners.has(sender.id)) return
+
+  terminalOwners.add(sender.id)
+  sender.once('destroyed', () => {
+    terminalOwners.delete(sender.id)
+    killTerminalsForOwner(sender.id)
+  })
+}
+
 export function registerTerminalIpc(): void {
   ipcMain.handle('terminal:create', (event, id: string, cols = 80, rows = 24, cwd?: string) => {
+    registerTerminalOwner(event.sender)
+
     createTerminal({
       id,
+      ownerWebContentsId: event.sender.id,
       cols,
       rows,
       cwd,
