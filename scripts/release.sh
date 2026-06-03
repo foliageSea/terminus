@@ -103,7 +103,7 @@ echo "更新 package.json 版本..."
 pnpm version "$version" --no-git-tag-version
 
 echo "校验依赖锁文件..."
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --ignore-scripts
 
 echo "执行类型检查..."
 pnpm typecheck
