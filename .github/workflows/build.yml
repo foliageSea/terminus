@@ -24,8 +24,6 @@ jobs:
             build_command: pnpm build:win -- --x64
             artifact_files: |
               dist/*.exe
-              dist/*.blockmap
-              dist/latest.yml
           # - platform: macos
           #   os: macos-14
           #   arch: arm64
