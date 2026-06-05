@@ -741,11 +741,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="shortcut-row">
               <span>粘贴</span>
-              <kbd>Alt</kbd><kbd>V</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>粘贴</span>
-              <kbd>Shift</kbd><kbd>Insert</kbd>
+              <kbd>Ctrl</kbd><kbd>V</kbd>
             </div>
           </div>
         </NPopover>

@@ -121,13 +121,6 @@ function applyTerminalSettings(): void {
   fit()
 }
 
-function pasteClipboardText(): void {
-  const text = window.api.clipboard.readText()
-  if (!text) return
-
-  terminal?.paste(text)
-}
-
 function showCopyBubble(): void {
   copyBubbleVisible.value = true
   if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
@@ -145,6 +138,13 @@ function copySelectedText(): void {
   showCopyBubble()
 }
 
+function pasteClipboardText(): void {
+  const text = window.api.clipboard.readText()
+  if (!text) return
+
+  terminal?.paste(text)
+}
+
 function handleTerminalKey(event: KeyboardEvent): boolean {
   if (event.type !== 'keydown' || event.repeat) return true
 
@@ -152,8 +152,7 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
   const isCopyShortcut =
     key === 'c' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
   const isPasteShortcut =
-    (key === 'v' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) ||
-    (key === 'insert' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey)
+    key === 'v' && event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey
 
   if (isCopyShortcut) {
     event.preventDefault()
@@ -161,11 +160,13 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
     return false
   }
 
-  if (!isPasteShortcut) return true
+  if (isPasteShortcut) {
+    event.preventDefault()
+    pasteClipboardText()
+    return false
+  }
 
-  event.preventDefault()
-  pasteClipboardText()
-  return false
+  return true
 }
 
 function enableWebglRenderer(): void {
