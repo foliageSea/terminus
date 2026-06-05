@@ -90,7 +90,6 @@ const renameDialogVisible = ref(false)
 const renameInputRef = ref<InputInst>()
 const draggingTabId = ref<string | undefined>()
 const dragOverTabId = ref<string | undefined>()
-const tabTransitionName = ref('terminal-slide-next')
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
@@ -104,7 +103,6 @@ let layoutAnimationTimer: number | undefined
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
 )
-const activePaneLeaves = computed(() => collectPaneLeaves(activeTab.value.root))
 const activePane = computed(() => findPaneLeaf(activeTab.value.root, activeTab.value.activePaneId))
 const activePaneCwd = computed(() => activePane.value?.cwd?.trim() || '')
 const canFavoriteActivePath = computed(
@@ -501,23 +499,6 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
 }
 
 watch(
-  activeTabId,
-  (nextTabId, previousTabId) => {
-    const previousIndex = tabs.value.findIndex((tab) => tab.id === previousTabId)
-    const nextIndex = tabs.value.findIndex((tab) => tab.id === nextTabId)
-
-    if (previousIndex < 0 || nextIndex < 0) {
-      tabTransitionName.value = 'terminal-slide-next'
-      return
-    }
-
-    tabTransitionName.value =
-      nextIndex >= previousIndex ? 'terminal-slide-next' : 'terminal-slide-prev'
-  },
-  { flush: 'sync' }
-)
-
-watch(
   terminalSettings,
   async () => {
     if (!terminalSettingsLoaded.value) return
@@ -768,41 +749,44 @@ onBeforeUnmount(() => {
     </NModal>
 
     <main class="workspace-body">
-      <Transition :name="tabTransitionName" mode="out-in">
-        <div :key="activeTab.id" class="tab-terminal-view">
-          <SplitNode
-            :node="activeTab.root"
-            :active-pane-id="activeTab.activePaneId"
-            :layout-version="activeTab.layoutVersion"
+      <div
+        v-for="tab in tabs"
+        v-show="tab.id === activeTabId"
+        :key="tab.id"
+        class="tab-terminal-view"
+      >
+        <SplitNode
+          :node="tab.root"
+          :active-pane-id="tab.activePaneId"
+          :layout-version="tab.layoutVersion"
+          :terminal-settings="terminalSettings"
+          :animated-pane-id="animatedPaneId"
+          :animated-node-id="animatedNodeId"
+          @activate="tab.activePaneId = $event"
+          @split="handleSplit"
+          @close="handleClosePane"
+          @drop-pane="handleDropPane"
+        />
+        <Teleport
+          v-for="pane in collectPaneLeaves(tab.root)"
+          :key="pane.id"
+          defer
+          :to="`#terminal-pane-slot-${pane.id}-${tab.layoutVersion}`"
+        >
+          <TerminalPane
+            :pane-id="pane.id"
+            :cwd="pane.cwd"
+            :active="tab.id === activeTabId && pane.id === tab.activePaneId"
             :terminal-settings="terminalSettings"
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
-            @activate="activeTab.activePaneId = $event"
+            @activate="tab.activePaneId = $event"
             @split="handleSplit"
             @close="handleClosePane"
             @drop-pane="handleDropPane"
           />
-          <Teleport
-            v-for="pane in activePaneLeaves"
-            :key="pane.id"
-            defer
-            :to="`#terminal-pane-slot-${pane.id}-${activeTab.layoutVersion}`"
-          >
-            <TerminalPane
-              :pane-id="pane.id"
-              :cwd="pane.cwd"
-              :active="pane.id === activeTab.activePaneId"
-              :terminal-settings="terminalSettings"
-              :animated-pane-id="animatedPaneId"
-              :animated-node-id="animatedNodeId"
-              @activate="activeTab.activePaneId = $event"
-              @split="handleSplit"
-              @close="handleClosePane"
-              @drop-pane="handleDropPane"
-            />
-          </Teleport>
-        </div>
-      </Transition>
+        </Teleport>
+      </div>
     </main>
   </NLayout>
 </template>
