@@ -1,6 +1,6 @@
 {
   "name": "terminus",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A modern terminal workspace built with Electron, Vue, and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
