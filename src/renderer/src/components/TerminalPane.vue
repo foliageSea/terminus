@@ -51,8 +51,13 @@ const terminalHostStyle = computed(() => {
   if (!props.terminalSettings.backgroundImageEnabled) return undefined
   if (!props.backgroundImageUrl) return undefined
 
+  const colorScheme = getTerminalColorScheme(props.terminalSettings.colorScheme)
+  const backgroundMask = `${colorScheme.theme.background}${toHexAlpha(
+    props.terminalSettings.backgroundOpacity
+  )}`
+
   return {
-    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url(${props.backgroundImageUrl})`,
+    backgroundImage: `linear-gradient(${backgroundMask}, ${backgroundMask}), url(${props.backgroundImageUrl})`,
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
     backgroundSize: 'cover'
@@ -137,7 +142,7 @@ function createTerminalTheme(): ITheme {
 
   return {
     ...colorScheme.theme,
-    background: `${colorScheme.theme.background}${toHexAlpha(props.terminalSettings.backgroundOpacity)}`
+    background: `${colorScheme.theme.background}00`
   }
 }
 

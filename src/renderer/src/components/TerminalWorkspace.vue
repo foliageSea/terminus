@@ -840,7 +840,7 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                 </NFormItem>
-                <NFormItem label="终端透明度" path="backgroundOpacity">
+                <NFormItem label="背景遮罩" path="backgroundOpacity">
                   <div class="terminal-opacity-control">
                     <NSlider
                       :value="terminalSettings.backgroundOpacity"
