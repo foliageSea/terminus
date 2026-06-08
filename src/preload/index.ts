@@ -15,8 +15,16 @@ const api = {
   },
   settings: {
     getTerminal: () => ipcRenderer.invoke('settings:get-terminal'),
-    setTerminal: (settings: { fontFamily: string; fontSize: number }) =>
-      ipcRenderer.invoke('settings:set-terminal', settings),
+    setTerminal: (settings: {
+      fontFamily: string
+      fontSize: number
+      backgroundImageEnabled: boolean
+      backgroundImagePath: string
+      backgroundOpacity: number
+    }) => ipcRenderer.invoke('settings:set-terminal', settings),
+    selectTerminalBackground: () => ipcRenderer.invoke('settings:select-terminal-background'),
+    getTerminalBackgroundDataUrl: (path: string) =>
+      ipcRenderer.invoke('settings:get-terminal-background-data-url', path),
     getTheme: () => ipcRenderer.invoke('settings:get-theme'),
     setTheme: (settings: { primaryColor: string }) =>
       ipcRenderer.invoke('settings:set-theme', settings),

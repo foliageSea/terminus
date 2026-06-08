@@ -20,12 +20,28 @@ function normalizeFontSize(value: unknown): number {
   return Math.min(32, Math.max(8, Math.round(fontSize)))
 }
 
+function normalizeBackgroundOpacity(value: unknown): number {
+  const opacity = Number(value)
+  if (!Number.isFinite(opacity)) return defaultTerminalSettings.backgroundOpacity
+  return Math.min(100, Math.max(0, Math.round(opacity)))
+}
+
+function normalizeBackgroundImagePath(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : defaultTerminalSettings.backgroundImagePath
+}
+
 function normalizeTerminalSettings(value: unknown): TerminalSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<TerminalSettings>) : {}
 
   return {
     fontFamily: settings.fontFamily?.trim() || defaultTerminalSettings.fontFamily,
-    fontSize: normalizeFontSize(settings.fontSize)
+    fontSize: normalizeFontSize(settings.fontSize),
+    backgroundImageEnabled:
+      typeof settings.backgroundImageEnabled === 'boolean'
+        ? settings.backgroundImageEnabled
+        : defaultTerminalSettings.backgroundImageEnabled,
+    backgroundImagePath: normalizeBackgroundImagePath(settings.backgroundImagePath),
+    backgroundOpacity: normalizeBackgroundOpacity(settings.backgroundOpacity)
   }
 }
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
 import { Dismiss20Regular, SplitHorizontal20Regular, SplitVertical20Regular } from '@vicons/fluent'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
-import '@xterm/xterm/css/xterm.css'
+import type { ITheme } from '@xterm/xterm'
 import {
   clearDraggingNodeId,
   dragDataType,
@@ -20,6 +20,7 @@ const props = defineProps<{
   cwd?: string
   active: boolean
   terminalSettings: TerminalSettings
+  backgroundImageUrl?: string
   animatedPaneId?: string
   animatedNodeId?: string
 }>()
@@ -44,6 +45,23 @@ let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
 let removeWebglContextLossListener: { dispose: () => void } | undefined
 let copyBubbleTimer: number | undefined
+
+const terminalHostStyle = computed(() => {
+  if (!props.terminalSettings.backgroundImageEnabled) return undefined
+  if (!props.backgroundImageUrl) return undefined
+
+  return {
+    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url(${props.backgroundImageUrl})`,
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: 'cover'
+  }
+})
+
+function toHexAlpha(opacity: number): string {
+  const alpha = Math.min(255, Math.max(0, Math.round((opacity / 100) * 255)))
+  return alpha.toString(16).padStart(2, '0')
+}
 
 function resolveDropSide(event: DragEvent): DropSide {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -113,11 +131,22 @@ function fit(): void {
   }
 }
 
+function createTerminalTheme(): ITheme {
+  return {
+    foreground: '#d7deea',
+    background: `#000000${toHexAlpha(props.terminalSettings.backgroundOpacity)}`,
+    cursor: '#7dd3fc',
+    cursorAccent: '#020617',
+    selectionBackground: '#334155'
+  }
+}
+
 function applyTerminalSettings(): void {
   if (!terminal) return
 
   terminal.options.fontFamily = props.terminalSettings.fontFamily
   terminal.options.fontSize = props.terminalSettings.fontSize
+  terminal.options.theme = createTerminalTheme()
   fit()
 }
 
@@ -203,12 +232,7 @@ onMounted(async () => {
     fontFamily: props.terminalSettings.fontFamily,
     fontSize: props.terminalSettings.fontSize,
     lineHeight: 1.2,
-    theme: {
-      background: '#000000',
-      foreground: '#d7deea',
-      cursor: '#7dd3fc',
-      selectionBackground: '#334155'
-    }
+    theme: createTerminalTheme()
   })
   fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
@@ -345,6 +369,6 @@ onBeforeUnmount(() => {
         </NButton>
       </div>
     </div>
-    <div ref="host" class="terminal-host" />
+    <div ref="host" class="terminal-host" :style="terminalHostStyle" />
   </section>
 </template>

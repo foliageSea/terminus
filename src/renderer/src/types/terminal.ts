@@ -35,6 +35,9 @@ export interface TerminalTab {
 export interface TerminalSettings {
   fontFamily: string
   fontSize: number
+  backgroundImageEnabled: boolean
+  backgroundImagePath: string
+  backgroundOpacity: number
 }
 
 export interface ThemeSettings {

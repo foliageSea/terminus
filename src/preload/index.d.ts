@@ -25,6 +25,9 @@ export interface ClipboardApi {
 export interface TerminalSettings {
   fontFamily: string
   fontSize: number
+  backgroundImageEnabled: boolean
+  backgroundImagePath: string
+  backgroundOpacity: number
 }
 
 export interface ThemeSettings {
@@ -44,6 +47,8 @@ export interface PathFavoritesSettings {
 export interface SettingsApi {
   getTerminal: () => Promise<TerminalSettings>
   setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
+  selectTerminalBackground: () => Promise<string | undefined>
+  getTerminalBackgroundDataUrl: (path: string) => Promise<string>
   getTheme: () => Promise<ThemeSettings>
   setTheme: (settings: ThemeSettings) => Promise<ThemeSettings>
   getPathFavorites: () => Promise<PathFavoritesSettings>

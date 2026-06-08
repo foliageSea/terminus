@@ -13,6 +13,8 @@ import {
   NLayoutHeader,
   NModal,
   NPopover,
+  NSlider,
+  NSwitch,
   NTabPane,
   NTooltip,
   NTabs,
@@ -52,7 +54,10 @@ let nextTabNumber = 1
 const tabDragDataType = 'application/x-terminus-tab'
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
-  fontSize: 13
+  fontSize: 13,
+  backgroundImageEnabled: true,
+  backgroundImagePath: '',
+  backgroundOpacity: 60
 }
 const defaultPathFavoritesSettings: PathFavoritesSettings = {
   items: []
@@ -83,6 +88,10 @@ function normalizeFontSize(value: unknown): number {
   return Math.min(32, Math.max(8, Math.round(fontSize)))
 }
 
+function getFileNameFromPath(path: string): string {
+  return path.split(/[\\/]/).filter(Boolean).pop() || path
+}
+
 const tabs = ref<TerminalTab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
 const editingTabId = ref<string | undefined>()
@@ -94,6 +103,7 @@ const dragOverTabId = ref<string | undefined>()
 const dragOverTabSide = ref<'before' | 'after'>('before')
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
+const terminalBackgroundUrl = ref('')
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
 const pathFavorites = reactive<PathFavoritesSettings>({ ...defaultPathFavoritesSettings })
@@ -116,6 +126,11 @@ const workspaceThemeStyle = computed(() => ({
   '--terminal-active-color': themeVars.value.primaryColor,
   '--terminal-active-color-hover': themeVars.value.primaryColorHover
 }))
+const terminalBackgroundName = computed(() =>
+  terminalSettings.backgroundImagePath
+    ? getFileNameFromPath(terminalSettings.backgroundImagePath)
+    : '未选择背景图'
+)
 
 function findPane(node: PaneNode, paneId: string): boolean {
   if (node.type === 'pane') return node.id === paneId
@@ -500,6 +515,31 @@ function updateFontSize(value: number | null): void {
   terminalSettings.fontSize = normalizeFontSize(value)
 }
 
+function updateBackgroundOpacity(value: number): void {
+  terminalSettings.backgroundOpacity = Math.min(100, Math.max(0, Math.round(value)))
+}
+
+async function refreshTerminalBackground(): Promise<void> {
+  const path = terminalSettings.backgroundImagePath.trim()
+  terminalBackgroundUrl.value = path
+    ? await window.api.settings.getTerminalBackgroundDataUrl(path)
+    : ''
+}
+
+async function selectTerminalBackground(): Promise<void> {
+  const path = await window.api.settings.selectTerminalBackground()
+  if (!path) return
+
+  terminalSettings.backgroundImagePath = path
+  terminalSettings.backgroundImageEnabled = true
+  await refreshTerminalBackground()
+}
+
+function clearTerminalBackground(): void {
+  terminalSettings.backgroundImagePath = ''
+  terminalBackgroundUrl.value = ''
+}
+
 function updatePrimaryColor(color: string): void {
   emit('updatePrimaryColor', color)
 }
@@ -583,6 +623,7 @@ onMounted(async () => {
 
   const savedSettings = await window.api.settings.getTerminal()
   Object.assign(terminalSettings, savedSettings)
+  await refreshTerminalBackground()
   terminalSettingsLoaded.value = true
 
   const savedPathFavorites = await window.api.settings.getPathFavorites()
@@ -750,6 +791,46 @@ onBeforeUnmount(() => {
                 @update:value="updateFontSize"
               />
             </NFormItem>
+            <NFormItem label="背景图" path="backgroundImageEnabled">
+              <div class="terminal-background-control">
+                <div class="terminal-background-switch-row">
+                  <NSwitch v-model:value="terminalSettings.backgroundImageEnabled" />
+                  <span
+                    class="terminal-background-name"
+                    :title="terminalSettings.backgroundImagePath"
+                  >
+                    {{ terminalBackgroundName }}
+                  </span>
+                </div>
+                <div class="terminal-background-actions">
+                  <NButton size="tiny" secondary @click="selectTerminalBackground"
+                    >选择图片</NButton
+                  >
+                  <NButton
+                    size="tiny"
+                    quaternary
+                    :disabled="!terminalSettings.backgroundImagePath"
+                    @click="clearTerminalBackground"
+                  >
+                    清除
+                  </NButton>
+                </div>
+              </div>
+            </NFormItem>
+            <NFormItem label="终端透明度" path="backgroundOpacity">
+              <div class="terminal-opacity-control">
+                <NSlider
+                  :value="terminalSettings.backgroundOpacity"
+                  :min="0"
+                  :max="100"
+                  :step="1"
+                  @update:value="updateBackgroundOpacity"
+                />
+                <span class="terminal-opacity-value"
+                  >{{ terminalSettings.backgroundOpacity }}%</span
+                >
+              </div>
+            </NFormItem>
             <NFormItem label="主题色" path="primaryColor">
               <NColorPicker
                 :value="props.primaryColor"
@@ -855,6 +936,7 @@ onBeforeUnmount(() => {
             :cwd="pane.cwd"
             :active="tab.id === activeTabId && pane.id === tab.activePaneId"
             :terminal-settings="terminalSettings"
+            :background-image-url="terminalBackgroundUrl"
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
             @activate="tab.activePaneId = $event"
@@ -1071,5 +1153,41 @@ onBeforeUnmount(() => {
 
 .font-size-input :deep(input) {
   text-align: center;
+}
+
+.terminal-background-control {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.terminal-background-switch-row,
+.terminal-background-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-background-name {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-opacity-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.terminal-opacity-value {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 12px;
+  text-align: right;
 }
 </style>
