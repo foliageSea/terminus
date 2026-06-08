@@ -90,6 +90,7 @@ const renameDialogVisible = ref(false)
 const renameInputRef = ref<InputInst>()
 const draggingTabId = ref<string | undefined>()
 const dragOverTabId = ref<string | undefined>()
+const dragOverTabSide = ref<'before' | 'after'>('before')
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
@@ -344,37 +345,77 @@ function handleTabDragOver(event: DragEvent, tabId: string): void {
   if (!sourceTabId || sourceTabId === tabId) return
 
   event.preventDefault()
+  const tabRect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   dragOverTabId.value = tabId
+  dragOverTabSide.value = event.clientX < tabRect.left + tabRect.width / 2 ? 'before' : 'after'
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+}
+
+function handleTabListDragOver(event: DragEvent): void {
+  const sourceTabId = draggingTabId.value || event.dataTransfer?.getData(tabDragDataType)
+  if (!sourceTabId) return
+
+  event.preventDefault()
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 
 function finishTabDrag(): void {
   draggingTabId.value = undefined
   dragOverTabId.value = undefined
+  dragOverTabSide.value = 'before'
+}
+
+function moveTab(
+  sourceTabId: string,
+  targetTabId?: string,
+  side: 'before' | 'after' = 'after'
+): void {
+  if (sourceTabId === targetTabId) return
+
+  const sourceIndex = tabs.value.findIndex((tab) => tab.id === sourceTabId)
+  if (sourceIndex < 0) return
+
+  const nextTabs = [...tabs.value]
+  const [sourceTab] = nextTabs.splice(sourceIndex, 1)
+  let targetIndex = targetTabId
+    ? nextTabs.findIndex((tab) => tab.id === targetTabId)
+    : nextTabs.length
+  if (targetIndex < 0) return
+  if (side === 'after') targetIndex += 1
+
+  nextTabs.splice(targetIndex, 0, sourceTab)
+  tabs.value = nextTabs
 }
 
 function dropTab(event: DragEvent, targetTabId: string): void {
   const sourceTabId = draggingTabId.value || event.dataTransfer?.getData(tabDragDataType)
+  const side = dragOverTabSide.value
   finishTabDrag()
 
   if (!sourceTabId || sourceTabId === targetTabId) return
   event.preventDefault()
+  event.stopPropagation()
 
-  const sourceIndex = tabs.value.findIndex((tab) => tab.id === sourceTabId)
-  if (sourceIndex < 0 || !tabs.value.some((tab) => tab.id === targetTabId)) return
+  moveTab(sourceTabId, targetTabId, side)
+}
 
-  const nextTabs = [...tabs.value]
-  const [sourceTab] = nextTabs.splice(sourceIndex, 1)
-  const targetIndex = nextTabs.findIndex((tab) => tab.id === targetTabId)
-  nextTabs.splice(targetIndex, 0, sourceTab)
-  tabs.value = nextTabs
+function dropTabAtEnd(event: DragEvent): void {
+  const sourceTabId = draggingTabId.value || event.dataTransfer?.getData(tabDragDataType)
+  finishTabDrag()
+
+  if (!sourceTabId) return
+  event.preventDefault()
+
+  moveTab(sourceTabId)
 }
 
 function createTabProps(tab: TerminalTab): HTMLAttributes {
   return {
     class: {
       'terminal-tab-dragging': draggingTabId.value === tab.id,
-      'terminal-tab-drag-over': dragOverTabId.value === tab.id
+      'terminal-tab-drag-before':
+        dragOverTabId.value === tab.id && dragOverTabSide.value === 'before',
+      'terminal-tab-drag-after': dragOverTabId.value === tab.id && dragOverTabSide.value === 'after'
     },
     title: tab.title,
     draggable: 'true',
@@ -567,7 +608,15 @@ onBeforeUnmount(() => {
           @click="toggleMaximizeWindow"
         />
       </div>
-      <NTabs v-model:value="activeTabId" type="card" size="small" closable @close="closeTab">
+      <NTabs
+        v-model:value="activeTabId"
+        type="card"
+        size="small"
+        closable
+        @close="closeTab"
+        @dragover="handleTabListDragOver"
+        @drop="dropTabAtEnd"
+      >
         <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab-props="createTabProps(tab)">
           <template #tab>
             <span class="tab-content">
@@ -808,6 +857,35 @@ onBeforeUnmount(() => {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:deep(.terminal-tab-dragging) {
+  opacity: 0.45;
+}
+
+:deep(.terminal-tab-drag-before),
+:deep(.terminal-tab-drag-after) {
+  position: relative;
+}
+
+:deep(.terminal-tab-drag-before::before),
+:deep(.terminal-tab-drag-after::after) {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  z-index: 1;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--terminal-active-color);
+  content: '';
+}
+
+:deep(.terminal-tab-drag-before::before) {
+  left: -1px;
+}
+
+:deep(.terminal-tab-drag-after::after) {
+  right: -1px;
 }
 
 .settings-button {
