@@ -847,7 +847,31 @@ onBeforeUnmount(() => {
   display: grid;
   gap: 6px;
   max-height: 320px;
+  padding-right: 4px;
   overflow-y: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.path-favorites-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.path-favorites-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.path-favorites-list::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  background-clip: content-box;
+}
+
+.path-favorites-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.34);
+  background-clip: content-box;
 }
 
 .path-favorite-item {
