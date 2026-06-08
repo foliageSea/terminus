@@ -14,6 +14,7 @@ import {
   NModal,
   NPopover,
   NTabPane,
+  NTooltip,
   NTabs,
   useThemeVars
 } from 'naive-ui'
@@ -432,7 +433,6 @@ function createTabProps(tab: TerminalTab): HTMLAttributes {
         dragOverTabId.value === tab.id && dragOverTabSide.value === 'before',
       'terminal-tab-drag-after': dragOverTabId.value === tab.id && dragOverTabSide.value === 'after'
     },
-    title: tab.title,
     draggable: 'true',
     onDblclick: (event) => {
       event.stopPropagation()
@@ -634,9 +634,14 @@ onBeforeUnmount(() => {
       >
         <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab-props="createTabProps(tab)">
           <template #tab>
-            <span class="tab-content">
-              <span class="tab-title">{{ tab.title }}</span>
-            </span>
+            <NTooltip>
+              <template #trigger>
+                <span class="tab-content">
+                  <span class="tab-title">{{ tab.title }}</span>
+                </span>
+              </template>
+              {{ tab.title }}
+            </NTooltip>
           </template>
         </NTabPane>
       </NTabs>
