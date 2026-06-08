@@ -317,6 +317,14 @@ function switchPane(): void {
 
 function handleGlobalKeydown(event: KeyboardEvent): void {
   if (renameDialogVisible.value) return
+
+  if (event.key.toLowerCase() === 'h' && event.altKey && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault()
+    event.stopPropagation()
+    minimizeWindow()
+    return
+  }
+
   if (!event.ctrlKey || event.altKey || event.metaKey) return
 
   if (event.code === 'Backquote') {
@@ -775,6 +783,10 @@ onBeforeUnmount(() => {
             <div class="shortcut-row">
               <span>关闭当前分屏</span>
               <kbd>Ctrl</kbd><kbd>W</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>最小化窗口</span>
+              <kbd>Alt</kbd><kbd>H</kbd>
             </div>
             <div class="shortcut-row">
               <span>复制选中文本</span>
