@@ -7,6 +7,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import type { ITheme } from '@xterm/xterm'
+import { getTerminalColorScheme } from '../terminalColorSchemes'
 import {
   clearDraggingNodeId,
   dragDataType,
@@ -132,12 +133,11 @@ function fit(): void {
 }
 
 function createTerminalTheme(): ITheme {
+  const colorScheme = getTerminalColorScheme(props.terminalSettings.colorScheme)
+
   return {
-    foreground: '#d7deea',
-    background: `#000000${toHexAlpha(props.terminalSettings.backgroundOpacity)}`,
-    cursor: '#7dd3fc',
-    cursorAccent: '#020617',
-    selectionBackground: '#334155'
+    ...colorScheme.theme,
+    background: `${colorScheme.theme.background}${toHexAlpha(props.terminalSettings.backgroundOpacity)}`
   }
 }
 

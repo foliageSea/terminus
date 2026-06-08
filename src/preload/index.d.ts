@@ -25,6 +25,7 @@ export interface ClipboardApi {
 export interface TerminalSettings {
   fontFamily: string
   fontSize: number
+  colorScheme: string
   backgroundImageEnabled: boolean
   backgroundImagePath: string
   backgroundOpacity: number

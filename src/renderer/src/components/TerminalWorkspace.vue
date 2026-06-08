@@ -13,6 +13,7 @@ import {
   NLayoutHeader,
   NModal,
   NPopover,
+  NSelect,
   NSlider,
   NSwitch,
   NTabPane,
@@ -30,6 +31,7 @@ import {
 } from '@vicons/fluent'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
+import { terminalColorSchemeOptions } from '../terminalColorSchemes'
 import type {
   PaneDropPayload,
   PathFavorite,
@@ -55,6 +57,7 @@ const tabDragDataType = 'application/x-terminus-tab'
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
   fontSize: 13,
+  colorScheme: 'one-dark',
   backgroundImageEnabled: true,
   backgroundImagePath: '',
   backgroundOpacity: 60
@@ -772,73 +775,87 @@ onBeforeUnmount(() => {
           </template>
 
           <NForm class="terminal-settings" label-placement="top" size="small">
-            <NFormItem label="字体" path="fontFamily">
-              <NInput
-                v-model:value="terminalSettings.fontFamily"
-                placeholder="Cascadia Mono, Consolas, monospace"
-                clearable
-                @blur="normalizeFontFamily"
-              />
-            </NFormItem>
-            <NFormItem label="字号" path="fontSize">
-              <NInputNumber
-                class="font-size-input"
-                :value="terminalSettings.fontSize"
-                :min="8"
-                :max="32"
-                :step="1"
-                button-placement="both"
-                @update:value="updateFontSize"
-              />
-            </NFormItem>
-            <NFormItem label="背景图" path="backgroundImageEnabled">
-              <div class="terminal-background-control">
-                <div class="terminal-background-switch-row">
-                  <NSwitch v-model:value="terminalSettings.backgroundImageEnabled" />
-                  <span
-                    class="terminal-background-name"
-                    :title="terminalSettings.backgroundImagePath"
-                  >
-                    {{ terminalBackgroundName }}
-                  </span>
-                </div>
-                <div class="terminal-background-actions">
-                  <NButton size="tiny" secondary @click="selectTerminalBackground"
-                    >选择图片</NButton
-                  >
-                  <NButton
-                    size="tiny"
-                    quaternary
-                    :disabled="!terminalSettings.backgroundImagePath"
-                    @click="clearTerminalBackground"
-                  >
-                    清除
-                  </NButton>
-                </div>
-              </div>
-            </NFormItem>
-            <NFormItem label="终端透明度" path="backgroundOpacity">
-              <div class="terminal-opacity-control">
-                <NSlider
-                  :value="terminalSettings.backgroundOpacity"
-                  :min="0"
-                  :max="100"
-                  :step="1"
-                  @update:value="updateBackgroundOpacity"
-                />
-                <span class="terminal-opacity-value"
-                  >{{ terminalSettings.backgroundOpacity }}%</span
-                >
-              </div>
-            </NFormItem>
-            <NFormItem label="主题色" path="primaryColor">
-              <NColorPicker
-                :value="props.primaryColor"
-                :show-alpha="false"
-                :modes="['hex']"
-                @update:value="updatePrimaryColor"
-              />
-            </NFormItem>
+            <NTabs class="terminal-settings-tabs" type="line" size="small" animated>
+              <NTabPane name="appearance" tab="外观">
+                <NFormItem label="配色方案" path="colorScheme">
+                  <NSelect
+                    v-model:value="terminalSettings.colorScheme"
+                    :options="terminalColorSchemeOptions"
+                  />
+                </NFormItem>
+                <NFormItem label="主题色" path="primaryColor">
+                  <NColorPicker
+                    :value="props.primaryColor"
+                    :show-alpha="false"
+                    :modes="['hex']"
+                    @update:value="updatePrimaryColor"
+                  />
+                </NFormItem>
+              </NTabPane>
+              <NTabPane name="font" tab="字体">
+                <NFormItem label="字体" path="fontFamily">
+                  <NInput
+                    v-model:value="terminalSettings.fontFamily"
+                    placeholder="Cascadia Mono, Consolas, monospace"
+                    clearable
+                    @blur="normalizeFontFamily"
+                  />
+                </NFormItem>
+                <NFormItem label="字号" path="fontSize">
+                  <NInputNumber
+                    class="font-size-input"
+                    :value="terminalSettings.fontSize"
+                    :min="8"
+                    :max="32"
+                    :step="1"
+                    button-placement="both"
+                    @update:value="updateFontSize"
+                  />
+                </NFormItem>
+              </NTabPane>
+              <NTabPane name="background" tab="背景">
+                <NFormItem label="背景图" path="backgroundImageEnabled">
+                  <div class="terminal-background-control">
+                    <div class="terminal-background-switch-row">
+                      <NSwitch v-model:value="terminalSettings.backgroundImageEnabled" />
+                      <span
+                        class="terminal-background-name"
+                        :title="terminalSettings.backgroundImagePath"
+                      >
+                        {{ terminalBackgroundName }}
+                      </span>
+                    </div>
+                    <div class="terminal-background-actions">
+                      <NButton size="tiny" secondary @click="selectTerminalBackground"
+                        >选择图片</NButton
+                      >
+                      <NButton
+                        size="tiny"
+                        quaternary
+                        :disabled="!terminalSettings.backgroundImagePath"
+                        @click="clearTerminalBackground"
+                      >
+                        清除
+                      </NButton>
+                    </div>
+                  </div>
+                </NFormItem>
+                <NFormItem label="终端透明度" path="backgroundOpacity">
+                  <div class="terminal-opacity-control">
+                    <NSlider
+                      :value="terminalSettings.backgroundOpacity"
+                      :min="0"
+                      :max="100"
+                      :step="1"
+                      @update:value="updateBackgroundOpacity"
+                    />
+                    <span class="terminal-opacity-value"
+                      >{{ terminalSettings.backgroundOpacity }}%</span
+                    >
+                  </div>
+                </NFormItem>
+              </NTabPane>
+            </NTabs>
           </NForm>
         </NPopover>
         <NPopover trigger="click" placement="bottom-end">
@@ -1166,9 +1183,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .terminal-background-name {
+  display: block;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.64);
