@@ -152,7 +152,10 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
   const isCopyShortcut =
     key === 'c' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
   const isPasteShortcut =
-    key === 'v' && event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey
+    key === 'v' &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    ((event.ctrlKey && !event.altKey) || (event.altKey && !event.ctrlKey))
 
   if (isCopyShortcut) {
     event.preventDefault()
