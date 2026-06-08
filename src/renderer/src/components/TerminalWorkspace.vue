@@ -326,6 +326,13 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
     return
   }
 
+  if (event.key.toLowerCase() === 'w') {
+    event.preventDefault()
+    event.stopPropagation()
+    handleClosePane(activeTab.value.activePaneId)
+    return
+  }
+
   if (event.key !== 'Tab') return
 
   event.preventDefault()
@@ -764,6 +771,10 @@ onBeforeUnmount(() => {
             <div class="shortcut-row">
               <span>切换分屏焦点</span>
               <kbd>Ctrl</kbd><kbd>`</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>关闭当前分屏</span>
+              <kbd>Ctrl</kbd><kbd>W</kbd>
             </div>
             <div class="shortcut-row">
               <span>复制选中文本</span>
