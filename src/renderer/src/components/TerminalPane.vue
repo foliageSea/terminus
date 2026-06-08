@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
 import { Dismiss20Regular, SplitHorizontal20Regular, SplitVertical20Regular } from '@vicons/fluent'
 import { Terminal } from '@xterm/xterm'
@@ -21,7 +21,6 @@ const props = defineProps<{
   cwd?: string
   active: boolean
   terminalSettings: TerminalSettings
-  backgroundImageUrl?: string
   animatedPaneId?: string
   animatedNodeId?: string
 }>()
@@ -46,28 +45,6 @@ let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
 let removeWebglContextLossListener: { dispose: () => void } | undefined
 let copyBubbleTimer: number | undefined
-
-const terminalHostStyle = computed(() => {
-  if (!props.terminalSettings.backgroundImageEnabled) return undefined
-  if (!props.backgroundImageUrl) return undefined
-
-  const colorScheme = getTerminalColorScheme(props.terminalSettings.colorScheme)
-  const backgroundMask = `${colorScheme.theme.background}${toHexAlpha(
-    props.terminalSettings.backgroundOpacity
-  )}`
-
-  return {
-    backgroundImage: `linear-gradient(${backgroundMask}, ${backgroundMask}), url(${props.backgroundImageUrl})`,
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: 'cover'
-  }
-})
-
-function toHexAlpha(opacity: number): string {
-  const alpha = Math.min(255, Math.max(0, Math.round((opacity / 100) * 255)))
-  return alpha.toString(16).padStart(2, '0')
-}
 
 function resolveDropSide(event: DragEvent): DropSide {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -374,6 +351,6 @@ onBeforeUnmount(() => {
         </NButton>
       </div>
     </div>
-    <div ref="host" class="terminal-host" :style="terminalHostStyle" />
+    <div ref="host" class="terminal-host" />
   </section>
 </template>

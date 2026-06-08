@@ -390,7 +390,7 @@ button {
   overflow: hidden;
   border: 1px solid rgba(71, 85, 105, 0.78);
   border-radius: 0;
-  background: #000000;
+  background: transparent;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.72);
   transition:
     border-color 160ms ease,
@@ -527,10 +527,9 @@ button {
   min-width: 0;
   padding: 0 7px 0 9px;
   color: rgba(226, 232, 240, 0.92);
-  background: #000000;
+  background: transparent;
   border-bottom: 1px solid rgba(51, 65, 85, 0.78);
   cursor: grab;
-  backdrop-filter: blur(14px);
 }
 
 .pane-bar:active {

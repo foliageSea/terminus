@@ -31,7 +31,7 @@ import {
 } from '@vicons/fluent'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
-import { terminalColorSchemeOptions } from '../terminalColorSchemes'
+import { getTerminalColorScheme, terminalColorSchemeOptions } from '../terminalColorSchemes'
 import type {
   PaneDropPayload,
   PathFavorite,
@@ -129,11 +129,32 @@ const workspaceThemeStyle = computed(() => ({
   '--terminal-active-color': themeVars.value.primaryColor,
   '--terminal-active-color-hover': themeVars.value.primaryColorHover
 }))
+const workspaceBackgroundStyle = computed(() => {
+  if (!terminalSettings.backgroundImageEnabled) return undefined
+  if (!terminalBackgroundUrl.value) return undefined
+
+  const colorScheme = getTerminalColorScheme(terminalSettings.colorScheme)
+  const backgroundMask = `${colorScheme.theme.background}${toHexAlpha(
+    terminalSettings.backgroundOpacity
+  )}`
+
+  return {
+    backgroundImage: `linear-gradient(${backgroundMask}, ${backgroundMask}), url(${terminalBackgroundUrl.value})`,
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: 'cover'
+  }
+})
 const terminalBackgroundName = computed(() =>
   terminalSettings.backgroundImagePath
     ? getFileNameFromPath(terminalSettings.backgroundImagePath)
     : '未选择背景图'
 )
+
+function toHexAlpha(opacity: number): string {
+  const alpha = Math.min(255, Math.max(0, Math.round((opacity / 100) * 255)))
+  return alpha.toString(16).padStart(2, '0')
+}
 
 function findPane(node: PaneNode, paneId: string): boolean {
   if (node.type === 'pane') return node.id === paneId
@@ -923,7 +944,7 @@ onBeforeUnmount(() => {
       />
     </NModal>
 
-    <main class="workspace-body">
+    <main class="workspace-body" :style="workspaceBackgroundStyle">
       <div
         v-for="tab in tabs"
         v-show="tab.id === activeTabId"
@@ -953,7 +974,6 @@ onBeforeUnmount(() => {
             :cwd="pane.cwd"
             :active="tab.id === activeTabId && pane.id === tab.activePaneId"
             :terminal-settings="terminalSettings"
-            :background-image-url="terminalBackgroundUrl"
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
             @activate="tab.activePaneId = $event"
