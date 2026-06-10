@@ -18,7 +18,6 @@ const api = {
     setTerminal: (settings: {
       fontFamily: string
       fontSize: number
-      colorScheme: string
       backgroundImageEnabled: boolean
       backgroundImagePath: string
       backgroundOpacity: number

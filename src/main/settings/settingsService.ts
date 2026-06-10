@@ -13,16 +13,6 @@ import {
 } from './settingsTypes'
 
 const maxPathFavorites = 50
-const terminalColorSchemeValues = new Set([
-  'system',
-  'terminus-dark',
-  'terminus-light',
-  'one-dark',
-  'dracula',
-  'nord',
-  'solarized-dark',
-  'gruvbox-dark'
-])
 
 function normalizeFontSize(value: unknown): number {
   const fontSize = Number(value)
@@ -40,22 +30,12 @@ function normalizeBackgroundImagePath(value: unknown): string {
   return typeof value === 'string' ? value.trim() : defaultTerminalSettings.backgroundImagePath
 }
 
-function normalizeTerminalColorScheme(value: unknown): string {
-  if (typeof value !== 'string') return defaultTerminalSettings.colorScheme
-
-  const colorScheme = value.trim()
-  return terminalColorSchemeValues.has(colorScheme)
-    ? colorScheme
-    : defaultTerminalSettings.colorScheme
-}
-
 function normalizeTerminalSettings(value: unknown): TerminalSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<TerminalSettings>) : {}
 
   return {
     fontFamily: settings.fontFamily?.trim() || defaultTerminalSettings.fontFamily,
     fontSize: normalizeFontSize(settings.fontSize),
-    colorScheme: normalizeTerminalColorScheme(settings.colorScheme),
     backgroundImageEnabled:
       typeof settings.backgroundImageEnabled === 'boolean'
         ? settings.backgroundImageEnabled

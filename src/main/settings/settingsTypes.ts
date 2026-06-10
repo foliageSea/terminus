@@ -1,7 +1,6 @@
 export interface TerminalSettings {
   fontFamily: string
   fontSize: number
-  colorScheme: string
   backgroundImageEnabled: boolean
   backgroundImagePath: string
   backgroundOpacity: number
@@ -30,7 +29,6 @@ export interface AppSettings {
 export const defaultTerminalSettings: TerminalSettings = {
   fontFamily: '"Maple Mono NF CN", Cascadia Mono, Consolas, monospace',
   fontSize: 14,
-  colorScheme: 'one-dark',
   backgroundImageEnabled: true,
   backgroundImagePath: '',
   backgroundOpacity: 60

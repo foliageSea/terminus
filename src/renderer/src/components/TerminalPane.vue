@@ -5,9 +5,7 @@ import { Dismiss20Regular, SplitHorizontal20Regular, SplitVertical20Regular } fr
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
-import { WebglAddon } from '@xterm/addon-webgl'
 import type { ITheme } from '@xterm/xterm'
-import { resolveTerminalColorScheme, type TerminalThemeMode } from '../terminalColorSchemes'
 import {
   clearDraggingNodeId,
   dragDataType,
@@ -21,7 +19,6 @@ const props = defineProps<{
   cwd?: string
   active: boolean
   terminalSettings: TerminalSettings
-  terminalThemeMode: TerminalThemeMode
   animatedPaneId?: string
   animatedNodeId?: string
 }>()
@@ -40,11 +37,9 @@ const copyBubbleVisible = ref(false)
 const rendererMode = ref<'canvas' | 'webgl'>('canvas')
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
-let webglAddon: WebglAddon | undefined
 let resizeObserver: ResizeObserver | undefined
 let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
-let removeWebglContextLossListener: { dispose: () => void } | undefined
 let copyBubbleTimer: number | undefined
 
 function resolveDropSide(event: DragEvent): DropSide {
@@ -116,14 +111,8 @@ function fit(): void {
 }
 
 function createTerminalTheme(): ITheme {
-  const colorScheme = resolveTerminalColorScheme(
-    props.terminalSettings.colorScheme,
-    props.terminalThemeMode
-  )
-
   return {
-    ...colorScheme.theme,
-    background: `${colorScheme.theme.background}00`
+    background: '#00000000'
   }
 }
 
@@ -187,28 +176,6 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
   return true
 }
 
-function enableWebglRenderer(): void {
-  if (!terminal) return
-
-  try {
-    webglAddon = new WebglAddon()
-    removeWebglContextLossListener = webglAddon.onContextLoss(() => {
-      removeWebglContextLossListener?.dispose()
-      removeWebglContextLossListener = undefined
-      webglAddon?.dispose()
-      webglAddon = undefined
-      rendererMode.value = 'canvas'
-    })
-    terminal.loadAddon(webglAddon)
-    rendererMode.value = 'webgl'
-  } catch (error) {
-    webglAddon?.dispose()
-    webglAddon = undefined
-    rendererMode.value = 'canvas'
-    console.warn('WebGL terminal renderer unavailable, using default renderer.', error)
-  }
-}
-
 onMounted(async () => {
   if (!host.value) return
 
@@ -218,7 +185,7 @@ onMounted(async () => {
     fontFamily: props.terminalSettings.fontFamily,
     fontSize: props.terminalSettings.fontSize,
     lineHeight: 1.2,
-    theme: createTerminalTheme()
+    theme: createTerminalTheme(),
   })
   fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
@@ -230,7 +197,6 @@ onMounted(async () => {
   )
   terminal.attachCustomKeyEventHandler(handleTerminalKey)
   terminal.open(host.value)
-  enableWebglRenderer()
 
   terminal.onData((data) => window.api.terminal.write(props.paneId, data))
 
@@ -261,7 +227,7 @@ watch(
 )
 
 watch(
-  () => [props.terminalSettings, props.terminalThemeMode],
+  () => props.terminalSettings,
   () => applyTerminalSettings(),
   { deep: true }
 )
@@ -270,9 +236,7 @@ onBeforeUnmount(() => {
   if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
   removeDataListener?.()
   removeExitListener?.()
-  removeWebglContextLossListener?.dispose()
   resizeObserver?.disconnect()
-  webglAddon?.dispose()
   terminal?.dispose()
 })
 </script>

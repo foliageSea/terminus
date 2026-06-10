@@ -599,6 +599,17 @@ button {
 .xterm {
   height: 100%;
   background: transparent !important;
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
+}
+
+.xterm,
+.xterm * {
+  text-shadow: none !important;
+}
+
+.xterm canvas {
+  image-rendering: auto;
 }
 
 @keyframes pane-enter {

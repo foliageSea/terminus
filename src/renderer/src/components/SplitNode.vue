@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
-import type { TerminalThemeMode } from '../terminalColorSchemes'
 import type { PaneDropPayload, PaneNode, SplitDirection, TerminalSettings } from '../types/terminal'
 
 const props = defineProps<{
@@ -9,7 +8,6 @@ const props = defineProps<{
   activePaneId: string
   layoutVersion: number
   terminalSettings: TerminalSettings
-  terminalThemeMode: TerminalThemeMode
   animatedPaneId?: string
   animatedNodeId?: string
 }>()
@@ -96,7 +94,6 @@ function finishGroupDrag(): void {
         :active-pane-id="activePaneId"
         :layout-version="layoutVersion"
         :terminal-settings="terminalSettings"
-        :terminal-theme-mode="terminalThemeMode"
         :animated-pane-id="animatedPaneId"
         :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"
@@ -112,7 +109,6 @@ function finishGroupDrag(): void {
         :active-pane-id="activePaneId"
         :layout-version="layoutVersion"
         :terminal-settings="terminalSettings"
-        :terminal-theme-mode="terminalThemeMode"
         :animated-pane-id="animatedPaneId"
         :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"
