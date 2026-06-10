@@ -1,4 +1,4 @@
-import { ipcMain, WebContents } from 'electron'
+import { BrowserWindow, ipcMain, Notification, WebContents } from 'electron'
 import { sendToRenderer } from '../shared/sendToRenderer'
 import {
   createTerminal,
@@ -20,6 +20,16 @@ function registerTerminalOwner(sender: WebContents): void {
   })
 }
 
+function notifyCommandComplete(sender: WebContents, exitCode: number): void {
+  if (process.platform !== 'win32' || !Notification.isSupported()) return
+
+  const window = BrowserWindow.fromWebContents(sender)
+  if (!window || window.isFocused()) return
+
+  const body = exitCode === 0 ? '命令执行完成' : `命令执行完成，退出码 ${exitCode}`
+  new Notification({ title: 'Terminus', body }).show()
+}
+
 export function registerTerminalIpc(): void {
   ipcMain.handle('terminal:create', (event, id: string, cols = 80, rows = 24, cwd?: string) => {
     registerTerminalOwner(event.sender)
@@ -32,6 +42,7 @@ export function registerTerminalIpc(): void {
       cwd,
       onData: (payload) => sendToRenderer(event.sender, 'terminal:data', payload),
       onCwd: (payload) => sendToRenderer(event.sender, 'terminal:cwd', payload),
+      onCommandComplete: ({ exitCode }) => notifyCommandComplete(event.sender, exitCode),
       onExit: (payload) => sendToRenderer(event.sender, 'terminal:exit', payload)
     })
   })

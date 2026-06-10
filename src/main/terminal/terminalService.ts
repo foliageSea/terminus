@@ -1,5 +1,10 @@
 import { spawn, IPty } from 'node-pty'
-import { extractTerminalCwd, powershellCwdPromptCommand, resolveTerminalCwd } from './terminalCwd'
+import {
+  extractTerminalCommandComplete,
+  extractTerminalCwd,
+  powershellCwdPromptCommand,
+  resolveTerminalCwd
+} from './terminalCwd'
 
 const outputFlushDelayMs = 8
 
@@ -13,6 +18,10 @@ interface TerminalDataPayload extends TerminalPayload {
   data: string
 }
 
+interface TerminalCommandCompletePayload extends TerminalPayload {
+  exitCode: number
+}
+
 interface TerminalCwdPayload extends TerminalPayload {
   cwd: string
 }
@@ -23,7 +32,9 @@ interface TerminalState {
   terminal: IPty
   pendingData: string
   flushTimer?: NodeJS.Timeout
+  commandCompleteReady: boolean
   onData: (payload: TerminalDataPayload) => void
+  onCommandComplete: (payload: TerminalCommandCompletePayload) => void
   onExit: (payload: TerminalPayload) => void
 }
 
@@ -35,6 +46,7 @@ interface CreateTerminalOptions {
   cwd?: string
   onData: (payload: TerminalDataPayload) => void
   onCwd: (payload: TerminalCwdPayload) => void
+  onCommandComplete: (payload: TerminalCommandCompletePayload) => void
   onExit: (payload: TerminalPayload) => void
 }
 
@@ -75,6 +87,7 @@ export function createTerminal({
   cwd,
   onData,
   onCwd,
+  onCommandComplete,
   onExit
 }: CreateTerminalOptions): void {
   if (terminals.has(id)) return
@@ -98,14 +111,24 @@ export function createTerminal({
     ownerWebContentsId,
     terminal,
     pendingData: '',
+    commandCompleteReady: process.platform !== 'win32',
     onData,
+    onCommandComplete,
     onExit
   }
 
   onCwd({ id, cwd: initialCwd })
 
   terminal.onData((data) => {
+    const exitCode = extractTerminalCommandComplete(data)
     const cwd = extractTerminalCwd(data)
+    if (exitCode !== undefined) {
+      if (state.commandCompleteReady) {
+        onCommandComplete({ id, exitCode })
+      } else {
+        state.commandCompleteReady = true
+      }
+    }
     if (cwd) onCwd({ id, cwd })
 
     state.pendingData += data
