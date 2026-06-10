@@ -139,7 +139,7 @@ function writeOpencodeSystemTheme(): void {
 
   try {
     mkdirSync(themeDirectory, { recursive: true })
-    writeFileSync(join(themeDirectory, 'system.json'), `${JSON.stringify(theme, null, 2)}\n`, 'utf-8')
+    writeFileSync(join(themeDirectory, 'custom-system.json'), `${JSON.stringify(theme, null, 2)}\n`, 'utf-8')
   } catch (error) {
     console.warn('Failed to write opencode system theme.', error)
   }
