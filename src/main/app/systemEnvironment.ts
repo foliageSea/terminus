@@ -128,7 +128,10 @@ $result | ConvertTo-Json -Compress
   return parseJsonEnvironment(stdout.trim() || '{}')
 }
 
-async function readShellEnvironment(shellPath: string, shellArgs: string[]): Promise<EnvironmentVariables> {
+async function readShellEnvironment(
+  shellPath: string,
+  shellArgs: string[]
+): Promise<EnvironmentVariables> {
   const { stdout } = await execFileAsync(shellPath, shellArgs, {
     maxBuffer: maxEnvironmentOutputBuffer,
     timeout: environmentLoadTimeoutMs
