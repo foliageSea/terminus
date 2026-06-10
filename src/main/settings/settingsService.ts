@@ -14,7 +14,9 @@ import {
 
 const maxPathFavorites = 50
 const terminalColorSchemeValues = new Set([
+  'system',
   'terminus-dark',
+  'terminus-light',
   'one-dark',
   'dracula',
   'nord',

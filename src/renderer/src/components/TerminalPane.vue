@@ -7,7 +7,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import type { ITheme } from '@xterm/xterm'
-import { getTerminalColorScheme } from '../terminalColorSchemes'
+import { resolveTerminalColorScheme, type TerminalThemeMode } from '../terminalColorSchemes'
 import {
   clearDraggingNodeId,
   dragDataType,
@@ -21,6 +21,7 @@ const props = defineProps<{
   cwd?: string
   active: boolean
   terminalSettings: TerminalSettings
+  terminalThemeMode: TerminalThemeMode
   animatedPaneId?: string
   animatedNodeId?: string
 }>()
@@ -115,7 +116,10 @@ function fit(): void {
 }
 
 function createTerminalTheme(): ITheme {
-  const colorScheme = getTerminalColorScheme(props.terminalSettings.colorScheme)
+  const colorScheme = resolveTerminalColorScheme(
+    props.terminalSettings.colorScheme,
+    props.terminalThemeMode
+  )
 
   return {
     ...colorScheme.theme,
@@ -257,7 +261,7 @@ watch(
 )
 
 watch(
-  () => props.terminalSettings,
+  () => [props.terminalSettings, props.terminalThemeMode],
   () => applyTerminalSettings(),
   { deep: true }
 )

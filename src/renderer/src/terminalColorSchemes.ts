@@ -6,7 +6,39 @@ export interface TerminalColorScheme {
   theme: ITheme & { background: string }
 }
 
+export type TerminalThemeMode = 'dark' | 'light'
+
+const systemDarkScheme = 'one-dark'
+const systemLightScheme = 'terminus-light'
+
 export const terminalColorSchemes: TerminalColorScheme[] = [
+  {
+    label: 'System',
+    value: 'system',
+    theme: {
+      foreground: '#abb2bf',
+      background: '#282c34',
+      cursor: '#528bff',
+      cursorAccent: '#282c34',
+      selectionBackground: '#3e4451',
+      black: '#5c6370',
+      red: '#e06c75',
+      green: '#98c379',
+      yellow: '#e5c07b',
+      blue: '#61afef',
+      magenta: '#c678dd',
+      cyan: '#56b6c2',
+      white: '#abb2bf',
+      brightBlack: '#7f848e',
+      brightRed: '#e06c75',
+      brightGreen: '#98c379',
+      brightYellow: '#e5c07b',
+      brightBlue: '#61afef',
+      brightMagenta: '#c678dd',
+      brightCyan: '#56b6c2',
+      brightWhite: '#ffffff'
+    }
+  },
   {
     label: 'One Dark',
     value: 'one-dark',
@@ -58,6 +90,33 @@ export const terminalColorSchemes: TerminalColorScheme[] = [
       brightBlue: '#93c5fd',
       brightMagenta: '#d8b4fe',
       brightCyan: '#67e8f9',
+      brightWhite: '#ffffff'
+    }
+  },
+  {
+    label: 'Terminus Light',
+    value: 'terminus-light',
+    theme: {
+      foreground: '#1f2937',
+      background: '#f8fafc',
+      cursor: '#2563eb',
+      cursorAccent: '#f8fafc',
+      selectionBackground: '#dbeafe',
+      black: '#334155',
+      red: '#dc2626',
+      green: '#16a34a',
+      yellow: '#ca8a04',
+      blue: '#2563eb',
+      magenta: '#9333ea',
+      cyan: '#0891b2',
+      white: '#e2e8f0',
+      brightBlack: '#64748b',
+      brightRed: '#ef4444',
+      brightGreen: '#22c55e',
+      brightYellow: '#eab308',
+      brightBlue: '#3b82f6',
+      brightMagenta: '#a855f7',
+      brightCyan: '#06b6d4',
       brightWhite: '#ffffff'
     }
   },
@@ -177,5 +236,18 @@ export const terminalColorSchemeOptions = terminalColorSchemes.map(({ label, val
 }))
 
 export function getTerminalColorScheme(value: string): TerminalColorScheme {
-  return terminalColorSchemes.find((scheme) => scheme.value === value) ?? terminalColorSchemes[0]
+  return (
+    terminalColorSchemes.find((scheme) => scheme.value === value) ??
+    terminalColorSchemes.find((scheme) => scheme.value === systemDarkScheme) ??
+    terminalColorSchemes[0]
+  )
+}
+
+export function resolveTerminalColorScheme(
+  value: string,
+  mode: TerminalThemeMode
+): TerminalColorScheme {
+  if (value !== 'system') return getTerminalColorScheme(value)
+
+  return getTerminalColorScheme(mode === 'light' ? systemLightScheme : systemDarkScheme)
 }

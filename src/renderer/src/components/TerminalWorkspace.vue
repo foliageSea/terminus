@@ -31,7 +31,11 @@ import {
 } from '@vicons/fluent'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
-import { getTerminalColorScheme, terminalColorSchemeOptions } from '../terminalColorSchemes'
+import {
+  resolveTerminalColorScheme,
+  terminalColorSchemeOptions,
+  type TerminalThemeMode
+} from '../terminalColorSchemes'
 import type {
   PaneDropPayload,
   PathFavorite,
@@ -107,6 +111,7 @@ const dragOverTabSide = ref<'before' | 'after'>('before')
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalBackgroundUrl = ref('')
+const terminalThemeMode = ref<TerminalThemeMode>('dark')
 const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings })
 const terminalSettingsLoaded = ref(false)
 const pathFavorites = reactive<PathFavoritesSettings>({ ...defaultPathFavoritesSettings })
@@ -114,6 +119,8 @@ const pathFavoritesLoaded = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
+let systemThemeMediaQuery: MediaQueryList | undefined
+let removeSystemThemeListener: (() => void) | undefined
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -133,7 +140,7 @@ const workspaceBackgroundStyle = computed(() => {
   if (!terminalSettings.backgroundImageEnabled) return undefined
   if (!terminalBackgroundUrl.value) return undefined
 
-  const colorScheme = getTerminalColorScheme(terminalSettings.colorScheme)
+  const colorScheme = resolveTerminalColorScheme(terminalSettings.colorScheme, terminalThemeMode.value)
   const backgroundMask = `${colorScheme.theme.background}${toHexAlpha(
     terminalSettings.backgroundOpacity
   )}`
@@ -568,6 +575,19 @@ function updatePrimaryColor(color: string): void {
   emit('updatePrimaryColor', color)
 }
 
+function updateTerminalThemeMode(matchesDark: boolean): void {
+  terminalThemeMode.value = matchesDark ? 'dark' : 'light'
+}
+
+function watchSystemThemeMode(): void {
+  systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  updateTerminalThemeMode(systemThemeMediaQuery.matches)
+
+  const handleChange = (event: MediaQueryListEvent): void => updateTerminalThemeMode(event.matches)
+  systemThemeMediaQuery.addEventListener('change', handleChange)
+  removeSystemThemeListener = () => systemThemeMediaQuery?.removeEventListener('change', handleChange)
+}
+
 function closeTab(tabId: string): void {
   if (tabs.value.length === 1) return
 
@@ -639,6 +659,7 @@ watch(
 )
 
 onMounted(async () => {
+  watchSystemThemeMode()
   window.addEventListener('keydown', handleGlobalKeydown, true)
 
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
@@ -658,6 +679,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (layoutAnimationTimer) window.clearTimeout(layoutAnimationTimer)
   window.removeEventListener('keydown', handleGlobalKeydown, true)
+  removeSystemThemeListener?.()
   removeCwdListener?.()
 })
 </script>
@@ -956,6 +978,7 @@ onBeforeUnmount(() => {
           :active-pane-id="tab.activePaneId"
           :layout-version="tab.layoutVersion"
           :terminal-settings="terminalSettings"
+          :terminal-theme-mode="terminalThemeMode"
           :animated-pane-id="animatedPaneId"
           :animated-node-id="animatedNodeId"
           @activate="tab.activePaneId = $event"
@@ -974,6 +997,7 @@ onBeforeUnmount(() => {
             :cwd="pane.cwd"
             :active="tab.id === activeTabId && pane.id === tab.activePaneId"
             :terminal-settings="terminalSettings"
+            :terminal-theme-mode="terminalThemeMode"
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
             @activate="tab.activePaneId = $event"
