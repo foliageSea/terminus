@@ -101,6 +101,9 @@ const renameInputRef = ref<InputInst>()
 const draggingTabId = ref<string | undefined>()
 const dragOverTabId = ref<string | undefined>()
 const dragOverTabSide = ref<'before' | 'after'>('before')
+const draggingPathFavoriteId = ref<string | undefined>()
+const dragOverPathFavoriteId = ref<string | undefined>()
+const dragOverPathFavoriteSide = ref<'before' | 'after'>('before')
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalBackgroundUrl = ref('')
@@ -330,6 +333,66 @@ function removePathFavorite(id: string): void {
 
 function openPathFavorite(favorite: PathFavorite): void {
   openTab(favorite.path, favorite.name)
+}
+
+function startPathFavoriteDrag(event: DragEvent, favoriteId: string): void {
+  draggingPathFavoriteId.value = favoriteId
+  event.dataTransfer?.setData('text/plain', favoriteId)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function handlePathFavoriteDragOver(event: DragEvent, favoriteId: string): void {
+  const sourceFavoriteId = draggingPathFavoriteId.value
+  if (!sourceFavoriteId || sourceFavoriteId === favoriteId) return
+
+  event.preventDefault()
+  const itemRect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  dragOverPathFavoriteId.value = favoriteId
+  dragOverPathFavoriteSide.value =
+    event.clientY < itemRect.top + itemRect.height / 2 ? 'before' : 'after'
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+}
+
+function leavePathFavoriteDrag(favoriteId: string): void {
+  if (dragOverPathFavoriteId.value === favoriteId) dragOverPathFavoriteId.value = undefined
+}
+
+function finishPathFavoriteDrag(): void {
+  draggingPathFavoriteId.value = undefined
+  dragOverPathFavoriteId.value = undefined
+  dragOverPathFavoriteSide.value = 'before'
+}
+
+function movePathFavorite(
+  sourceFavoriteId: string,
+  targetFavoriteId: string,
+  side: 'before' | 'after'
+): void {
+  if (sourceFavoriteId === targetFavoriteId) return
+
+  const sourceIndex = pathFavorites.items.findIndex((favorite) => favorite.id === sourceFavoriteId)
+  if (sourceIndex < 0) return
+
+  const nextFavorites = [...pathFavorites.items]
+  const [sourceFavorite] = nextFavorites.splice(sourceIndex, 1)
+  let targetIndex = nextFavorites.findIndex((favorite) => favorite.id === targetFavoriteId)
+  if (targetIndex < 0) return
+  if (side === 'after') targetIndex += 1
+
+  nextFavorites.splice(targetIndex, 0, sourceFavorite)
+  pathFavorites.items = nextFavorites
+}
+
+function dropPathFavorite(event: DragEvent, targetFavoriteId: string): void {
+  const sourceFavoriteId = draggingPathFavoriteId.value
+  const side = dragOverPathFavoriteSide.value
+  finishPathFavoriteDrag()
+
+  if (!sourceFavoriteId || sourceFavoriteId === targetFavoriteId) return
+  event.preventDefault()
+  event.stopPropagation()
+
+  movePathFavorite(sourceFavoriteId, targetFavoriteId, side)
 }
 
 function switchTab(direction: 1 | -1): void {
@@ -734,7 +797,7 @@ onBeforeUnmount(() => {
             <div class="path-favorites-header">
               <div>
                 <div class="path-favorites-title">路径收藏</div>
-                <div class="path-favorites-subtitle">点击收藏项会在新 Tab 打开</div>
+                <div class="path-favorites-subtitle">点击打开，拖拽排序</div>
               </div>
               <NButton
                 size="tiny"
@@ -751,10 +814,25 @@ onBeforeUnmount(() => {
               <button
                 v-for="favorite in pathFavorites.items"
                 :key="favorite.id"
-                class="path-favorite-item"
+                :class="[
+                  'path-favorite-item',
+                  {
+                    'path-favorite-dragging': draggingPathFavoriteId === favorite.id,
+                    'path-favorite-drag-before':
+                      dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'before',
+                    'path-favorite-drag-after':
+                      dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'after'
+                  }
+                ]"
                 type="button"
+                draggable="true"
                 :title="favorite.path"
                 @click="openPathFavorite(favorite)"
+                @dragstart="startPathFavoriteDrag($event, favorite.id)"
+                @dragover="handlePathFavoriteDragOver($event, favorite.id)"
+                @dragleave="leavePathFavoriteDrag(favorite.id)"
+                @drop="dropPathFavorite($event, favorite.id)"
+                @dragend="finishPathFavoriteDrag"
               >
                 <span class="path-favorite-text">
                   <span class="path-favorite-name">{{ favorite.name }}</span>
@@ -1088,6 +1166,7 @@ onBeforeUnmount(() => {
 }
 
 .path-favorite-item {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -1098,13 +1177,60 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: inherit;
-  cursor: pointer;
+  cursor: grab;
   text-align: left;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.path-favorite-item:active {
+  cursor: grabbing;
 }
 
 .path-favorite-item:hover {
   border-color: rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.path-favorite-dragging {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  opacity: 0.52;
+  transform: scale(0.985);
+}
+
+.path-favorite-drag-before,
+.path-favorite-drag-after {
+  border-color: color-mix(in srgb, var(--terminal-active-color) 56%, transparent);
+  background: color-mix(in srgb, var(--terminal-active-color) 12%, rgba(255, 255, 255, 0.04));
+}
+
+.path-favorite-drag-before::before,
+.path-favorite-drag-after::after {
+  position: absolute;
+  right: 10px;
+  left: 10px;
+  z-index: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--terminal-active-color);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 36%, transparent),
+    0 0 14px color-mix(in srgb, var(--terminal-active-color) 65%, transparent);
+  content: '';
+}
+
+.path-favorite-drag-before::before {
+  top: -5px;
+}
+
+.path-favorite-drag-after::after {
+  bottom: -5px;
 }
 
 .path-favorite-text {
