@@ -431,6 +431,13 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
     return
   }
 
+  if (event.key.toLowerCase() === 't' && !event.shiftKey) {
+    event.preventDefault()
+    event.stopPropagation()
+    addTab()
+    return
+  }
+
   if (event.key.toLowerCase() === 'w') {
     event.preventDefault()
     event.stopPropagation()
@@ -958,6 +965,10 @@ onBeforeUnmount(() => {
 
           <div class="shortcut-popover" aria-label="快捷键列表">
             <div class="shortcut-section-title">快捷键</div>
+            <div class="shortcut-row">
+              <span>新建 Tab</span>
+              <kbd>Ctrl</kbd><kbd>T</kbd>
+            </div>
             <div class="shortcut-row">
               <span>下一个 Tab</span>
               <kbd>Ctrl</kbd><kbd>Tab</kbd>
