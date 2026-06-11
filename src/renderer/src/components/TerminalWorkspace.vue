@@ -57,7 +57,8 @@ const defaultTerminalSettings: TerminalSettings = {
   fontSize: 13,
   backgroundImageEnabled: true,
   backgroundImagePath: '',
-  backgroundOpacity: 60
+  backgroundOpacity: 60,
+  backgroundBlur: 0
 }
 const defaultPathFavoritesSettings: PathFavoritesSettings = {
   items: []
@@ -133,13 +134,19 @@ const workspaceBackgroundStyle = computed(() => {
   if (!terminalSettings.backgroundImageEnabled) return undefined
   if (!terminalBackgroundUrl.value) return undefined
 
+  return {
+    backgroundImage: `url(${terminalBackgroundUrl.value})`,
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: 'cover',
+    filter: `blur(${terminalSettings.backgroundBlur}px)`
+  }
+})
+const workspaceBackgroundMaskStyle = computed(() => {
   const backgroundMask = `#000000${toHexAlpha(terminalSettings.backgroundOpacity)}`
 
   return {
-    backgroundImage: `linear-gradient(${backgroundMask}, ${backgroundMask}), url(${terminalBackgroundUrl.value})`,
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: 'cover'
+    backgroundColor: backgroundMask
   }
 })
 const terminalBackgroundName = computed(() =>
@@ -607,6 +614,10 @@ function updateBackgroundOpacity(value: number): void {
   terminalSettings.backgroundOpacity = Math.min(100, Math.max(0, Math.round(value)))
 }
 
+function updateBackgroundBlur(value: number): void {
+  terminalSettings.backgroundBlur = Math.min(40, Math.max(0, Math.round(value)))
+}
+
 async function refreshTerminalBackground(): Promise<void> {
   const path = terminalSettings.backgroundImagePath.trim()
   terminalBackgroundUrl.value = path
@@ -826,7 +837,8 @@ onBeforeUnmount(() => {
                   {
                     'path-favorite-dragging': draggingPathFavoriteId === favorite.id,
                     'path-favorite-drag-before':
-                      dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'before',
+                      dragOverPathFavoriteId === favorite.id &&
+                      dragOverPathFavoriteSide === 'before',
                     'path-favorite-drag-after':
                       dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'after'
                   }
@@ -935,7 +947,7 @@ onBeforeUnmount(() => {
                   </div>
                 </NFormItem>
                 <NFormItem label="背景遮罩" path="backgroundOpacity">
-                  <div class="terminal-opacity-control">
+                  <div class="terminal-range-control">
                     <NSlider
                       :value="terminalSettings.backgroundOpacity"
                       :min="0"
@@ -943,8 +955,22 @@ onBeforeUnmount(() => {
                       :step="1"
                       @update:value="updateBackgroundOpacity"
                     />
-                    <span class="terminal-opacity-value"
+                    <span class="terminal-range-value"
                       >{{ terminalSettings.backgroundOpacity }}%</span
+                    >
+                  </div>
+                </NFormItem>
+                <NFormItem label="背景模糊" path="backgroundBlur">
+                  <div class="terminal-range-control">
+                    <NSlider
+                      :value="terminalSettings.backgroundBlur"
+                      :min="0"
+                      :max="40"
+                      :step="1"
+                      @update:value="updateBackgroundBlur"
+                    />
+                    <span class="terminal-range-value"
+                      >{{ terminalSettings.backgroundBlur }}px</span
                     >
                   </div>
                 </NFormItem>
@@ -1021,7 +1047,13 @@ onBeforeUnmount(() => {
       />
     </NModal>
 
-    <main class="workspace-body" :style="workspaceBackgroundStyle">
+    <main class="workspace-body">
+      <div
+        v-if="workspaceBackgroundStyle"
+        class="workspace-background"
+        :style="workspaceBackgroundStyle"
+      />
+      <div class="workspace-background-mask" :style="workspaceBackgroundMaskStyle" />
       <div
         v-for="tab in tabs"
         v-show="tab.id === activeTabId"
@@ -1342,7 +1374,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.terminal-opacity-control {
+.terminal-range-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 42px;
   align-items: center;
@@ -1350,7 +1382,7 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-.terminal-opacity-value {
+.terminal-range-value {
   color: rgba(255, 255, 255, 0.64);
   font-size: 12px;
   text-align: right;

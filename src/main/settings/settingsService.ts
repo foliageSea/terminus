@@ -26,6 +26,12 @@ function normalizeBackgroundOpacity(value: unknown): number {
   return Math.min(100, Math.max(0, Math.round(opacity)))
 }
 
+function normalizeBackgroundBlur(value: unknown): number {
+  const blur = Number(value)
+  if (!Number.isFinite(blur)) return defaultTerminalSettings.backgroundBlur
+  return Math.min(40, Math.max(0, Math.round(blur)))
+}
+
 function normalizeBackgroundImagePath(value: unknown): string {
   return typeof value === 'string' ? value.trim() : defaultTerminalSettings.backgroundImagePath
 }
@@ -41,7 +47,8 @@ function normalizeTerminalSettings(value: unknown): TerminalSettings {
         ? settings.backgroundImageEnabled
         : defaultTerminalSettings.backgroundImageEnabled,
     backgroundImagePath: normalizeBackgroundImagePath(settings.backgroundImagePath),
-    backgroundOpacity: normalizeBackgroundOpacity(settings.backgroundOpacity)
+    backgroundOpacity: normalizeBackgroundOpacity(settings.backgroundOpacity),
+    backgroundBlur: normalizeBackgroundBlur(settings.backgroundBlur)
   }
 }
 

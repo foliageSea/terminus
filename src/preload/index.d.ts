@@ -28,6 +28,7 @@ export interface TerminalSettings {
   backgroundImageEnabled: boolean
   backgroundImagePath: string
   backgroundOpacity: number
+  backgroundBlur: number
 }
 
 export interface ThemeSettings {

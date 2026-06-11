@@ -4,6 +4,7 @@ export interface TerminalSettings {
   backgroundImageEnabled: boolean
   backgroundImagePath: string
   backgroundOpacity: number
+  backgroundBlur: number
 }
 
 export interface ThemeSettings {
@@ -31,7 +32,8 @@ export const defaultTerminalSettings: TerminalSettings = {
   fontSize: 14,
   backgroundImageEnabled: true,
   backgroundImagePath: '',
-  backgroundOpacity: 60
+  backgroundOpacity: 60,
+  backgroundBlur: 0
 }
 
 export const defaultThemeSettings: ThemeSettings = {

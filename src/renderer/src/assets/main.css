@@ -233,9 +233,28 @@ button {
   height: calc(100vh - 46px);
   padding: 8px;
   overflow: hidden;
+  background: #000000;
+}
+
+.workspace-background,
+.workspace-background-mask {
+  position: absolute;
+  pointer-events: none;
+}
+
+.workspace-background {
+  inset: -40px;
+  z-index: 0;
+}
+
+.workspace-background-mask {
+  inset: 0;
+  z-index: 1;
 }
 
 .tab-terminal-view {
+  position: relative;
+  z-index: 2;
   width: 100%;
   height: 100%;
   min-width: 0;

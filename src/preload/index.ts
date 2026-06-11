@@ -21,6 +21,7 @@ const api = {
       backgroundImageEnabled: boolean
       backgroundImagePath: string
       backgroundOpacity: number
+      backgroundBlur: number
     }) => ipcRenderer.invoke('settings:set-terminal', settings),
     selectTerminalBackground: () => ipcRenderer.invoke('settings:select-terminal-background'),
     getTerminalBackgroundDataUrl: (path: string) =>
