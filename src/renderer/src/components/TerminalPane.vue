@@ -34,7 +34,6 @@ const host = ref<HTMLDivElement>()
 const dropSide = ref<DropSide>()
 const dragging = ref(false)
 const copyBubbleVisible = ref(false)
-const rendererMode = ref<'canvas' | 'webgl'>('canvas')
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
 let resizeObserver: ResizeObserver | undefined
@@ -272,13 +271,6 @@ onBeforeUnmount(() => {
       <div class="pane-bar-spacer" />
 
       <div class="pane-action-bar" aria-label="分屏操作" draggable="false" @dragstart.stop.prevent>
-        <span
-          class="renderer-mode-badge"
-          :class="`renderer-mode-badge-${rendererMode}`"
-          :title="rendererMode === 'webgl' ? '当前使用 WebGL 渲染' : '当前使用 Canvas 渲染'"
-        >
-          {{ rendererMode === 'webgl' ? 'WebGL' : 'Canvas' }}
-        </span>
         <NButton
           size="tiny"
           quaternary
