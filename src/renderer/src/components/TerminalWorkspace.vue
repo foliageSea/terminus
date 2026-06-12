@@ -26,6 +26,8 @@ import {
   Delete20Regular,
   FolderOpenVertical20Regular,
   QuestionCircle20Regular,
+  ReOrderDotsVertical20Regular,
+  Search20Regular,
   Settings20Regular
 } from '@vicons/fluent'
 import SplitNode from './SplitNode.vue'
@@ -105,6 +107,7 @@ const dragOverTabSide = ref<'before' | 'after'>('before')
 const draggingPathFavoriteId = ref<string | undefined>()
 const dragOverPathFavoriteId = ref<string | undefined>()
 const dragOverPathFavoriteSide = ref<'before' | 'after'>('before')
+const pathFavoriteSearch = ref('')
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalBackgroundUrl = ref('')
@@ -126,6 +129,16 @@ const canFavoriteActivePath = computed(
     Boolean(activePaneCwd.value) &&
     !pathFavorites.items.some((favorite) => favorite.path === activePaneCwd.value)
 )
+const filteredPathFavorites = computed(() => {
+  const keyword = pathFavoriteSearch.value.trim().toLowerCase()
+  if (!keyword) return pathFavorites.items
+
+  return pathFavorites.items.filter((favorite) => {
+    return (
+      favorite.name.toLowerCase().includes(keyword) || favorite.path.toLowerCase().includes(keyword)
+    )
+  })
+})
 const workspaceThemeStyle = computed(() => ({
   '--terminal-active-color': themeVars.value.primaryColor,
   '--terminal-active-color-hover': themeVars.value.primaryColorHover
@@ -828,9 +841,23 @@ onBeforeUnmount(() => {
               </NButton>
             </div>
 
-            <div v-if="pathFavorites.items.length" class="path-favorites-list">
+            <NInput
+              v-model:value="pathFavoriteSearch"
+              class="path-favorites-search"
+              size="small"
+              clearable
+              placeholder="搜索名称或路径"
+            >
+              <template #prefix>
+                <NIcon>
+                  <Search20Regular />
+                </NIcon>
+              </template>
+            </NInput>
+
+            <div v-if="filteredPathFavorites.length" class="path-favorites-list">
               <button
-                v-for="favorite in pathFavorites.items"
+                v-for="favorite in filteredPathFavorites"
                 :key="favorite.id"
                 :class="[
                   'path-favorite-item',
@@ -844,15 +871,25 @@ onBeforeUnmount(() => {
                   }
                 ]"
                 type="button"
-                draggable="true"
                 :title="favorite.path"
                 @click="openPathFavorite(favorite)"
-                @dragstart="startPathFavoriteDrag($event, favorite.id)"
                 @dragover="handlePathFavoriteDragOver($event, favorite.id)"
                 @dragleave="leavePathFavoriteDrag(favorite.id)"
                 @drop="dropPathFavorite($event, favorite.id)"
-                @dragend="finishPathFavoriteDrag"
               >
+                <span
+                  class="path-favorite-drag-handle"
+                  draggable="true"
+                  title="拖拽排序"
+                  aria-label="拖拽排序"
+                  @click.stop
+                  @dragstart="startPathFavoriteDrag($event, favorite.id)"
+                  @dragend="finishPathFavoriteDrag"
+                >
+                  <NIcon>
+                    <ReOrderDotsVertical20Regular />
+                  </NIcon>
+                </span>
                 <span class="path-favorite-text">
                   <span class="path-favorite-name">{{ favorite.name }}</span>
                   <span class="path-favorite-path">{{ favorite.path }}</span>
@@ -872,7 +909,9 @@ onBeforeUnmount(() => {
                 </NButton>
               </button>
             </div>
-            <div v-else class="path-favorites-empty">暂无收藏路径</div>
+            <div v-else class="path-favorites-empty">
+              {{ pathFavorites.items.length ? '未找到匹配路径' : '暂无收藏路径' }}
+            </div>
           </div>
         </NPopover>
         <NPopover trigger="click" placement="bottom-end">
@@ -1177,6 +1216,14 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.path-favorites-search {
+  --n-border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  --n-border-hover: 1px solid rgba(255, 255, 255, 0.18) !important;
+  --n-border-focus: 1px solid var(--terminal-active-color) !important;
+  --n-color: rgba(255, 255, 255, 0.05) !important;
+  --n-color-focus: rgba(255, 255, 255, 0.07) !important;
+}
+
 .path-favorites-list {
   display: grid;
   gap: 6px;
@@ -1211,7 +1258,7 @@ onBeforeUnmount(() => {
 .path-favorite-item {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -1220,7 +1267,7 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: inherit;
-  cursor: grab;
+  cursor: pointer;
   text-align: left;
   transition:
     border-color 0.18s ease,
@@ -1230,13 +1277,31 @@ onBeforeUnmount(() => {
     transform 0.18s ease;
 }
 
-.path-favorite-item:active {
-  cursor: grabbing;
-}
-
 .path-favorite-item:hover {
   border-color: rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.path-favorite-drag-handle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 34px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.38);
+  cursor: grab;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.path-favorite-drag-handle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.path-favorite-drag-handle:active {
+  cursor: grabbing;
 }
 
 .path-favorite-dragging {
