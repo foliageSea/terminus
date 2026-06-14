@@ -373,10 +373,6 @@ function handlePathFavoriteDragOver(event: DragEvent, favoriteId: string): void 
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 
-function leavePathFavoriteDrag(favoriteId: string): void {
-  if (dragOverPathFavoriteId.value === favoriteId) dragOverPathFavoriteId.value = undefined
-}
-
 function finishPathFavoriteDrag(): void {
   draggingPathFavoriteId.value = undefined
   dragOverPathFavoriteId.value = undefined
@@ -856,58 +852,70 @@ onBeforeUnmount(() => {
             </NInput>
 
             <div v-if="filteredPathFavorites.length" class="path-favorites-list">
-              <button
+              <div
                 v-for="favorite in filteredPathFavorites"
                 :key="favorite.id"
-                :class="[
-                  'path-favorite-item',
-                  {
-                    'path-favorite-dragging': draggingPathFavoriteId === favorite.id,
-                    'path-favorite-drag-before':
-                      dragOverPathFavoriteId === favorite.id &&
-                      dragOverPathFavoriteSide === 'before',
-                    'path-favorite-drag-after':
-                      dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'after'
-                  }
-                ]"
-                type="button"
-                :title="favorite.path"
-                @click="openPathFavorite(favorite)"
+                class="path-favorite-row"
                 @dragover="handlePathFavoriteDragOver($event, favorite.id)"
-                @dragleave="leavePathFavoriteDrag(favorite.id)"
                 @drop="dropPathFavorite($event, favorite.id)"
               >
                 <span
-                  class="path-favorite-drag-handle"
-                  draggable="true"
-                  title="拖拽排序"
-                  aria-label="拖拽排序"
-                  @click.stop
-                  @dragstart="startPathFavoriteDrag($event, favorite.id)"
-                  @dragend="finishPathFavoriteDrag"
+                  v-if="
+                    dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'before'
+                  "
+                  class="path-favorite-drop-line"
+                  aria-hidden="true"
+                />
+                <button
+                  :class="[
+                    'path-favorite-item',
+                    {
+                      'path-favorite-dragging': draggingPathFavoriteId === favorite.id
+                    }
+                  ]"
+                  type="button"
+                  :title="favorite.path"
+                  @click="openPathFavorite(favorite)"
                 >
-                  <NIcon>
-                    <ReOrderDotsVertical20Regular />
-                  </NIcon>
-                </span>
-                <span class="path-favorite-text">
-                  <span class="path-favorite-name">{{ favorite.name }}</span>
-                  <span class="path-favorite-path">{{ favorite.path }}</span>
-                </span>
-                <NButton
-                  size="tiny"
-                  quaternary
-                  type="error"
-                  title="删除收藏"
-                  @click.stop="removePathFavorite(favorite.id)"
-                >
-                  <template #icon>
+                  <span
+                    class="path-favorite-drag-handle"
+                    draggable="true"
+                    title="拖拽排序"
+                    aria-label="拖拽排序"
+                    @click.stop
+                    @dragstart="startPathFavoriteDrag($event, favorite.id)"
+                    @dragend="finishPathFavoriteDrag"
+                  >
                     <NIcon>
-                      <Delete20Regular />
+                      <ReOrderDotsVertical20Regular />
                     </NIcon>
-                  </template>
-                </NButton>
-              </button>
+                  </span>
+                  <span class="path-favorite-text">
+                    <span class="path-favorite-name">{{ favorite.name }}</span>
+                    <span class="path-favorite-path">{{ favorite.path }}</span>
+                  </span>
+                  <NButton
+                    size="tiny"
+                    quaternary
+                    type="error"
+                    title="删除收藏"
+                    @click.stop="removePathFavorite(favorite.id)"
+                  >
+                    <template #icon>
+                      <NIcon>
+                        <Delete20Regular />
+                      </NIcon>
+                    </template>
+                  </NButton>
+                </button>
+                <span
+                  v-if="
+                    dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'after'
+                  "
+                  class="path-favorite-drop-line"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
             <div v-else class="path-favorites-empty">
               {{ pathFavorites.items.length ? '未找到匹配路径' : '暂无收藏路径' }}
@@ -1255,8 +1263,12 @@ onBeforeUnmount(() => {
   background-clip: content-box;
 }
 
+.path-favorite-row {
+  display: grid;
+  gap: 3px;
+}
+
 .path-favorite-item {
-  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -1312,33 +1324,24 @@ onBeforeUnmount(() => {
   transform: scale(0.985);
 }
 
-.path-favorite-drag-before,
-.path-favorite-drag-after {
-  border-color: color-mix(in srgb, var(--terminal-active-color) 56%, transparent);
-  background: color-mix(in srgb, var(--terminal-active-color) 12%, rgba(255, 255, 255, 0.04));
-}
-
-.path-favorite-drag-before::before,
-.path-favorite-drag-after::after {
-  position: absolute;
-  right: 10px;
-  left: 10px;
-  z-index: 1;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--terminal-active-color);
+.path-favorite-drop-line {
+  width: calc(100% - 16px);
+  height: 14px;
+  margin: 0 8px;
+  background:
+    radial-gradient(circle, var(--terminal-active-color) 0 3px, transparent 3.5px),
+    linear-gradient(var(--terminal-active-color), var(--terminal-active-color));
+  background-repeat: no-repeat;
+  background-position:
+    left center,
+    10px center;
+  background-size:
+    7px 7px,
+    calc(100% - 10px) 4px;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 36%, transparent),
-    0 0 14px color-mix(in srgb, var(--terminal-active-color) 65%, transparent);
-  content: '';
-}
-
-.path-favorite-drag-before::before {
-  top: -5px;
-}
-
-.path-favorite-drag-after::after {
-  bottom: -5px;
+    0 0 10px color-mix(in srgb, var(--terminal-active-color) 52%, transparent);
+  pointer-events: none;
 }
 
 .path-favorite-text {
