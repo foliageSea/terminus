@@ -820,7 +820,11 @@ onBeforeUnmount(() => {
             </NButton>
           </template>
 
-          <div class="path-favorites-popover" aria-label="路径收藏">
+          <div
+            class="path-favorites-popover"
+            :style="workspaceThemeStyle"
+            aria-label="路径收藏"
+          >
             <div class="path-favorites-header">
               <div>
                 <div class="path-favorites-title">路径收藏</div>
@@ -1325,23 +1329,37 @@ onBeforeUnmount(() => {
 }
 
 .path-favorite-drop-line {
+  position: relative;
   width: calc(100% - 16px);
-  height: 14px;
-  margin: 0 8px;
-  background:
-    radial-gradient(circle, var(--terminal-active-color) 0 3px, transparent 3.5px),
-    linear-gradient(var(--terminal-active-color), var(--terminal-active-color));
-  background-repeat: no-repeat;
-  background-position:
-    left center,
-    10px center;
-  background-size:
-    7px 7px,
-    calc(100% - 10px) 4px;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--terminal-active-color) 36%, transparent),
-    0 0 10px color-mix(in srgb, var(--terminal-active-color) 52%, transparent);
+  height: 8px;
+  margin: 1px 8px;
   pointer-events: none;
+}
+
+.path-favorite-drop-line::before {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--terminal-active-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--terminal-active-color) 50%, transparent);
+  transform: translateY(-50%);
+  content: '';
+}
+
+.path-favorite-drop-line::after {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--terminal-active-color);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--terminal-active-color) 50%, transparent);
+  transform: translateY(-50%);
+  content: '';
 }
 
 .path-favorite-text {
