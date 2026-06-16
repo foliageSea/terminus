@@ -411,12 +411,27 @@ function dropPathFavorite(event: DragEvent, targetFavoriteId: string): void {
   movePathFavorite(sourceFavoriteId, targetFavoriteId, side)
 }
 
+const tabSwitchOverlayVisible = ref(false)
+const tabSwitchOverlayTitle = ref('')
+let tabSwitchOverlayTimer: ReturnType<typeof setTimeout> | null = null
+
+function showTabSwitchOverlay(title: string): void {
+  if (tabSwitchOverlayTimer) clearTimeout(tabSwitchOverlayTimer)
+  tabSwitchOverlayTitle.value = title
+  tabSwitchOverlayVisible.value = true
+  tabSwitchOverlayTimer = setTimeout(() => {
+    tabSwitchOverlayVisible.value = false
+    tabSwitchOverlayTimer = null
+  }, 600)
+}
+
 function switchTab(direction: 1 | -1): void {
   const currentIndex = tabs.value.findIndex((tab) => tab.id === activeTabId.value)
   if (currentIndex < 0 || tabs.value.length < 2) return
 
   const nextIndex = (currentIndex + direction + tabs.value.length) % tabs.value.length
   activeTabId.value = tabs.value[nextIndex].id
+  showTabSwitchOverlay(tabs.value[nextIndex].title)
 }
 
 function switchPane(): void {
@@ -1145,6 +1160,11 @@ onBeforeUnmount(() => {
       </div>
     </main>
   </NLayout>
+  <Transition name="tab-switch-overlay">
+    <div v-if="tabSwitchOverlayVisible" class="tab-switch-overlay">
+      {{ tabSwitchOverlayTitle }}
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -1472,5 +1492,38 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.64);
   font-size: 12px;
   text-align: right;
+}
+
+.tab-switch-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  background: rgba(28, 28, 32, 0.88);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 28px;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.tab-switch-overlay-enter-from,
+.tab-switch-overlay-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.88);
+}
+
+.tab-switch-overlay-enter-active {
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.tab-switch-overlay-leave-active {
+  transition: opacity 150ms ease, transform 150ms ease;
 }
 </style>
