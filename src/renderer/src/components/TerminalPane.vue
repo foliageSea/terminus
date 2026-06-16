@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
-import { Dismiss20Regular, SplitHorizontal20Regular, SplitVertical20Regular } from '@vicons/fluent'
+import {
+  ArrowClockwise20Regular,
+  Dismiss20Regular,
+  SplitHorizontal20Regular,
+  SplitVertical20Regular
+} from '@vicons/fluent'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -34,12 +39,14 @@ const host = ref<HTMLDivElement>()
 const dropSide = ref<DropSide>()
 const dragging = ref(false)
 const copyBubbleVisible = ref(false)
+const reloading = ref(false)
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
 let resizeObserver: ResizeObserver | undefined
 let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
 let copyBubbleTimer: number | undefined
+let suppressedExitMessages = 0
 
 function resolveDropSide(event: DragEvent): DropSide {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -175,6 +182,31 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
   return true
 }
 
+async function createPty(): Promise<void> {
+  if (!terminal) return
+
+  await nextTick()
+  fit()
+  await window.api.terminal.create(props.paneId, terminal.cols, terminal.rows, props.cwd)
+}
+
+async function reloadTerminal(): Promise<void> {
+  if (!terminal || reloading.value) return
+
+  reloading.value = true
+  suppressedExitMessages += 1
+  window.api.terminal.kill(props.paneId)
+  terminal.clear()
+  terminal.reset()
+
+  try {
+    await createPty()
+    terminal.focus()
+  } finally {
+    reloading.value = false
+  }
+}
+
 onMounted(async () => {
   if (!host.value) return
 
@@ -203,15 +235,19 @@ onMounted(async () => {
     if (id === props.paneId) terminal?.write(data)
   })
   removeExitListener = window.api.terminal.onExit(({ id }) => {
-    if (id === props.paneId) terminal?.writeln('\r\n[process exited]')
+    if (id !== props.paneId) return
+    if (suppressedExitMessages > 0) {
+      suppressedExitMessages -= 1
+      return
+    }
+
+    terminal?.writeln('\r\n[process exited]')
   })
 
   resizeObserver = new ResizeObserver(() => fit())
   resizeObserver.observe(host.value)
 
-  await nextTick()
-  fit()
-  await window.api.terminal.create(props.paneId, terminal.cols, terminal.rows, props.cwd)
+  await createPty()
   terminal.focus()
 })
 
@@ -296,6 +332,19 @@ onBeforeUnmount(() => {
           </template>
         </NButton>
         <span class="pane-action-divider" />
+        <NButton
+          size="tiny"
+          quaternary
+          :disabled="reloading"
+          title="重载"
+          @click.stop="reloadTerminal"
+        >
+          <template #icon>
+            <NIcon>
+              <ArrowClockwise20Regular />
+            </NIcon>
+          </template>
+        </NButton>
         <NButton
           size="tiny"
           quaternary

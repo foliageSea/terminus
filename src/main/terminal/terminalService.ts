@@ -138,7 +138,7 @@ export function createTerminal({
   terminal.onExit(() => {
     clearTerminalFlushTimer(state)
     flushTerminalData(state)
-    terminals.delete(id)
+    if (terminals.get(id) === state) terminals.delete(id)
     onExit({ id })
   })
 
