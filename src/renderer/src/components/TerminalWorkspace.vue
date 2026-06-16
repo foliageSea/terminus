@@ -763,6 +763,13 @@ onBeforeUnmount(() => {
 
 <template>
   <NLayout class="workspace" :style="workspaceThemeStyle" embedded>
+    <div
+      v-if="workspaceBackgroundStyle"
+      class="workspace-background"
+      :style="workspaceBackgroundStyle"
+    />
+    <div class="workspace-background-mask" :style="workspaceBackgroundMaskStyle" />
+
     <NLayoutHeader class="workspace-header" bordered>
       <div class="window-controls" aria-label="窗口控制">
         <button
@@ -1114,12 +1121,6 @@ onBeforeUnmount(() => {
     </NModal>
 
     <main class="workspace-body">
-      <div
-        v-if="workspaceBackgroundStyle"
-        class="workspace-background"
-        :style="workspaceBackgroundStyle"
-      />
-      <div class="workspace-background-mask" :style="workspaceBackgroundMaskStyle" />
       <div
         v-for="tab in tabs"
         v-show="tab.id === activeTabId"
