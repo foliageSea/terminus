@@ -110,6 +110,7 @@ const draggingPathFavoriteId = ref<string | undefined>()
 const dragOverPathFavoriteId = ref<string | undefined>()
 const dragOverPathFavoriteSide = ref<'before' | 'after'>('before')
 const pathFavoriteSearch = ref('')
+const restorePopoverTabId = ref<string | undefined>()
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalBackgroundUrl = ref('')
@@ -731,14 +732,15 @@ function handleCollapsePane(paneId: string): void {
   }
 }
 
-function restoreCollapsedPane(tab: TerminalTab): void {
+function restoreCollapsedPane(tab: TerminalTab, side: PaneDropPayload['side']): void {
   const restored = tab.collapsedNodes.pop()
   if (!restored) return
 
   const targetPaneId = findPane(tab.root, tab.activePaneId) ? tab.activePaneId : firstPaneId(tab.root)
-  tab.root = insertNode(tab.root, targetPaneId, restored, 'right')
+  tab.root = insertNode(tab.root, targetPaneId, restored, side)
   tab.activePaneId = firstPaneId(restored)
   tab.layoutVersion += 1
+  restorePopoverTabId.value = undefined
   setLayoutAnimation(undefined, restored.id)
 }
 
@@ -1199,19 +1201,40 @@ onBeforeUnmount(() => {
         </Teleport>
         <Transition name="collapsed-pane-fab">
           <div v-if="tab.collapsedNodes.length" class="collapsed-pane-fab-wrap">
-            <NButton
-              class="collapsed-pane-fab"
-              tertiary
-              circle
-              type="primary"
-              @click="restoreCollapsedPane(tab)"
+            <NPopover
+              :show="restorePopoverTabId === tab.id"
+              trigger="click"
+              placement="top-end"
+              @update:show="restorePopoverTabId = $event ? tab.id : undefined"
             >
-              <template #icon>
-                <NIcon>
-                  <PanelRightExpand20Regular />
-                </NIcon>
+              <template #trigger>
+                <NButton class="collapsed-pane-fab" tertiary circle type="primary">
+                  <template #icon>
+                    <NIcon>
+                      <PanelRightExpand20Regular />
+                    </NIcon>
+                  </template>
+                </NButton>
               </template>
-            </NButton>
+
+              <div class="restore-direction-popover" aria-label="选择恢复位置">
+                <div class="restore-direction-title">恢复到当前分屏</div>
+                <div class="restore-direction-grid">
+                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'top')">
+                    上
+                  </NButton>
+                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'left')">
+                    左
+                  </NButton>
+                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'right')">
+                    右
+                  </NButton>
+                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'bottom')">
+                    下
+                  </NButton>
+                </div>
+              </div>
+            </NPopover>
             <span class="collapsed-pane-count">{{ tab.collapsedNodes.length }}</span>
           </div>
         </Transition>
@@ -1550,6 +1573,45 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.64);
   font-size: 12px;
   text-align: right;
+}
+
+.restore-direction-popover {
+  display: grid;
+  gap: 8px;
+  width: 156px;
+  padding: 2px;
+}
+
+.restore-direction-title {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  text-align: center;
+}
+
+.restore-direction-grid {
+  display: grid;
+  grid-template-areas:
+    '. top .'
+    'left . right'
+    '. bottom .';
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.restore-direction-grid > :nth-child(1) {
+  grid-area: top;
+}
+
+.restore-direction-grid > :nth-child(2) {
+  grid-area: left;
+}
+
+.restore-direction-grid > :nth-child(3) {
+  grid-area: right;
+}
+
+.restore-direction-grid > :nth-child(4) {
+  grid-area: bottom;
 }
 
 .tab-switch-overlay {
