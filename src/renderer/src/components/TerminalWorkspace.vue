@@ -1504,15 +1504,16 @@ onBeforeUnmount(() => {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 9999;
-  background: rgba(28, 28, 32, 0.88);
-  color: rgba(255, 255, 255, 0.92);
-  padding: 10px 28px;
-  border-radius: 10px;
+  background: rgba(28, 28, 32, 0.25);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 14px 36px;
+  border-radius: 14px;
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.01em;
   pointer-events: none;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(48px) saturate(1.6);
+  -webkit-backdrop-filter: blur(48px) saturate(1.6);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
 }
