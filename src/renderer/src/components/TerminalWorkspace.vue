@@ -143,6 +143,9 @@ const workspaceThemeStyle = computed(() => ({
   '--terminal-active-color': themeVars.value.primaryColor,
   '--terminal-active-color-hover': themeVars.value.primaryColorHover
 }))
+const workspaceHeaderStyle = computed(() => ({
+  backdropFilter: `blur(${terminalSettings.backgroundBlur}px)`
+}))
 const workspaceBackgroundStyle = computed(() => {
   if (!terminalSettings.backgroundImageEnabled) return undefined
   if (!terminalBackgroundUrl.value) return undefined
@@ -770,7 +773,7 @@ onBeforeUnmount(() => {
     />
     <div class="workspace-background-mask" :style="workspaceBackgroundMaskStyle" />
 
-    <NLayoutHeader class="workspace-header" bordered>
+    <NLayoutHeader class="workspace-header" :style="workspaceHeaderStyle" bordered>
       <div class="window-controls" aria-label="窗口控制">
         <button
           class="window-control close"

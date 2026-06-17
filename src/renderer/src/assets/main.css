@@ -43,7 +43,6 @@ button {
   height: 46px;
   padding: 0 10px 0 14px;
   background: transparent;
-  backdrop-filter: blur(18px);
   -webkit-app-region: drag;
 }
 
