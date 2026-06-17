@@ -25,6 +25,7 @@ import {
   Add20Regular,
   Delete20Regular,
   FolderOpenVertical20Regular,
+  PanelRightExpand20Regular,
   QuestionCircle20Regular,
   ReOrderDotsVertical20Regular,
   Search20Regular,
@@ -81,7 +82,8 @@ function createTab(title?: string, cwd?: string): TerminalTab {
     title: tabTitle,
     root: { type: 'pane', id: paneId, cwd },
     activePaneId: paneId,
-    layoutVersion: 0
+    layoutVersion: 0,
+    collapsedNodes: []
   }
 }
 
@@ -195,6 +197,18 @@ function collectPaneIds(node: PaneNode): string[] {
 function collectPaneLeaves(node: PaneNode): PaneLeaf[] {
   if (node.type === 'pane') return [node]
   return node.children.flatMap((child) => collectPaneLeaves(child))
+}
+
+function collectTabPaneIds(tab: TerminalTab): string[] {
+  return [tab.root, ...tab.collapsedNodes].flatMap((node) => collectPaneIds(node))
+}
+
+function collectTabPaneLeaves(tab: TerminalTab): PaneLeaf[] {
+  return [tab.root, ...tab.collapsedNodes].flatMap((node) => collectPaneLeaves(node))
+}
+
+function updateTabPaneCwd(tab: TerminalTab, paneId: string, cwd: string): boolean {
+  return [tab.root, ...tab.collapsedNodes].some((node) => updatePaneCwd(node, paneId, cwd))
 }
 
 function findPaneLeaf(node: PaneNode, paneId: string): PaneLeaf | undefined {
@@ -674,7 +688,7 @@ function closeTab(tabId: string): void {
   if (tabs.value.length === 1) return
 
   const tab = tabs.value.find((item) => item.id === tabId)
-  if (tab) collectPaneIds(tab.root).forEach((paneId) => window.api.terminal.kill(paneId))
+  if (tab) collectTabPaneIds(tab).forEach((paneId) => window.api.terminal.kill(paneId))
 
   const index = tabs.value.findIndex((tab) => tab.id === tabId)
   tabs.value = tabs.value.filter((tab) => tab.id !== tabId)
@@ -700,6 +714,32 @@ function handleClosePane(paneId: string): void {
   if (!findPane(tab.root, tab.activePaneId)) {
     tab.activePaneId = firstPaneId(tab.root)
   }
+}
+
+function handleCollapsePane(paneId: string): void {
+  const tab = activeTab.value
+  if (collectPaneIds(tab.root).length < 2) return
+
+  const { root, removed } = removeNode(tab.root, paneId)
+  if (!root || !removed) return
+
+  tab.root = root
+  tab.collapsedNodes.push(removed)
+  tab.layoutVersion += 1
+  if (!findPane(tab.root, tab.activePaneId)) {
+    tab.activePaneId = firstPaneId(tab.root)
+  }
+}
+
+function restoreCollapsedPane(tab: TerminalTab): void {
+  const restored = tab.collapsedNodes.pop()
+  if (!restored) return
+
+  const targetPaneId = findPane(tab.root, tab.activePaneId) ? tab.activePaneId : firstPaneId(tab.root)
+  tab.root = insertNode(tab.root, targetPaneId, restored, 'right')
+  tab.activePaneId = firstPaneId(restored)
+  tab.layoutVersion += 1
+  setLayoutAnimation(undefined, restored.id)
 }
 
 function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): void {
@@ -744,7 +784,7 @@ onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown, true)
 
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
-    tabs.value.some((tab) => updatePaneCwd(tab.root, id, cwd))
+    tabs.value.some((tab) => updateTabPaneCwd(tab, id, cwd))
   })
 
   const savedSettings = await window.api.settings.getTerminal()
@@ -779,21 +819,18 @@ onBeforeUnmount(() => {
           class="window-control close"
           type="button"
           aria-label="关闭窗口"
-          title="关闭"
           @click="closeWindow"
         />
         <button
           class="window-control minimize"
           type="button"
           aria-label="最小化窗口"
-          title="最小化"
           @click="minimizeWindow"
         />
         <button
           class="window-control maximize"
           type="button"
           aria-label="最大化或还原窗口"
-          title="最大化/还原"
           @click="toggleMaximizeWindow"
         />
       </div>
@@ -825,7 +862,6 @@ onBeforeUnmount(() => {
           size="small"
           secondary
           circle
-          title="新建 Tab"
           @click="addTab"
         >
           <template #icon>
@@ -836,7 +872,7 @@ onBeforeUnmount(() => {
         </NButton>
         <NPopover trigger="click" placement="bottom-end">
           <template #trigger>
-            <NButton class="path-favorites-button" size="small" secondary circle title="路径收藏">
+            <NButton class="path-favorites-button" size="small" secondary circle>
               <template #icon>
                 <NIcon>
                   <FolderOpenVertical20Regular />
@@ -859,7 +895,6 @@ onBeforeUnmount(() => {
                 size="tiny"
                 secondary
                 :disabled="!canFavoriteActivePath"
-                :title="activePaneCwd || '当前终端路径未就绪'"
                 @click="addCurrentPathFavorite"
               >
                 收藏当前
@@ -903,7 +938,6 @@ onBeforeUnmount(() => {
                     }
                   ]"
                   type="button"
-                  :title="favorite.path"
                   @click="openPathFavorite(favorite)"
                 >
                   <span
@@ -927,7 +961,6 @@ onBeforeUnmount(() => {
                     size="tiny"
                     quaternary
                     type="error"
-                    title="删除收藏"
                     @click.stop="removePathFavorite(favorite.id)"
                   >
                     <template #icon>
@@ -953,7 +986,7 @@ onBeforeUnmount(() => {
         </NPopover>
         <NPopover trigger="click" placement="bottom-end">
           <template #trigger>
-            <NButton class="settings-button" size="small" secondary circle title="终端设置">
+            <NButton class="settings-button" size="small" secondary circle>
               <template #icon>
                 <NIcon>
                   <Settings20Regular />
@@ -1056,7 +1089,7 @@ onBeforeUnmount(() => {
         </NPopover>
         <NPopover trigger="click" placement="bottom-end">
           <template #trigger>
-            <NButton class="shortcut-help-button" size="small" secondary circle title="快捷键">
+            <NButton class="shortcut-help-button" size="small" secondary circle>
               <template #icon>
                 <NIcon>
                   <QuestionCircle20Regular />
@@ -1139,16 +1172,18 @@ onBeforeUnmount(() => {
           :animated-node-id="animatedNodeId"
           @activate="tab.activePaneId = $event"
           @split="handleSplit"
+          @collapse="handleCollapsePane"
           @close="handleClosePane"
           @drop-pane="handleDropPane"
         />
         <Teleport
-          v-for="pane in collectPaneLeaves(tab.root)"
+          v-for="pane in collectTabPaneLeaves(tab)"
           :key="pane.id"
           defer
-          :to="`#terminal-pane-slot-${pane.id}-${tab.layoutVersion}`"
+          :to="findPane(tab.root, pane.id) ? `#terminal-pane-slot-${pane.id}-${tab.layoutVersion}` : 'body'"
         >
           <TerminalPane
+            :class="{ 'terminal-pane-collapsed': !findPane(tab.root, pane.id) }"
             :pane-id="pane.id"
             :cwd="pane.cwd"
             :active="tab.id === activeTabId && pane.id === tab.activePaneId"
@@ -1157,10 +1192,29 @@ onBeforeUnmount(() => {
             :animated-node-id="animatedNodeId"
             @activate="tab.activePaneId = $event"
             @split="handleSplit"
+            @collapse="handleCollapsePane"
             @close="handleClosePane"
             @drop-pane="handleDropPane"
           />
         </Teleport>
+        <Transition name="collapsed-pane-fab">
+          <div v-if="tab.collapsedNodes.length" class="collapsed-pane-fab-wrap">
+            <NButton
+              class="collapsed-pane-fab"
+              tertiary
+              circle
+              type="primary"
+              @click="restoreCollapsedPane(tab)"
+            >
+              <template #icon>
+                <NIcon>
+                  <PanelRightExpand20Regular />
+                </NIcon>
+              </template>
+            </NButton>
+            <span class="collapsed-pane-count">{{ tab.collapsedNodes.length }}</span>
+          </div>
+        </Transition>
       </div>
     </main>
   </NLayout>

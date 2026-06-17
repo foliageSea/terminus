@@ -4,6 +4,7 @@ import { NButton, NIcon } from 'naive-ui'
 import {
   ArrowClockwise20Regular,
   Dismiss20Regular,
+  PanelRightContract20Regular,
   SplitHorizontal20Regular,
   SplitVertical20Regular
 } from '@vicons/fluent'
@@ -31,6 +32,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   activate: [id: string]
   split: [id: string, direction: SplitDirection]
+  collapse: [id: string]
   close: [id: string]
   dropPane: [payload: PaneDropPayload]
 }>()
@@ -310,7 +312,6 @@ onBeforeUnmount(() => {
         <NButton
           size="tiny"
           quaternary
-          title="左右分屏"
           @click.stop="emit('split', paneId, 'horizontal')"
         >
           <template #icon>
@@ -322,7 +323,6 @@ onBeforeUnmount(() => {
         <NButton
           size="tiny"
           quaternary
-          title="上下分屏"
           @click.stop="emit('split', paneId, 'vertical')"
         >
           <template #icon>
@@ -332,11 +332,17 @@ onBeforeUnmount(() => {
           </template>
         </NButton>
         <span class="pane-action-divider" />
+        <NButton size="tiny" quaternary @click.stop="emit('collapse', paneId)">
+          <template #icon>
+            <NIcon>
+              <PanelRightContract20Regular />
+            </NIcon>
+          </template>
+        </NButton>
         <NButton
           size="tiny"
           quaternary
           :disabled="reloading"
-          title="重载"
           @click.stop="reloadTerminal"
         >
           <template #icon>
@@ -349,7 +355,6 @@ onBeforeUnmount(() => {
           size="tiny"
           quaternary
           type="error"
-          title="关闭"
           @click.stop="emit('close', paneId)"
         >
           <template #icon>

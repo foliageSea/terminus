@@ -446,6 +446,73 @@ button {
   animation: pane-drop-settle 320ms ease-out;
 }
 
+.terminal-pane-collapsed {
+  position: fixed !important;
+  top: 54px !important;
+  left: -200vw !important;
+  width: calc(100vw - 16px) !important;
+  height: calc(100vh - 62px) !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+.collapsed-pane-fab-wrap {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 8;
+}
+
+.collapsed-pane-fab {
+  width: 46px;
+  height: 46px;
+  padding: 0 !important;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.34),
+    0 0 24px color-mix(in srgb, var(--terminal-active-color) 24%, transparent);
+}
+
+.collapsed-pane-fab .n-button__content {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.collapsed-pane-fab .n-button__icon {
+  margin: 0 !important;
+}
+
+.collapsed-pane-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.collapsed-pane-fab-enter-active,
+.collapsed-pane-fab-leave-active {
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.collapsed-pane-fab-enter-from,
+.collapsed-pane-fab-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+}
+
 .copy-bubble {
   position: absolute;
   top: 42px;
@@ -664,5 +731,15 @@ button {
     grid-template-columns: 66px minmax(0, 1fr) auto;
     gap: 8px;
     padding-left: 10px;
+  }
+
+  .collapsed-pane-fab-wrap {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .collapsed-pane-fab {
+    width: 42px;
+    height: 42px;
   }
 }
