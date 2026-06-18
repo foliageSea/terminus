@@ -207,6 +207,12 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
     return false
   }
 
+  if (event.altKey && !event.ctrlKey && !event.metaKey) {
+    if (event.key === '=' || event.key === '+' || event.key === '-' || event.key === '0') {
+      return false
+    }
+  }
+
   return true
 }
 

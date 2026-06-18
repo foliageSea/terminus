@@ -386,6 +386,29 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
     return
   }
 
+  if (event.altKey && !event.ctrlKey && !event.metaKey) {
+    if (event.key === '=' || event.key === '+') {
+      event.preventDefault()
+      event.stopPropagation()
+      zoomIn()
+      return
+    }
+
+    if (event.key === '-') {
+      event.preventDefault()
+      event.stopPropagation()
+      zoomOut()
+      return
+    }
+
+    if (event.key === '0') {
+      event.preventDefault()
+      event.stopPropagation()
+      zoomReset()
+      return
+    }
+  }
+
   if (!event.ctrlKey || event.altKey || event.metaKey) return
 
   if (event.code === 'Backquote') {
@@ -556,6 +579,18 @@ function toggleMaximizeWindow(): void {
 
 function closeWindow(): void {
   window.api.window.close()
+}
+
+async function zoomIn(): Promise<void> {
+  await window.api.window.zoomIn()
+}
+
+async function zoomOut(): Promise<void> {
+  await window.api.window.zoomOut()
+}
+
+async function zoomReset(): Promise<void> {
+  await window.api.window.zoomReset()
 }
 
 function normalizeFontFamily(): void {
@@ -737,6 +772,9 @@ onMounted(async () => {
   const savedPathFavorites = await window.api.settings.getPathFavorites()
   Object.assign(pathFavorites, savedPathFavorites)
   pathFavoritesLoaded.value = true
+
+  const savedZoomFactor = await window.api.settings.getZoomFactor()
+  if (savedZoomFactor !== 1) await window.api.window.setZoomFactor(savedZoomFactor)
 })
 
 onBeforeUnmount(() => {

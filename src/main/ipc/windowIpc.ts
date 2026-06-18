@@ -1,4 +1,11 @@
 import { BrowserWindow, ipcMain, shell } from 'electron'
+import {
+  defaultZoomFactor,
+  maxZoomFactor,
+  minZoomFactor,
+  zoomStep
+} from '../settings/settingsTypes'
+import { writeZoomFactor } from '../settings/settingsService'
 
 function isSafeExternalUrl(url: string): boolean {
   try {
@@ -33,5 +40,50 @@ export function registerWindowIpc(): void {
     if (!isSafeExternalUrl(url)) return
 
     shell.openExternal(url)
+  })
+
+  ipcMain.handle('window:get-zoom-factor', (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.webContents.getZoomFactor() ?? 1.0
+  })
+
+  ipcMain.handle('window:set-zoom-factor', (event, factor: number) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return
+
+    const clamped = Math.min(maxZoomFactor, Math.max(minZoomFactor, factor))
+    window.webContents.setZoomFactor(clamped)
+    writeZoomFactor(clamped)
+    return clamped
+  })
+
+  ipcMain.handle('window:zoom-in', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return
+
+    const current = window.webContents.getZoomFactor()
+    const next = Math.min(maxZoomFactor, Math.round((current + zoomStep) * 100) / 100)
+    window.webContents.setZoomFactor(next)
+    writeZoomFactor(next)
+    return next
+  })
+
+  ipcMain.handle('window:zoom-out', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return
+
+    const current = window.webContents.getZoomFactor()
+    const next = Math.max(minZoomFactor, Math.round((current - zoomStep) * 100) / 100)
+    window.webContents.setZoomFactor(next)
+    writeZoomFactor(next)
+    return next
+  })
+
+  ipcMain.handle('window:zoom-reset', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return
+
+    window.webContents.setZoomFactor(defaultZoomFactor)
+    writeZoomFactor(defaultZoomFactor)
+    return defaultZoomFactor
   })
 }

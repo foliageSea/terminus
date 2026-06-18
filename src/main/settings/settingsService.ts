@@ -9,7 +9,10 @@ import {
   ThemeSettings,
   defaultPathFavoritesSettings,
   defaultTerminalSettings,
-  defaultThemeSettings
+  defaultThemeSettings,
+  defaultZoomFactor,
+  minZoomFactor,
+  maxZoomFactor
 } from './settingsTypes'
 
 const maxPathFavorites = 50
@@ -95,6 +98,12 @@ function normalizePathFavoritesSettings(value: unknown): PathFavoritesSettings {
   return { items: normalizedItems }
 }
 
+function normalizeZoomFactor(value: unknown): number {
+  const factor = Number(value)
+  if (!Number.isFinite(factor)) return defaultZoomFactor
+  return Math.min(maxZoomFactor, Math.max(minZoomFactor, Math.round(factor * 100) / 100))
+}
+
 function normalizeAppSettings(value: unknown): AppSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
   const legacyTerminalSettings =
@@ -103,7 +112,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
   return {
     terminal: normalizeTerminalSettings(settings.terminal ?? legacyTerminalSettings),
     theme: normalizeThemeSettings(settings.theme),
-    pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites)
+    pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
+    zoomFactor: normalizeZoomFactor(settings.zoomFactor)
   }
 }
 
@@ -154,4 +164,13 @@ export function readPathFavoritesSettings(): PathFavoritesSettings {
 export function writePathFavoritesSettings(settings: PathFavoritesSettings): PathFavoritesSettings {
   const nextSettings = writeAppSettings({ ...readAppSettings(), pathFavorites: settings })
   return nextSettings.pathFavorites
+}
+
+export function readZoomFactor(): number {
+  return readAppSettings().zoomFactor ?? defaultZoomFactor
+}
+
+export function writeZoomFactor(factor: number): number {
+  const nextSettings = writeAppSettings({ ...readAppSettings(), zoomFactor: factor })
+  return nextSettings.zoomFactor ?? defaultZoomFactor
 }

@@ -25,6 +25,7 @@ export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
   pathFavorites: PathFavoritesSettings
+  zoomFactor?: number
 }
 
 export const defaultTerminalSettings: TerminalSettings = {
@@ -43,3 +44,8 @@ export const defaultThemeSettings: ThemeSettings = {
 export const defaultPathFavoritesSettings: PathFavoritesSettings = {
   items: []
 }
+
+export const defaultZoomFactor = 1.0
+export const minZoomFactor = 0.5
+export const maxZoomFactor = 3.0
+export const zoomStep = 0.1

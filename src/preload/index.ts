@@ -7,7 +7,12 @@ const api = {
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
-    openExternal: (url: string) => ipcRenderer.send('window:open-external', url)
+    openExternal: (url: string) => ipcRenderer.send('window:open-external', url),
+    getZoomFactor: () => ipcRenderer.invoke('window:get-zoom-factor'),
+    setZoomFactor: (factor: number) => ipcRenderer.invoke('window:set-zoom-factor', factor),
+    zoomIn: () => ipcRenderer.invoke('window:zoom-in'),
+    zoomOut: () => ipcRenderer.invoke('window:zoom-out'),
+    zoomReset: () => ipcRenderer.invoke('window:zoom-reset')
   },
   clipboard: {
     readText: () => clipboard.readText(),
@@ -31,7 +36,9 @@ const api = {
       ipcRenderer.invoke('settings:set-theme', settings),
     getPathFavorites: () => ipcRenderer.invoke('settings:get-path-favorites'),
     setPathFavorites: (settings: { items: { id: string; name: string; path: string }[] }) =>
-      ipcRenderer.invoke('settings:set-path-favorites', settings)
+      ipcRenderer.invoke('settings:set-path-favorites', settings),
+    getZoomFactor: () => ipcRenderer.invoke('settings:get-zoom-factor'),
+    setZoomFactor: (factor: number) => ipcRenderer.invoke('settings:set-zoom-factor', factor)
   },
   terminal: {
     create: (id: string, cols?: number, rows?: number, cwd?: string) =>

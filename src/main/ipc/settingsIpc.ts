@@ -10,9 +10,11 @@ import {
   readPathFavoritesSettings,
   readTerminalSettings,
   readThemeSettings,
+  readZoomFactor,
   writePathFavoritesSettings,
   writeTerminalSettings,
-  writeThemeSettings
+  writeThemeSettings,
+  writeZoomFactor
 } from '../settings/settingsService'
 import { writeOpencodeSystemTheme } from '../opencode/systemTheme'
 
@@ -74,4 +76,6 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:set-path-favorites', (_, settings: PathFavoritesSettings) =>
     writePathFavoritesSettings(settings)
   )
+  ipcMain.handle('settings:get-zoom-factor', () => readZoomFactor())
+  ipcMain.handle('settings:set-zoom-factor', (_, factor: number) => writeZoomFactor(factor))
 }

@@ -28,6 +28,9 @@ import { QuestionCircle20Regular } from '@vicons/fluent'
       <div class="shortcut-row"><span>最小化窗口</span><kbd>Alt</kbd><kbd>H</kbd></div>
       <div class="shortcut-row"><span>复制选中文本</span><kbd>Alt</kbd><kbd>C</kbd></div>
       <div class="shortcut-row"><span>粘贴</span><kbd>Ctrl</kbd><kbd>V</kbd></div>
+      <div class="shortcut-row"><span>放大</span><kbd>Alt</kbd><kbd>+</kbd></div>
+      <div class="shortcut-row"><span>缩小</span><kbd>Alt</kbd><kbd>-</kbd></div>
+      <div class="shortcut-row"><span>重置缩放</span><kbd>Alt</kbd><kbd>0</kbd></div>
     </div>
   </NPopover>
 </template>

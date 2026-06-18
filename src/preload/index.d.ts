@@ -15,6 +15,11 @@ export interface WindowApi {
   toggleMaximize: () => void
   close: () => void
   openExternal: (url: string) => void
+  getZoomFactor: () => Promise<number>
+  setZoomFactor: (factor: number) => Promise<number>
+  zoomIn: () => Promise<number>
+  zoomOut: () => Promise<number>
+  zoomReset: () => Promise<number>
 }
 
 export interface ClipboardApi {
@@ -54,6 +59,8 @@ export interface SettingsApi {
   setTheme: (settings: ThemeSettings) => Promise<ThemeSettings>
   getPathFavorites: () => Promise<PathFavoritesSettings>
   setPathFavorites: (settings: PathFavoritesSettings) => Promise<PathFavoritesSettings>
+  getZoomFactor: () => Promise<number>
+  setZoomFactor: (factor: number) => Promise<number>
 }
 
 export interface AppApi {
