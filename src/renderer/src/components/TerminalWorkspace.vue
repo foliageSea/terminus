@@ -1532,7 +1532,7 @@ onBeforeUnmount(() => {
 
 .shortcut-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) repeat(4, auto);
   align-items: center;
   gap: 5px;
   color: rgba(255, 255, 255, 0.72);
@@ -1621,6 +1621,11 @@ onBeforeUnmount(() => {
     '. bottom .';
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
+}
+
+.restore-direction-grid :deep(.n-button) {
+  width: 100%;
+  min-width: 0;
 }
 
 .restore-direction-grid > :nth-child(1) {

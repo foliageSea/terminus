@@ -412,6 +412,11 @@ onBeforeUnmount(() => {
   gap: 6px;
 }
 
+.split-direction-grid :deep(.n-button) {
+  width: 100%;
+  min-width: 0;
+}
+
 .split-direction-grid > :nth-child(1) {
   grid-area: top;
 }
