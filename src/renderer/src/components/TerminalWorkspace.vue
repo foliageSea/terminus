@@ -1358,6 +1358,7 @@ onBeforeUnmount(() => {
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
             :hide-actions="isPaneInPreview(pane.id)"
+            :show-reload-action="isPaneInPreview(pane.id)"
             @activate="activateVisiblePane(tab, $event)"
             @split="handleSplit"
             @collapse="handleCollapsePane"
@@ -1741,7 +1742,6 @@ onBeforeUnmount(() => {
   min-height: 320px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
   background: rgba(0, 0, 0, 0.22);
 }
 

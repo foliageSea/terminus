@@ -27,6 +27,7 @@ const props = defineProps<{
   animatedPaneId?: string
   animatedNodeId?: string
   hideActions?: boolean
+  showReloadAction?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -336,13 +337,14 @@ onBeforeUnmount(() => {
       <div class="pane-bar-spacer" />
 
       <div
-        v-if="!hideActions"
+        v-if="!hideActions || showReloadAction"
         class="pane-action-bar"
         aria-label="分屏操作"
         draggable="false"
         @dragstart.stop.prevent
       >
         <NPopover
+          v-if="!hideActions"
           v-model:show="splitPopoverVisible"
           trigger="click"
           placement="bottom-end"
@@ -368,22 +370,34 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </NPopover>
-        <span class="pane-action-divider" />
-        <NButton size="tiny" quaternary @click.stop="emit('collapse', paneId)">
+        <span v-if="!hideActions" class="pane-action-divider" />
+        <NButton v-if="!hideActions" size="tiny" quaternary @click.stop="emit('collapse', paneId)">
           <template #icon>
             <NIcon>
               <ArrowMinimize20Regular />
             </NIcon>
           </template>
         </NButton>
-        <NButton size="tiny" quaternary :disabled="reloading" @click.stop="reloadTerminal">
+        <NButton
+          v-if="!hideActions || showReloadAction"
+          size="tiny"
+          quaternary
+          :disabled="reloading"
+          @click.stop="reloadTerminal"
+        >
           <template #icon>
             <NIcon>
               <ArrowClockwise20Regular />
             </NIcon>
           </template>
         </NButton>
-        <NButton size="tiny" quaternary type="error" @click.stop="emit('close', paneId)">
+        <NButton
+          v-if="!hideActions"
+          size="tiny"
+          quaternary
+          type="error"
+          @click.stop="emit('close', paneId)"
+        >
           <template #icon>
             <NIcon>
               <Dismiss20Regular />
