@@ -359,6 +359,12 @@ function isPaneInPreview(paneId: string): boolean {
   return Boolean(previewCollapsedNode.value && findPane(previewCollapsedNode.value, paneId))
 }
 
+function isPaneActiveInPreview(tab: TerminalTab, paneId: string): boolean {
+  if (tab.id !== previewCollapsedTabId.value || !previewCollapsedNode.value) return false
+
+  return firstPaneId(previewCollapsedNode.value) === paneId
+}
+
 function getPaneTeleportTarget(tab: TerminalTab, paneId: string): string {
   if (findPane(tab.root, paneId)) return `#terminal-pane-slot-${paneId}-${tab.layoutVersion}`
   if (isPaneInPreview(paneId)) return `#terminal-pane-slot-${paneId}-${tab.layoutVersion}`
@@ -1352,7 +1358,10 @@ onBeforeUnmount(() => {
             :pane-id="pane.id"
             :cwd="pane.cwd"
             :active="
-              tab.id === activeTabId && !isPaneInPreview(pane.id) && pane.id === tab.activePaneId
+              (tab.id === activeTabId &&
+                !isPaneInPreview(pane.id) &&
+                pane.id === tab.activePaneId) ||
+              isPaneActiveInPreview(tab, pane.id)
             "
             :terminal-settings="terminalSettings"
             :animated-pane-id="animatedPaneId"
