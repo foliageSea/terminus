@@ -415,6 +415,16 @@ onBeforeUnmount(() => {
 .split-direction-grid :deep(.n-button) {
   width: 100%;
   min-width: 0;
+  cursor: pointer;
+}
+
+.split-direction-grid :deep(.n-button *) {
+  cursor: pointer;
+}
+
+.pane-action-bar :deep(.n-button),
+.pane-action-bar :deep(.n-button *) {
+  cursor: pointer;
 }
 
 .split-direction-grid > :nth-child(1) {
