@@ -2,6 +2,7 @@ import { nativeTheme } from 'electron'
 import { mkdirSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
+import { readThemeSettings } from '../settings/settingsService'
 
 type OpencodeTheme = {
   $schema?: string
@@ -9,6 +10,19 @@ type OpencodeTheme = {
 }
 
 const opencodeThemeSchema = 'https://opencode.ai/theme.json'
+
+const appThemeColorKeys = [
+  'primary',
+  'secondary',
+  'accent',
+  'info',
+  'borderActive',
+  'markdownLink',
+  'markdownListItem',
+  'markdownImage',
+  'syntaxKeyword',
+  'syntaxFunction'
+]
 
 const darkTheme: OpencodeTheme = {
   $schema: opencodeThemeSchema,
@@ -24,9 +38,9 @@ const darkTheme: OpencodeTheme = {
     textMuted: '#7f848e',
     selectedListItemText: '#282c34',
     background: 'transparent',
-    backgroundPanel: '#2f343d',
-    backgroundElement: '#3e4451',
-    backgroundMenu: '#3e4451',
+    backgroundPanel: '#050505',
+    backgroundElement: 'none',
+    backgroundMenu: '#050505',
     border: '#5c6370',
     borderActive: '#61afef',
     borderSubtle: '#3e4451',
@@ -83,9 +97,9 @@ const lightTheme: OpencodeTheme = {
     textMuted: '#64748b',
     selectedListItemText: '#f8fafc',
     background: 'transparent',
-    backgroundPanel: '#eef2f7',
-    backgroundElement: '#e2e8f0',
-    backgroundMenu: '#e2e8f0',
+    backgroundPanel: '#050505',
+    backgroundElement: 'none',
+    backgroundMenu: '#050505',
     border: '#cbd5e1',
     borderActive: '#2563eb',
     borderSubtle: '#e2e8f0',
@@ -133,13 +147,28 @@ function getOpencodeConfigPath(): string {
   return join(configHome, 'opencode')
 }
 
-function writeOpencodeSystemTheme(): void {
-  const theme = nativeTheme.shouldUseDarkColors ? darkTheme : lightTheme
+function createOpencodeSystemTheme(): OpencodeTheme {
+  const theme = structuredClone(nativeTheme.shouldUseDarkColors ? darkTheme : lightTheme)
+  const primaryColor = readThemeSettings().primaryColor
+
+  for (const key of appThemeColorKeys) {
+    theme.theme[key] = primaryColor
+  }
+
+  return theme
+}
+
+export function writeOpencodeSystemTheme(): void {
+  const theme = createOpencodeSystemTheme()
   const themeDirectory = join(getOpencodeConfigPath(), 'themes')
 
   try {
     mkdirSync(themeDirectory, { recursive: true })
-    writeFileSync(join(themeDirectory, 'custom-system.json'), `${JSON.stringify(theme, null, 2)}\n`, 'utf-8')
+    writeFileSync(
+      join(themeDirectory, 'custom-system.json'),
+      `${JSON.stringify(theme, null, 2)}\n`,
+      'utf-8'
+    )
   } catch (error) {
     console.warn('Failed to write opencode system theme.', error)
   }
