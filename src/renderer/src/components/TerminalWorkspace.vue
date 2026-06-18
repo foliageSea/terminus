@@ -23,7 +23,11 @@ import {
 import type { InputInst } from 'naive-ui'
 import {
   Add20Regular,
+  ArrowDown20Regular,
+  ArrowLeft20Regular,
   ArrowMaximize20Regular,
+  ArrowRight20Regular,
+  ArrowUp20Regular,
   Delete20Regular,
   FolderOpenVertical20Regular,
   QuestionCircle20Regular,
@@ -1216,7 +1220,7 @@ onBeforeUnmount(() => {
     <NModal
       :show="Boolean(previewCollapsedTab)"
       preset="card"
-      title="预览收起分屏"
+      title="预览"
       class="collapsed-preview-modal"
       style="width: 80vw"
       :bordered="false"
@@ -1257,29 +1261,61 @@ onBeforeUnmount(() => {
         </div>
         <div v-if="previewCollapsedNode" class="collapsed-preview-actions">
           <span>恢复到当前分屏</span>
-          <NButton size="small" secondary @click="restoreCollapsedPane(previewCollapsedTab, 'top')">
-            上
-          </NButton>
           <NButton
             size="small"
             secondary
-            @click="restoreCollapsedPane(previewCollapsedTab, 'left')"
+            circle
+            title="恢复到上方"
+            aria-label="恢复到上方"
+            @click="restoreCollapsedPane(previewCollapsedTab, 'top')"
           >
-            左
+            <template #icon>
+              <NIcon>
+                <ArrowUp20Regular />
+              </NIcon>
+            </template>
           </NButton>
           <NButton
             size="small"
             secondary
-            @click="restoreCollapsedPane(previewCollapsedTab, 'right')"
-          >
-            右
-          </NButton>
-          <NButton
-            size="small"
-            secondary
+            circle
+            title="恢复到底部"
+            aria-label="恢复到底部"
             @click="restoreCollapsedPane(previewCollapsedTab, 'bottom')"
           >
-            下
+            <template #icon>
+              <NIcon>
+                <ArrowDown20Regular />
+              </NIcon>
+            </template>
+          </NButton>
+          <NButton
+            size="small"
+            secondary
+            circle
+            title="恢复到左侧"
+            aria-label="恢复到左侧"
+            @click="restoreCollapsedPane(previewCollapsedTab, 'left')"
+          >
+            <template #icon>
+              <NIcon>
+                <ArrowLeft20Regular />
+              </NIcon>
+            </template>
+          </NButton>
+          <NButton
+            size="small"
+            secondary
+            circle
+            title="恢复到右侧"
+            aria-label="恢复到右侧"
+            @click="restoreCollapsedPane(previewCollapsedTab, 'right')"
+          >
+            <template #icon>
+              <NIcon>
+                <ArrowRight20Regular />
+              </NIcon>
+            </template>
           </NButton>
         </div>
       </div>
