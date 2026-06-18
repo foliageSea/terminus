@@ -3,51 +3,48 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import type { HTMLAttributes } from 'vue'
 import {
   NButton,
-  NColorPicker,
-  NForm,
-  NFormItem,
   NIcon,
   NInput,
-  NInputNumber,
   NLayout,
   NLayoutHeader,
   NModal,
-  NPopover,
-  NSlider,
-  NSwitch,
   NTabPane,
   NTooltip,
   NTabs,
   useThemeVars
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
-import {
-  Add20Regular,
-  ArrowDown20Regular,
-  ArrowLeft20Regular,
-  ArrowMaximize20Regular,
-  ArrowRight20Regular,
-  ArrowUp20Regular,
-  Delete20Regular,
-  FolderOpenVertical20Regular,
-  QuestionCircle20Regular,
-  ReOrderDotsVertical20Regular,
-  Search20Regular,
-  Settings20Regular
-} from '@vicons/fluent'
+import { Add20Regular, ArrowMaximize20Regular } from '@vicons/fluent'
+import CollapsedPanePreview from './CollapsedPanePreview.vue'
+import PathFavoritesPopover from './PathFavoritesPopover.vue'
+import ShortcutHelpPopover from './ShortcutHelpPopover.vue'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
+import TerminalSettingsPopover from './TerminalSettingsPopover.vue'
 import type {
   PaneDropPayload,
   PaneSide,
   PathFavorite,
   PathFavoritesSettings,
-  PaneLeaf,
   PaneNode,
-  SplitDirection,
   TerminalSettings,
   TerminalTab
 } from '../types/terminal'
+import {
+  closePane,
+  collectPaneIds,
+  collectPaneLeaves,
+  collectTabPaneIds,
+  collectTabPaneLeaves,
+  createPane,
+  findNode,
+  findPane,
+  findPaneLeaf,
+  firstPaneId,
+  insertNode,
+  removeNode,
+  updateTabPaneCwd
+} from '../utils/terminalLayout'
 
 const props = defineProps<{
   primaryColor: string
@@ -193,58 +190,6 @@ function toHexAlpha(opacity: number): string {
   return alpha.toString(16).padStart(2, '0')
 }
 
-function findPane(node: PaneNode, paneId: string): boolean {
-  if (node.type === 'pane') return node.id === paneId
-  return node.children.some((child) => findPane(child, paneId))
-}
-
-function findNode(node: PaneNode, nodeId: string): PaneNode | undefined {
-  if (node.id === nodeId) return node
-  if (node.type === 'pane') return undefined
-  return node.children.map((child) => findNode(child, nodeId)).find(Boolean)
-}
-
-function collectPaneIds(node: PaneNode): string[] {
-  if (node.type === 'pane') return [node.id]
-  return node.children.flatMap((child) => collectPaneIds(child))
-}
-
-function collectPaneLeaves(node: PaneNode): PaneLeaf[] {
-  if (node.type === 'pane') return [node]
-  return node.children.flatMap((child) => collectPaneLeaves(child))
-}
-
-function collectTabPaneIds(tab: TerminalTab): string[] {
-  return [tab.root, ...tab.collapsedNodes].flatMap((node) => collectPaneIds(node))
-}
-
-function collectTabPaneLeaves(tab: TerminalTab): PaneLeaf[] {
-  return [tab.root, ...tab.collapsedNodes].flatMap((node) => collectPaneLeaves(node))
-}
-
-function updateTabPaneCwd(tab: TerminalTab, paneId: string, cwd: string): boolean {
-  return [tab.root, ...tab.collapsedNodes].some((node) => updatePaneCwd(node, paneId, cwd))
-}
-
-function findPaneLeaf(node: PaneNode, paneId: string): PaneLeaf | undefined {
-  if (node.type === 'pane') return node.id === paneId ? node : undefined
-  return node.children.map((child) => findPaneLeaf(child, paneId)).find(Boolean)
-}
-
-function updatePaneCwd(node: PaneNode, paneId: string, cwd: string): boolean {
-  if (node.type === 'split') {
-    return node.children.some((child) => updatePaneCwd(child, paneId, cwd))
-  }
-
-  if (node.id !== paneId) return false
-  node.cwd = cwd
-  return true
-}
-
-function createPane(id: string, cwd?: string): PaneLeaf {
-  return { type: 'pane', id, cwd }
-}
-
 function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | undefined {
   if (node.type === 'split') {
     return node.children.map((child) => splitPane(child, paneId, side)).find(Boolean)
@@ -255,7 +200,7 @@ function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | und
   const nextPaneId = createId('pane')
   const currentPane = createPane(paneId, node.cwd)
   const nextPane = createPane(nextPaneId, node.cwd)
-  Object.assign(node, insertNode(currentPane, paneId, nextPane, side))
+  Object.assign(node, insertNode(currentPane, paneId, nextPane, side, () => createId('split')))
   activeTab.value.activePaneId = nextPaneId
   activeTab.value.layoutVersion += 1
   return nextPaneId
@@ -271,81 +216,6 @@ function setLayoutAnimation(paneId?: string, nodeId?: string): void {
     animatedNodeId.value = undefined
     layoutAnimationTimer = undefined
   }, 360)
-}
-
-function closePane(node: PaneNode, paneId: string): PaneNode | undefined {
-  if (node.type === 'pane') return node.id === paneId ? undefined : node
-
-  const first = closePane(node.children[0], paneId)
-  const second = closePane(node.children[1], paneId)
-
-  if (!first) return second
-  if (!second) return first
-
-  node.children = [first, second]
-  return node
-}
-
-function removeNode(node: PaneNode, nodeId: string): { root?: PaneNode; removed?: PaneNode } {
-  if (node.id === nodeId) return { removed: node }
-
-  if (node.type === 'pane') {
-    return { root: node }
-  }
-
-  const first = removeNode(node.children[0], nodeId)
-  if (first.removed) {
-    return {
-      root: first.root ? { ...node, children: [first.root, node.children[1]] } : node.children[1],
-      removed: first.removed
-    }
-  }
-
-  const second = removeNode(node.children[1], nodeId)
-  if (second.removed) {
-    return {
-      root: second.root ? { ...node, children: [node.children[0], second.root] } : node.children[0],
-      removed: second.removed
-    }
-  }
-
-  return { root: node }
-}
-
-function insertNode(
-  node: PaneNode,
-  targetPaneId: string,
-  source: PaneNode,
-  side: PaneDropPayload['side']
-): PaneNode {
-  if (node.type === 'pane') {
-    if (node.id !== targetPaneId) return node
-
-    const direction: SplitDirection =
-      side === 'left' || side === 'right' ? 'horizontal' : 'vertical'
-    const children: [PaneNode, PaneNode] =
-      side === 'left' || side === 'top' ? [source, node] : [node, source]
-
-    return {
-      type: 'split',
-      id: createId('split'),
-      direction,
-      ratio: 0.5,
-      children
-    }
-  }
-
-  return {
-    ...node,
-    children: [
-      insertNode(node.children[0], targetPaneId, source, side),
-      insertNode(node.children[1], targetPaneId, source, side)
-    ]
-  }
-}
-
-function firstPaneId(node: PaneNode): string {
-  return node.type === 'pane' ? node.id : firstPaneId(node.children[0])
 }
 
 function getNodeTitle(node: PaneNode): string {
@@ -803,7 +673,7 @@ function restoreCollapsedPane(
   const targetPaneId = findPane(tab.root, tab.activePaneId)
     ? tab.activePaneId
     : firstPaneId(tab.root)
-  tab.root = insertNode(tab.root, targetPaneId, restored, side)
+  tab.root = insertNode(tab.root, targetPaneId, restored, side, () => createId('split'))
   tab.activePaneId = firstPaneId(restored)
   tab.layoutVersion += 1
   if (previewCollapsedNodeId.value === restored.id) {
@@ -826,7 +696,7 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
   const { root, removed } = removeNode(tab.root, sourceNodeId)
   if (!root || !removed || !findPane(root, targetPaneId)) return
 
-  tab.root = insertNode(root, targetPaneId, removed, side)
+  tab.root = insertNode(root, targetPaneId, removed, side, () => createId('split'))
   tab.activePaneId = firstPaneId(removed)
   tab.layoutVersion += 1
   setLayoutAnimation(undefined, sourceNodeId)
@@ -936,271 +806,36 @@ onBeforeUnmount(() => {
             </NIcon>
           </template>
         </NButton>
-        <NPopover trigger="click" placement="bottom-end">
-          <template #trigger>
-            <NButton class="path-favorites-button" size="small" secondary circle>
-              <template #icon>
-                <NIcon>
-                  <FolderOpenVertical20Regular />
-                </NIcon>
-              </template>
-            </NButton>
-          </template>
-
-          <div class="path-favorites-popover" :style="workspaceThemeStyle" aria-label="路径收藏">
-            <div class="path-favorites-header">
-              <div>
-                <div class="path-favorites-title">路径收藏</div>
-                <div class="path-favorites-subtitle">点击打开，拖拽排序</div>
-              </div>
-              <NButton
-                size="tiny"
-                secondary
-                :disabled="!canFavoriteActivePath"
-                @click="addCurrentPathFavorite"
-              >
-                收藏当前
-              </NButton>
-            </div>
-
-            <NInput
-              v-model:value="pathFavoriteSearch"
-              class="path-favorites-search"
-              size="small"
-              clearable
-              placeholder="搜索名称或路径"
-            >
-              <template #prefix>
-                <NIcon>
-                  <Search20Regular />
-                </NIcon>
-              </template>
-            </NInput>
-
-            <div v-if="filteredPathFavorites.length" class="path-favorites-list">
-              <div
-                v-for="favorite in filteredPathFavorites"
-                :key="favorite.id"
-                class="path-favorite-row"
-                @dragover="handlePathFavoriteDragOver($event, favorite.id)"
-                @drop="dropPathFavorite($event, favorite.id)"
-              >
-                <span
-                  v-if="
-                    dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'before'
-                  "
-                  class="path-favorite-drop-line"
-                  aria-hidden="true"
-                />
-                <button
-                  :class="[
-                    'path-favorite-item',
-                    {
-                      'path-favorite-dragging': draggingPathFavoriteId === favorite.id
-                    }
-                  ]"
-                  type="button"
-                  @click="openPathFavorite(favorite)"
-                >
-                  <span
-                    class="path-favorite-drag-handle"
-                    draggable="true"
-                    title="拖拽排序"
-                    aria-label="拖拽排序"
-                    @click.stop
-                    @dragstart="startPathFavoriteDrag($event, favorite.id)"
-                    @dragend="finishPathFavoriteDrag"
-                  >
-                    <NIcon>
-                      <ReOrderDotsVertical20Regular />
-                    </NIcon>
-                  </span>
-                  <span class="path-favorite-text">
-                    <span class="path-favorite-name">{{ favorite.name }}</span>
-                    <span class="path-favorite-path">{{ favorite.path }}</span>
-                  </span>
-                  <NButton
-                    size="tiny"
-                    quaternary
-                    type="error"
-                    @click.stop="removePathFavorite(favorite.id)"
-                  >
-                    <template #icon>
-                      <NIcon>
-                        <Delete20Regular />
-                      </NIcon>
-                    </template>
-                  </NButton>
-                </button>
-                <span
-                  v-if="
-                    dragOverPathFavoriteId === favorite.id && dragOverPathFavoriteSide === 'after'
-                  "
-                  class="path-favorite-drop-line"
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
-            <div v-else class="path-favorites-empty">
-              {{ pathFavorites.items.length ? '未找到匹配路径' : '暂无收藏路径' }}
-            </div>
-          </div>
-        </NPopover>
-        <NPopover trigger="click" placement="bottom-end">
-          <template #trigger>
-            <NButton class="settings-button" size="small" secondary circle>
-              <template #icon>
-                <NIcon>
-                  <Settings20Regular />
-                </NIcon>
-              </template>
-            </NButton>
-          </template>
-
-          <NForm class="terminal-settings" label-placement="top" size="small">
-            <NTabs class="terminal-settings-tabs" type="line" size="small" animated>
-              <NTabPane name="appearance" tab="外观">
-                <NFormItem label="主题色" path="primaryColor">
-                  <NColorPicker
-                    :value="props.primaryColor"
-                    :show-alpha="false"
-                    :modes="['hex']"
-                    @update:value="updatePrimaryColor"
-                  />
-                </NFormItem>
-              </NTabPane>
-              <NTabPane name="font" tab="字体">
-                <NFormItem label="字体" path="fontFamily">
-                  <NInput
-                    v-model:value="terminalSettings.fontFamily"
-                    placeholder="Cascadia Mono, Consolas, monospace"
-                    clearable
-                    @blur="normalizeFontFamily"
-                  />
-                </NFormItem>
-                <NFormItem label="字号" path="fontSize">
-                  <NInputNumber
-                    class="font-size-input"
-                    :value="terminalSettings.fontSize"
-                    :min="8"
-                    :max="32"
-                    :step="1"
-                    button-placement="both"
-                    @update:value="updateFontSize"
-                  />
-                </NFormItem>
-              </NTabPane>
-              <NTabPane name="background" tab="背景">
-                <NFormItem label="背景图" path="backgroundImageEnabled">
-                  <div class="terminal-background-control">
-                    <div class="terminal-background-switch-row">
-                      <NSwitch v-model:value="terminalSettings.backgroundImageEnabled" />
-                      <span
-                        class="terminal-background-name"
-                        :title="terminalSettings.backgroundImagePath"
-                      >
-                        {{ terminalBackgroundName }}
-                      </span>
-                    </div>
-                    <div class="terminal-background-actions">
-                      <NButton size="tiny" secondary @click="selectTerminalBackground"
-                        >选择图片</NButton
-                      >
-                      <NButton
-                        size="tiny"
-                        quaternary
-                        :disabled="!terminalSettings.backgroundImagePath"
-                        @click="clearTerminalBackground"
-                      >
-                        清除
-                      </NButton>
-                    </div>
-                  </div>
-                </NFormItem>
-                <NFormItem label="背景遮罩" path="backgroundOpacity">
-                  <div class="terminal-range-control">
-                    <NSlider
-                      :value="terminalSettings.backgroundOpacity"
-                      :min="0"
-                      :max="100"
-                      :step="1"
-                      @update:value="updateBackgroundOpacity"
-                    />
-                    <span class="terminal-range-value"
-                      >{{ terminalSettings.backgroundOpacity }}%</span
-                    >
-                  </div>
-                </NFormItem>
-                <NFormItem label="背景模糊" path="backgroundBlur">
-                  <div class="terminal-range-control">
-                    <NSlider
-                      :value="terminalSettings.backgroundBlur"
-                      :min="0"
-                      :max="40"
-                      :step="1"
-                      @update:value="updateBackgroundBlur"
-                    />
-                    <span class="terminal-range-value"
-                      >{{ terminalSettings.backgroundBlur }}px</span
-                    >
-                  </div>
-                </NFormItem>
-              </NTabPane>
-            </NTabs>
-          </NForm>
-        </NPopover>
-        <NPopover trigger="click" placement="bottom-end">
-          <template #trigger>
-            <NButton class="shortcut-help-button" size="small" secondary circle>
-              <template #icon>
-                <NIcon>
-                  <QuestionCircle20Regular />
-                </NIcon>
-              </template>
-            </NButton>
-          </template>
-
-          <div class="shortcut-popover" aria-label="快捷键列表">
-            <div class="shortcut-section-title">快捷键</div>
-            <div class="shortcut-row">
-              <span>新建 Tab</span>
-              <kbd>Ctrl</kbd><kbd>T</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>下一个 Tab</span>
-              <kbd>Ctrl</kbd><kbd>Tab</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>上一个 Tab</span>
-              <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Tab</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>切换分屏焦点</span>
-              <kbd>Ctrl</kbd><kbd>`</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>分屏方向选择</span>
-              <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
-            </div>
-
-            <div class="shortcut-row">
-              <span>关闭当前分屏</span>
-              <kbd>Ctrl</kbd><kbd>W</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>最小化窗口</span>
-              <kbd>Alt</kbd><kbd>H</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>复制选中文本</span>
-              <kbd>Alt</kbd><kbd>C</kbd>
-            </div>
-            <div class="shortcut-row">
-              <span>粘贴</span>
-              <kbd>Ctrl</kbd><kbd>V</kbd>
-            </div>
-          </div>
-        </NPopover>
+        <PathFavoritesPopover
+          v-model:search="pathFavoriteSearch"
+          :favorites="pathFavorites.items"
+          :filtered-favorites="filteredPathFavorites"
+          :can-favorite-active-path="canFavoriteActivePath"
+          :dragging-favorite-id="draggingPathFavoriteId"
+          :drag-over-favorite-id="dragOverPathFavoriteId"
+          :drag-over-favorite-side="dragOverPathFavoriteSide"
+          :theme-style="workspaceThemeStyle"
+          @add-current="addCurrentPathFavorite"
+          @open="openPathFavorite"
+          @remove="removePathFavorite"
+          @dragstart="startPathFavoriteDrag"
+          @dragover="handlePathFavoriteDragOver"
+          @dragend="finishPathFavoriteDrag"
+          @drop="dropPathFavorite"
+        />
+        <TerminalSettingsPopover
+          :primary-color="props.primaryColor"
+          :terminal-settings="terminalSettings"
+          :terminal-background-name="terminalBackgroundName"
+          @update-primary-color="updatePrimaryColor"
+          @normalize-font-family="normalizeFontFamily"
+          @update-font-size="updateFontSize"
+          @select-background="selectTerminalBackground"
+          @clear-background="clearTerminalBackground"
+          @update-background-opacity="updateBackgroundOpacity"
+          @update-background-blur="updateBackgroundBlur"
+        />
+        <ShortcutHelpPopover />
       </div>
     </NLayoutHeader>
 
@@ -1223,109 +858,22 @@ onBeforeUnmount(() => {
       />
     </NModal>
 
-    <NModal
-      :show="Boolean(previewCollapsedTab)"
-      preset="card"
-      title="预览"
-      class="collapsed-preview-modal"
-      style="width: 80vw"
-      :bordered="false"
-      @update:show="($event) => !$event && clearCollapsedPreview()"
+    <CollapsedPanePreview
+      v-model:preview-node-id="previewCollapsedNodeId"
+      :preview-tab="previewCollapsedTab"
+      :preview-node="previewCollapsedNode"
+      :terminal-settings="terminalSettings"
+      :animated-pane-id="animatedPaneId"
+      :animated-node-id="animatedNodeId"
+      :get-node-title="getNodeTitle"
       @close="clearCollapsedPreview"
-    >
-      <div v-if="previewCollapsedTab" class="collapsed-preview-content">
-        <NTabs
-          v-model:value="previewCollapsedNodeId"
-          type="segment"
-          size="small"
-          class="collapsed-preview-tabs"
-        >
-          <NTabPane
-            v-for="node in previewCollapsedTab.collapsedNodes"
-            :key="node.id"
-            :name="node.id"
-          >
-            <template #tab>
-              <span class="collapsed-preview-tab-label">{{ getNodeTitle(node) }}</span>
-            </template>
-          </NTabPane>
-        </NTabs>
-        <div v-if="previewCollapsedNode" class="collapsed-preview-shell">
-          <SplitNode
-            :node="previewCollapsedNode"
-            :active-pane-id="previewCollapsedTab.activePaneId"
-            :layout-version="previewCollapsedTab.layoutVersion"
-            :terminal-settings="terminalSettings"
-            :animated-pane-id="animatedPaneId"
-            :animated-node-id="animatedNodeId"
-            @activate="ignorePreviewPaneActivate"
-            @split="handleSplit"
-            @collapse="handleCollapsePane"
-            @close="handleClosePane"
-            @drop-pane="handleDropPane"
-          />
-        </div>
-        <div v-if="previewCollapsedNode" class="collapsed-preview-actions">
-          <span>恢复到当前分屏</span>
-          <NButton
-            size="small"
-            secondary
-            circle
-            title="恢复到上方"
-            aria-label="恢复到上方"
-            @click="restoreCollapsedPane(previewCollapsedTab, 'top')"
-          >
-            <template #icon>
-              <NIcon>
-                <ArrowUp20Regular />
-              </NIcon>
-            </template>
-          </NButton>
-          <NButton
-            size="small"
-            secondary
-            circle
-            title="恢复到底部"
-            aria-label="恢复到底部"
-            @click="restoreCollapsedPane(previewCollapsedTab, 'bottom')"
-          >
-            <template #icon>
-              <NIcon>
-                <ArrowDown20Regular />
-              </NIcon>
-            </template>
-          </NButton>
-          <NButton
-            size="small"
-            secondary
-            circle
-            title="恢复到左侧"
-            aria-label="恢复到左侧"
-            @click="restoreCollapsedPane(previewCollapsedTab, 'left')"
-          >
-            <template #icon>
-              <NIcon>
-                <ArrowLeft20Regular />
-              </NIcon>
-            </template>
-          </NButton>
-          <NButton
-            size="small"
-            secondary
-            circle
-            title="恢复到右侧"
-            aria-label="恢复到右侧"
-            @click="restoreCollapsedPane(previewCollapsedTab, 'right')"
-          >
-            <template #icon>
-              <NIcon>
-                <ArrowRight20Regular />
-              </NIcon>
-            </template>
-          </NButton>
-        </div>
-      </div>
-    </NModal>
+      @restore="restoreCollapsedPane"
+      @activate="ignorePreviewPaneActivate"
+      @split="handleSplit"
+      @collapse="handleCollapsePane"
+      @close-pane="handleClosePane"
+      @drop-pane="handleDropPane"
+    />
 
     <main class="workspace-body">
       <div
