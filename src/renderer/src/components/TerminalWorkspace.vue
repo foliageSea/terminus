@@ -111,7 +111,8 @@ const draggingPathFavoriteId = ref<string | undefined>()
 const dragOverPathFavoriteId = ref<string | undefined>()
 const dragOverPathFavoriteSide = ref<'before' | 'after'>('before')
 const pathFavoriteSearch = ref('')
-const restorePopoverTabId = ref<string | undefined>()
+const previewCollapsedTabId = ref<string | undefined>()
+const previewCollapsedNodeId = ref<string | undefined>()
 const animatedPaneId = ref<string | undefined>()
 const animatedNodeId = ref<string | undefined>()
 const terminalBackgroundUrl = ref('')
@@ -122,13 +123,6 @@ const pathFavoritesLoaded = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
-
-const paneSideKeyMap: Record<string, PaneSide> = {
-  w: 'top',
-  a: 'left',
-  s: 'bottom',
-  d: 'right'
-}
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -180,6 +174,14 @@ const terminalBackgroundName = computed(() =>
   terminalSettings.backgroundImagePath
     ? getFileNameFromPath(terminalSettings.backgroundImagePath)
     : '未选择背景图'
+)
+const previewCollapsedTab = computed(() =>
+  previewCollapsedTabId.value
+    ? tabs.value.find((tab) => tab.id === previewCollapsedTabId.value)
+    : undefined
+)
+const previewCollapsedNode = computed(() =>
+  previewCollapsedTab.value?.collapsedNodes.find((node) => node.id === previewCollapsedNodeId.value)
 )
 
 function toHexAlpha(opacity: number): string {
@@ -342,6 +344,35 @@ function firstPaneId(node: PaneNode): string {
   return node.type === 'pane' ? node.id : firstPaneId(node.children[0])
 }
 
+function getNodeTitle(node: PaneNode): string {
+  const pane = collectPaneLeaves(node)[0]
+  if (!pane) return node.id
+
+  return pane.cwd ? getFileNameFromPath(pane.cwd) : pane.id
+}
+
+function isPaneInPreview(paneId: string): boolean {
+  return Boolean(previewCollapsedNode.value && findPane(previewCollapsedNode.value, paneId))
+}
+
+function getPaneTeleportTarget(tab: TerminalTab, paneId: string): string {
+  if (findPane(tab.root, paneId)) return `#terminal-pane-slot-${paneId}-${tab.layoutVersion}`
+  if (isPaneInPreview(paneId)) return `#terminal-pane-slot-${paneId}-${tab.layoutVersion}`
+  return 'body'
+}
+
+function isPaneCollapsed(tab: TerminalTab, paneId: string): boolean {
+  return !findPane(tab.root, paneId) && !isPaneInPreview(paneId)
+}
+
+function activateVisiblePane(tab: TerminalTab, paneId: string): void {
+  if (isPaneInPreview(paneId)) return
+
+  tab.activePaneId = paneId
+}
+
+function ignorePreviewPaneActivate(): void {}
+
 function openTab(cwd?: string, title?: string): void {
   const tab = createTab(title, cwd)
   tabs.value.push(tab)
@@ -467,8 +498,6 @@ function switchPane(): void {
 
 function handleGlobalKeydown(event: KeyboardEvent): void {
   if (renameDialogVisible.value) return
-
-  if (handleRestorePopoverKeydown(event)) return
 
   if (event.key.toLowerCase() === 'h' && event.altKey && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
@@ -738,8 +767,27 @@ function handleCollapsePane(paneId: string): void {
   }
 }
 
-function restoreCollapsedPane(tab: TerminalTab, side: PaneDropPayload['side']): void {
-  const restored = tab.collapsedNodes.pop()
+function clearCollapsedPreview(): void {
+  previewCollapsedTabId.value = undefined
+  previewCollapsedNodeId.value = undefined
+}
+
+function openCollapsedPreview(tab: TerminalTab): void {
+  previewCollapsedTabId.value = tab.id
+  previewCollapsedNodeId.value = tab.collapsedNodes[0]?.id
+}
+
+function restoreCollapsedPane(
+  tab: TerminalTab,
+  side: PaneDropPayload['side'],
+  nodeId = previewCollapsedNodeId.value
+): void {
+  const restoredIndex = nodeId
+    ? tab.collapsedNodes.findIndex((node) => node.id === nodeId)
+    : tab.collapsedNodes.length - 1
+  if (restoredIndex < 0) return
+
+  const [restored] = tab.collapsedNodes.splice(restoredIndex, 1)
   if (!restored) return
 
   const targetPaneId = findPane(tab.root, tab.activePaneId)
@@ -748,23 +796,12 @@ function restoreCollapsedPane(tab: TerminalTab, side: PaneDropPayload['side']): 
   tab.root = insertNode(tab.root, targetPaneId, restored, side)
   tab.activePaneId = firstPaneId(restored)
   tab.layoutVersion += 1
-  restorePopoverTabId.value = undefined
+  if (previewCollapsedNodeId.value === restored.id) {
+    const nextNode = tab.collapsedNodes[restoredIndex] ?? tab.collapsedNodes[restoredIndex - 1]
+    previewCollapsedNodeId.value = nextNode?.id
+    if (!previewCollapsedNodeId.value) clearCollapsedPreview()
+  }
   setLayoutAnimation(undefined, restored.id)
-}
-
-function handleRestorePopoverKeydown(event: KeyboardEvent): boolean {
-  if (!restorePopoverTabId.value || event.repeat) return false
-
-  const side = paneSideKeyMap[event.key.toLowerCase()]
-  if (!side) return false
-
-  const tab = tabs.value.find((item) => item.id === restorePopoverTabId.value)
-  if (!tab || !tab.collapsedNodes.length) return false
-
-  event.preventDefault()
-  event.stopPropagation()
-  restoreCollapsedPane(tab, side)
-  return true
 }
 
 function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): void {
@@ -1135,10 +1172,7 @@ onBeforeUnmount(() => {
               <span>分屏方向选择</span>
               <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
             </div>
-            <div class="shortcut-row">
-              <span>恢复分屏位置</span>
-              <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
-            </div>
+
             <div class="shortcut-row">
               <span>关闭当前分屏</span>
               <kbd>Ctrl</kbd><kbd>W</kbd>
@@ -1179,6 +1213,78 @@ onBeforeUnmount(() => {
       />
     </NModal>
 
+    <NModal
+      :show="Boolean(previewCollapsedTab)"
+      preset="card"
+      title="预览收起分屏"
+      class="collapsed-preview-modal"
+      style="width: 80vw"
+      :bordered="false"
+      @update:show="($event) => !$event && clearCollapsedPreview()"
+      @close="clearCollapsedPreview"
+    >
+      <div v-if="previewCollapsedTab" class="collapsed-preview-content">
+        <NTabs
+          v-model:value="previewCollapsedNodeId"
+          type="segment"
+          size="small"
+          class="collapsed-preview-tabs"
+        >
+          <NTabPane
+            v-for="node in previewCollapsedTab.collapsedNodes"
+            :key="node.id"
+            :name="node.id"
+          >
+            <template #tab>
+              <span class="collapsed-preview-tab-label">{{ getNodeTitle(node) }}</span>
+            </template>
+          </NTabPane>
+        </NTabs>
+        <div v-if="previewCollapsedNode" class="collapsed-preview-shell">
+          <SplitNode
+            :node="previewCollapsedNode"
+            :active-pane-id="previewCollapsedTab.activePaneId"
+            :layout-version="previewCollapsedTab.layoutVersion"
+            :terminal-settings="terminalSettings"
+            :animated-pane-id="animatedPaneId"
+            :animated-node-id="animatedNodeId"
+            @activate="ignorePreviewPaneActivate"
+            @split="handleSplit"
+            @collapse="handleCollapsePane"
+            @close="handleClosePane"
+            @drop-pane="handleDropPane"
+          />
+        </div>
+        <div v-if="previewCollapsedNode" class="collapsed-preview-actions">
+          <span>恢复到当前分屏</span>
+          <NButton size="small" secondary @click="restoreCollapsedPane(previewCollapsedTab, 'top')">
+            上
+          </NButton>
+          <NButton
+            size="small"
+            secondary
+            @click="restoreCollapsedPane(previewCollapsedTab, 'left')"
+          >
+            左
+          </NButton>
+          <NButton
+            size="small"
+            secondary
+            @click="restoreCollapsedPane(previewCollapsedTab, 'right')"
+          >
+            右
+          </NButton>
+          <NButton
+            size="small"
+            secondary
+            @click="restoreCollapsedPane(previewCollapsedTab, 'bottom')"
+          >
+            下
+          </NButton>
+        </div>
+      </div>
+    </NModal>
+
     <main class="workspace-body">
       <div
         v-for="tab in tabs"
@@ -1203,21 +1309,20 @@ onBeforeUnmount(() => {
           v-for="pane in collectTabPaneLeaves(tab)"
           :key="pane.id"
           defer
-          :to="
-            findPane(tab.root, pane.id)
-              ? `#terminal-pane-slot-${pane.id}-${tab.layoutVersion}`
-              : 'body'
-          "
+          :to="getPaneTeleportTarget(tab, pane.id)"
         >
           <TerminalPane
-            :class="{ 'terminal-pane-collapsed': !findPane(tab.root, pane.id) }"
+            :class="{ 'terminal-pane-collapsed': isPaneCollapsed(tab, pane.id) }"
             :pane-id="pane.id"
             :cwd="pane.cwd"
-            :active="tab.id === activeTabId && pane.id === tab.activePaneId"
+            :active="
+              tab.id === activeTabId && !isPaneInPreview(pane.id) && pane.id === tab.activePaneId
+            "
             :terminal-settings="terminalSettings"
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
-            @activate="tab.activePaneId = $event"
+            :hide-actions="isPaneInPreview(pane.id)"
+            @activate="activateVisiblePane(tab, $event)"
             @split="handleSplit"
             @collapse="handleCollapsePane"
             @close="handleClosePane"
@@ -1226,40 +1331,19 @@ onBeforeUnmount(() => {
         </Teleport>
         <Transition name="collapsed-pane-fab">
           <div v-if="tab.collapsedNodes.length" class="collapsed-pane-fab-wrap">
-            <NPopover
-              :show="restorePopoverTabId === tab.id"
-              trigger="click"
-              placement="top-end"
-              @update:show="restorePopoverTabId = $event ? tab.id : undefined"
+            <NButton
+              class="collapsed-pane-fab"
+              tertiary
+              circle
+              type="primary"
+              @click="openCollapsedPreview(tab)"
             >
-              <template #trigger>
-                <NButton class="collapsed-pane-fab" tertiary circle type="primary">
-                  <template #icon>
-                    <NIcon>
-                      <ArrowMaximize20Regular />
-                    </NIcon>
-                  </template>
-                </NButton>
+              <template #icon>
+                <NIcon>
+                  <ArrowMaximize20Regular />
+                </NIcon>
               </template>
-
-              <div class="restore-direction-popover" aria-label="选择恢复位置">
-                <div class="restore-direction-title">恢复到当前分屏</div>
-                <div class="restore-direction-grid">
-                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'top')">
-                    上 <kbd>W</kbd>
-                  </NButton>
-                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'left')">
-                    左 <kbd>A</kbd>
-                  </NButton>
-                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'right')">
-                    右 <kbd>D</kbd>
-                  </NButton>
-                  <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'bottom')">
-                    下 <kbd>S</kbd>
-                  </NButton>
-                </div>
-              </div>
-            </NPopover>
+            </NButton>
             <span class="collapsed-pane-count">{{ tab.collapsedNodes.length }}</span>
           </div>
         </Transition>
@@ -1600,11 +1684,49 @@ onBeforeUnmount(() => {
   text-align: right;
 }
 
-.restore-direction-popover {
+.collapsed-preview-content {
   display: grid;
+  gap: 14px;
+}
+
+.collapsed-preview-tabs {
+  min-width: 0;
+}
+
+.collapsed-preview-tab-label {
+  display: block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.collapsed-preview-shell {
+  height: min(560px, calc(100vh - 220px));
+  min-height: 320px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.collapsed-preview-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  width: 156px;
-  padding: 2px;
+}
+
+.collapsed-preview-actions span {
+  margin-right: auto;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+}
+
+.collapsed-preview-actions kbd {
+  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.54);
+  font-family: inherit;
+  font-size: 10px;
 }
 
 .restore-direction-title {

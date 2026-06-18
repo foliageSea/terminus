@@ -26,6 +26,7 @@ const props = defineProps<{
   terminalSettings: TerminalSettings
   animatedPaneId?: string
   animatedNodeId?: string
+  hideActions?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -63,6 +64,7 @@ function splitTo(side: PaneSide): void {
 }
 
 function handleSplitPopoverKeydown(event: KeyboardEvent): void {
+  if (props.hideActions) return
   if (!splitPopoverVisible.value || event.repeat) return
 
   const side = splitKeySideMap[event.key.toLowerCase()]
@@ -333,7 +335,13 @@ onBeforeUnmount(() => {
     >
       <div class="pane-bar-spacer" />
 
-      <div class="pane-action-bar" aria-label="分屏操作" draggable="false" @dragstart.stop.prevent>
+      <div
+        v-if="!hideActions"
+        class="pane-action-bar"
+        aria-label="分屏操作"
+        draggable="false"
+        @dragstart.stop.prevent
+      >
         <NPopover
           v-model:show="splitPopoverVisible"
           trigger="click"
