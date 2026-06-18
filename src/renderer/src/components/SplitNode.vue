@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
-import type { PaneDropPayload, PaneNode, SplitDirection, TerminalSettings } from '../types/terminal'
+import type { PaneDropPayload, PaneNode, PaneSide, TerminalSettings } from '../types/terminal'
 
 const props = defineProps<{
   node: PaneNode
@@ -14,7 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   activate: [id: string]
-  split: [id: string, direction: SplitDirection]
+  split: [id: string, side: PaneSide]
   collapse: [id: string]
   close: [id: string]
   dropPane: [payload: PaneDropPayload]

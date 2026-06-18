@@ -23,9 +23,9 @@ import {
 import type { InputInst } from 'naive-ui'
 import {
   Add20Regular,
+  ArrowMaximize20Regular,
   Delete20Regular,
   FolderOpenVertical20Regular,
-  PanelRightExpand20Regular,
   QuestionCircle20Regular,
   ReOrderDotsVertical20Regular,
   Search20Regular,
@@ -35,6 +35,7 @@ import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
 import type {
   PaneDropPayload,
+  PaneSide,
   PathFavorite,
   PathFavoritesSettings,
   PaneLeaf,
@@ -121,6 +122,13 @@ const pathFavoritesLoaded = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
+
+const paneSideKeyMap: Record<string, PaneSide> = {
+  w: 'top',
+  a: 'left',
+  s: 'bottom',
+  d: 'right'
+}
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -227,25 +235,21 @@ function updatePaneCwd(node: PaneNode, paneId: string, cwd: string): boolean {
   return true
 }
 
-function splitPane(node: PaneNode, paneId: string, direction: SplitDirection): string | undefined {
+function createPane(id: string, cwd?: string): PaneLeaf {
+  return { type: 'pane', id, cwd }
+}
+
+function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | undefined {
   if (node.type === 'split') {
-    return node.children.map((child) => splitPane(child, paneId, direction)).find(Boolean)
+    return node.children.map((child) => splitPane(child, paneId, side)).find(Boolean)
   }
 
   if (node.id !== paneId) return undefined
 
   const nextPaneId = createId('pane')
-  const cwd = node.cwd
-  Object.assign(node, {
-    type: 'split',
-    id: createId('split'),
-    direction,
-    ratio: 0.5,
-    children: [
-      { type: 'pane', id: paneId, cwd },
-      { type: 'pane', id: nextPaneId, cwd }
-    ]
-  })
+  const currentPane = createPane(paneId, node.cwd)
+  const nextPane = createPane(nextPaneId, node.cwd)
+  Object.assign(node, insertNode(currentPane, paneId, nextPane, side))
   activeTab.value.activePaneId = nextPaneId
   activeTab.value.layoutVersion += 1
   return nextPaneId
@@ -463,6 +467,8 @@ function switchPane(): void {
 
 function handleGlobalKeydown(event: KeyboardEvent): void {
   if (renameDialogVisible.value) return
+
+  if (handleRestorePopoverKeydown(event)) return
 
   if (event.key.toLowerCase() === 'h' && event.altKey && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
@@ -699,8 +705,8 @@ function closeTab(tabId: string): void {
   }
 }
 
-function handleSplit(paneId: string, direction: SplitDirection): void {
-  const nextPaneId = splitPane(activeTab.value.root, paneId, direction)
+function handleSplit(paneId: string, side: PaneSide): void {
+  const nextPaneId = splitPane(activeTab.value.root, paneId, side)
   if (nextPaneId) setLayoutAnimation(nextPaneId)
 }
 
@@ -736,12 +742,29 @@ function restoreCollapsedPane(tab: TerminalTab, side: PaneDropPayload['side']): 
   const restored = tab.collapsedNodes.pop()
   if (!restored) return
 
-  const targetPaneId = findPane(tab.root, tab.activePaneId) ? tab.activePaneId : firstPaneId(tab.root)
+  const targetPaneId = findPane(tab.root, tab.activePaneId)
+    ? tab.activePaneId
+    : firstPaneId(tab.root)
   tab.root = insertNode(tab.root, targetPaneId, restored, side)
   tab.activePaneId = firstPaneId(restored)
   tab.layoutVersion += 1
   restorePopoverTabId.value = undefined
   setLayoutAnimation(undefined, restored.id)
+}
+
+function handleRestorePopoverKeydown(event: KeyboardEvent): boolean {
+  if (!restorePopoverTabId.value || event.repeat) return false
+
+  const side = paneSideKeyMap[event.key.toLowerCase()]
+  if (!side) return false
+
+  const tab = tabs.value.find((item) => item.id === restorePopoverTabId.value)
+  if (!tab || !tab.collapsedNodes.length) return false
+
+  event.preventDefault()
+  event.stopPropagation()
+  restoreCollapsedPane(tab, side)
+  return true
 }
 
 function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): void {
@@ -859,13 +882,7 @@ onBeforeUnmount(() => {
         </NTabPane>
       </NTabs>
       <div class="header-actions">
-        <NButton
-          class="new-tab-button"
-          size="small"
-          secondary
-          circle
-          @click="addTab"
-        >
+        <NButton class="new-tab-button" size="small" secondary circle @click="addTab">
           <template #icon>
             <NIcon>
               <Add20Regular />
@@ -883,11 +900,7 @@ onBeforeUnmount(() => {
             </NButton>
           </template>
 
-          <div
-            class="path-favorites-popover"
-            :style="workspaceThemeStyle"
-            aria-label="路径收藏"
-          >
+          <div class="path-favorites-popover" :style="workspaceThemeStyle" aria-label="路径收藏">
             <div class="path-favorites-header">
               <div>
                 <div class="path-favorites-title">路径收藏</div>
@@ -1119,6 +1132,14 @@ onBeforeUnmount(() => {
               <kbd>Ctrl</kbd><kbd>`</kbd>
             </div>
             <div class="shortcut-row">
+              <span>分屏方向选择</span>
+              <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+            </div>
+            <div class="shortcut-row">
+              <span>恢复分屏位置</span>
+              <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+            </div>
+            <div class="shortcut-row">
               <span>关闭当前分屏</span>
               <kbd>Ctrl</kbd><kbd>W</kbd>
             </div>
@@ -1182,7 +1203,11 @@ onBeforeUnmount(() => {
           v-for="pane in collectTabPaneLeaves(tab)"
           :key="pane.id"
           defer
-          :to="findPane(tab.root, pane.id) ? `#terminal-pane-slot-${pane.id}-${tab.layoutVersion}` : 'body'"
+          :to="
+            findPane(tab.root, pane.id)
+              ? `#terminal-pane-slot-${pane.id}-${tab.layoutVersion}`
+              : 'body'
+          "
         >
           <TerminalPane
             :class="{ 'terminal-pane-collapsed': !findPane(tab.root, pane.id) }"
@@ -1211,7 +1236,7 @@ onBeforeUnmount(() => {
                 <NButton class="collapsed-pane-fab" tertiary circle type="primary">
                   <template #icon>
                     <NIcon>
-                      <PanelRightExpand20Regular />
+                      <ArrowMaximize20Regular />
                     </NIcon>
                   </template>
                 </NButton>
@@ -1221,16 +1246,16 @@ onBeforeUnmount(() => {
                 <div class="restore-direction-title">恢复到当前分屏</div>
                 <div class="restore-direction-grid">
                   <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'top')">
-                    上
+                    上 <kbd>W</kbd>
                   </NButton>
                   <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'left')">
-                    左
+                    左 <kbd>A</kbd>
                   </NButton>
                   <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'right')">
-                    右
+                    右 <kbd>D</kbd>
                   </NButton>
                   <NButton size="tiny" secondary @click="restoreCollapsedPane(tab, 'bottom')">
-                    下
+                    下 <kbd>S</kbd>
                   </NButton>
                 </div>
               </div>
@@ -1614,6 +1639,13 @@ onBeforeUnmount(() => {
   grid-area: bottom;
 }
 
+.restore-direction-grid kbd {
+  margin-left: 3px;
+  color: rgba(255, 255, 255, 0.54);
+  font-family: inherit;
+  font-size: 10px;
+}
+
 .tab-switch-overlay {
   position: fixed;
   top: 50%;
@@ -1641,10 +1673,14 @@ onBeforeUnmount(() => {
 }
 
 .tab-switch-overlay-enter-active {
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
 }
 
 .tab-switch-overlay-leave-active {
-  transition: opacity 150ms ease, transform 150ms ease;
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
 }
 </style>

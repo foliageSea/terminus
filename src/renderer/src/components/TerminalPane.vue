@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { NButton, NIcon } from 'naive-ui'
+import { NButton, NIcon, NPopover } from 'naive-ui'
 import {
+  ArrowMinimize20Regular,
   ArrowClockwise20Regular,
   Dismiss20Regular,
-  PanelRightContract20Regular,
-  SplitHorizontal20Regular,
   SplitVertical20Regular
 } from '@vicons/fluent'
 import { Terminal } from '@xterm/xterm'
@@ -18,7 +17,7 @@ import {
   getDraggingNodeId,
   setDraggingNodeId
 } from './paneDragState'
-import type { DropSide, PaneDropPayload, SplitDirection, TerminalSettings } from '../types/terminal'
+import type { DropSide, PaneDropPayload, PaneSide, TerminalSettings } from '../types/terminal'
 
 const props = defineProps<{
   paneId: string
@@ -31,7 +30,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   activate: [id: string]
-  split: [id: string, direction: SplitDirection]
+  split: [id: string, side: PaneSide]
   collapse: [id: string]
   close: [id: string]
   dropPane: [payload: PaneDropPayload]
@@ -42,6 +41,7 @@ const dropSide = ref<DropSide>()
 const dragging = ref(false)
 const copyBubbleVisible = ref(false)
 const reloading = ref(false)
+const splitPopoverVisible = ref(false)
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
 let resizeObserver: ResizeObserver | undefined
@@ -49,6 +49,29 @@ let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
 let copyBubbleTimer: number | undefined
 let suppressedExitMessages = 0
+
+const splitKeySideMap: Record<string, PaneSide> = {
+  w: 'top',
+  a: 'left',
+  s: 'bottom',
+  d: 'right'
+}
+
+function splitTo(side: PaneSide): void {
+  splitPopoverVisible.value = false
+  emit('split', props.paneId, side)
+}
+
+function handleSplitPopoverKeydown(event: KeyboardEvent): void {
+  if (!splitPopoverVisible.value || event.repeat) return
+
+  const side = splitKeySideMap[event.key.toLowerCase()]
+  if (!side) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  splitTo(side)
+}
 
 function resolveDropSide(event: DragEvent): DropSide {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -212,13 +235,15 @@ async function reloadTerminal(): Promise<void> {
 onMounted(async () => {
   if (!host.value) return
 
+  window.addEventListener('keydown', handleSplitPopoverKeydown, true)
+
   terminal = new Terminal({
     cursorBlink: true,
     cursorStyle: 'bar',
     fontFamily: props.terminalSettings.fontFamily,
     fontSize: props.terminalSettings.fontSize,
     lineHeight: 1.2,
-    theme: createTerminalTheme(),
+    theme: createTerminalTheme()
   })
   fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
@@ -271,6 +296,7 @@ watch(
 
 onBeforeUnmount(() => {
   if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
+  window.removeEventListener('keydown', handleSplitPopoverKeydown, true)
   removeDataListener?.()
   removeExitListener?.()
   resizeObserver?.disconnect()
@@ -301,7 +327,6 @@ onBeforeUnmount(() => {
     <div
       class="pane-bar"
       draggable="true"
-      title="拖动分屏"
       @pointerdown.stop="emit('activate', paneId)"
       @dragstart="handleDragStart"
       @dragend="handleDragEnd"
@@ -309,54 +334,48 @@ onBeforeUnmount(() => {
       <div class="pane-bar-spacer" />
 
       <div class="pane-action-bar" aria-label="分屏操作" draggable="false" @dragstart.stop.prevent>
-        <NButton
-          size="tiny"
-          quaternary
-          @click.stop="emit('split', paneId, 'horizontal')"
+        <NPopover
+          v-model:show="splitPopoverVisible"
+          trigger="click"
+          placement="bottom-end"
+          @click.stop
         >
-          <template #icon>
-            <NIcon>
-              <SplitVertical20Regular />
-            </NIcon>
+          <template #trigger>
+            <NButton size="tiny" quaternary @click.stop>
+              <template #icon>
+                <NIcon>
+                  <SplitVertical20Regular />
+                </NIcon>
+              </template>
+            </NButton>
           </template>
-        </NButton>
-        <NButton
-          size="tiny"
-          quaternary
-          @click.stop="emit('split', paneId, 'vertical')"
-        >
-          <template #icon>
-            <NIcon>
-              <SplitHorizontal20Regular />
-            </NIcon>
-          </template>
-        </NButton>
+
+          <div class="split-direction-popover" aria-label="选择分屏方向">
+            <div class="split-direction-title">选择分屏方向</div>
+            <div class="split-direction-grid">
+              <NButton size="tiny" secondary @click="splitTo('top')">上 <kbd>W</kbd></NButton>
+              <NButton size="tiny" secondary @click="splitTo('left')">左 <kbd>A</kbd></NButton>
+              <NButton size="tiny" secondary @click="splitTo('right')">右 <kbd>D</kbd></NButton>
+              <NButton size="tiny" secondary @click="splitTo('bottom')">下 <kbd>S</kbd></NButton>
+            </div>
+          </div>
+        </NPopover>
         <span class="pane-action-divider" />
         <NButton size="tiny" quaternary @click.stop="emit('collapse', paneId)">
           <template #icon>
             <NIcon>
-              <PanelRightContract20Regular />
+              <ArrowMinimize20Regular />
             </NIcon>
           </template>
         </NButton>
-        <NButton
-          size="tiny"
-          quaternary
-          :disabled="reloading"
-          @click.stop="reloadTerminal"
-        >
+        <NButton size="tiny" quaternary :disabled="reloading" @click.stop="reloadTerminal">
           <template #icon>
             <NIcon>
               <ArrowClockwise20Regular />
             </NIcon>
           </template>
         </NButton>
-        <NButton
-          size="tiny"
-          quaternary
-          type="error"
-          @click.stop="emit('close', paneId)"
-        >
+        <NButton size="tiny" quaternary type="error" @click.stop="emit('close', paneId)">
           <template #icon>
             <NIcon>
               <Dismiss20Regular />
@@ -368,3 +387,51 @@ onBeforeUnmount(() => {
     <div ref="host" class="terminal-host" />
   </section>
 </template>
+
+<style scoped>
+.split-direction-popover {
+  display: grid;
+  gap: 8px;
+  width: 176px;
+  padding: 2px;
+}
+
+.split-direction-title {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  text-align: center;
+}
+
+.split-direction-grid {
+  display: grid;
+  grid-template-areas:
+    '. top .'
+    'left . right'
+    '. bottom .';
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.split-direction-grid > :nth-child(1) {
+  grid-area: top;
+}
+
+.split-direction-grid > :nth-child(2) {
+  grid-area: left;
+}
+
+.split-direction-grid > :nth-child(3) {
+  grid-area: right;
+}
+
+.split-direction-grid > :nth-child(4) {
+  grid-area: bottom;
+}
+
+.split-direction-grid kbd {
+  margin-left: 3px;
+  color: rgba(255, 255, 255, 0.54);
+  font-family: inherit;
+  font-size: 10px;
+}
+</style>

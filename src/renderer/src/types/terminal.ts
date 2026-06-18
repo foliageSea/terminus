@@ -1,6 +1,8 @@
 export type SplitDirection = 'horizontal' | 'vertical'
 
-export type DropSide = 'left' | 'right' | 'top' | 'bottom'
+export type PaneSide = 'left' | 'right' | 'top' | 'bottom'
+
+export type DropSide = PaneSide
 
 export interface PaneDropPayload {
   sourceNodeId: string
