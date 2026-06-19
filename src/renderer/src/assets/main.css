@@ -194,6 +194,11 @@ button {
   animation: active-tab-indicator 220ms ease-out;
 }
 
+.workspace-title-spacer {
+  min-width: 0;
+  align-self: stretch;
+}
+
 @keyframes active-tab-indicator {
   from {
     opacity: 0;
@@ -234,10 +239,168 @@ button {
 .workspace-body {
   position: relative;
   z-index: 2;
-  height: calc(100vh - 46px);
+  flex: 1 1 auto;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   padding: 8px;
   overflow: hidden;
   background: transparent;
+}
+
+.workspace-main {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 46px);
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+}
+
+.workspace-main.tab-bar-horizontal {
+  display: block;
+}
+
+.workspace-main.tab-bar-horizontal .workspace-body {
+  height: 100%;
+}
+
+.workspace-tab-sidebar {
+  display: flex;
+  flex: 0 0 172px;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-width: 0;
+  padding: 8px 0 8px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-right: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(2, 6, 23, 0.16);
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-width: thin;
+}
+
+.workspace-tab-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workspace-tab-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workspace-tab-sidebar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  background-clip: content-box;
+}
+
+.workspace-tab-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  width: calc(100% - 8px);
+  min-height: 34px;
+  padding: 7px 8px 7px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(226, 232, 240, 0.78);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.workspace-tab-item:hover {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.065);
+  color: rgba(248, 250, 252, 0.92);
+}
+
+.workspace-tab-item.active {
+  border-color: color-mix(in srgb, var(--terminal-active-color) 62%, rgba(148, 163, 184, 0.2));
+  background: color-mix(in srgb, var(--terminal-active-color) 13%, rgba(255, 255, 255, 0.045));
+  color: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 3px 0 0 var(--terminal-active-color),
+    0 0 22px color-mix(in srgb, var(--terminal-active-color) 13%, transparent);
+}
+
+.workspace-tab-item.active::after {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -1px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--terminal-active-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--terminal-active-color) 55%, transparent);
+  content: '';
+}
+
+.workspace-tab-item-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-tab-close {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 0;
+  color: rgba(226, 232, 240, 0.48);
+  font-size: 16px;
+  line-height: 1;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.workspace-tab-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.workspace-tab-item.terminal-tab-dragging {
+  cursor: grabbing;
+  opacity: 0.45;
+  transform: scale(0.98);
+}
+
+.workspace-tab-item.terminal-tab-drag-before::before,
+.workspace-tab-item.terminal-tab-drag-after::before {
+  position: absolute;
+  right: 8px;
+  left: 8px;
+  z-index: 2;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--terminal-active-color);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--terminal-active-color) 55%, transparent);
+  content: '';
+}
+
+.workspace-tab-item.terminal-tab-drag-before::before {
+  top: -4px;
+}
+
+.workspace-tab-item.terminal-tab-drag-after::before {
+  bottom: -4px;
 }
 
 .workspace-background,
@@ -731,6 +894,16 @@ button {
     grid-template-columns: 66px minmax(0, 1fr) auto;
     gap: 8px;
     padding-left: 10px;
+  }
+
+  .workspace-tab-sidebar {
+    flex-basis: 128px;
+  }
+
+  .workspace-tab-item {
+    min-height: 32px;
+    padding-right: 6px;
+    padding-left: 8px;
   }
 
   .collapsed-pane-fab-wrap {

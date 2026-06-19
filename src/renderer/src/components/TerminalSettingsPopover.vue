@@ -18,14 +18,18 @@ import type { TerminalSettings } from '../types/terminal'
 
 defineProps<{
   primaryColor: string
+  tabBarMode: 'horizontal' | 'vertical'
   terminalSettings: TerminalSettings
   terminalBackgroundName: string
 }>()
 
 const emit = defineEmits<{
   updatePrimaryColor: [color: string]
+  updateTabBarMode: [value: 'horizontal' | 'vertical']
+  updateFontFamily: [value: string]
   normalizeFontFamily: []
   updateFontSize: [value: number | null]
+  updateBackgroundImageEnabled: [value: boolean]
   selectBackground: []
   clearBackground: []
   updateBackgroundOpacity: [value: number]
@@ -56,13 +60,25 @@ const emit = defineEmits<{
               @update:value="emit('updatePrimaryColor', $event)"
             />
           </NFormItem>
+          <NFormItem label="标签栏位置" path="tabBarMode">
+            <div class="terminal-settings-switch-row">
+              <NSwitch
+                :value="tabBarMode === 'vertical'"
+                @update:value="emit('updateTabBarMode', $event ? 'vertical' : 'horizontal')"
+              />
+              <span class="terminal-settings-switch-label">
+                {{ tabBarMode === 'vertical' ? '垂直标签栏' : '顶部标签栏' }}
+              </span>
+            </div>
+          </NFormItem>
         </NTabPane>
         <NTabPane name="font" tab="字体">
           <NFormItem label="字体" path="fontFamily">
             <NInput
-              v-model:value="terminalSettings.fontFamily"
+              :value="terminalSettings.fontFamily"
               placeholder="Cascadia Mono, Consolas, monospace"
               clearable
+              @update:value="emit('updateFontFamily', $event)"
               @blur="emit('normalizeFontFamily')"
             />
           </NFormItem>
@@ -82,8 +98,14 @@ const emit = defineEmits<{
           <NFormItem label="背景图" path="backgroundImageEnabled">
             <div class="terminal-background-control">
               <div class="terminal-background-switch-row">
-                <NSwitch v-model:value="terminalSettings.backgroundImageEnabled" />
-                <span class="terminal-background-name" :title="terminalSettings.backgroundImagePath">
+                <NSwitch
+                  :value="terminalSettings.backgroundImageEnabled"
+                  @update:value="emit('updateBackgroundImageEnabled', $event)"
+                />
+                <span
+                  class="terminal-background-name"
+                  :title="terminalSettings.backgroundImagePath"
+                >
                   {{ terminalBackgroundName }}
                 </span>
               </div>
@@ -150,12 +172,18 @@ const emit = defineEmits<{
   width: 100%;
 }
 
+.terminal-settings-switch-row,
 .terminal-background-switch-row,
 .terminal-background-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.terminal-settings-switch-label {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
 }
 
 .terminal-background-name {

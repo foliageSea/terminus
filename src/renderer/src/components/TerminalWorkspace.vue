@@ -57,6 +57,7 @@ const emit = defineEmits<{
 let nextId = 1
 let nextTabNumber = 1
 const tabDragDataType = 'application/x-terminus-tab'
+type TabBarMode = 'horizontal' | 'vertical'
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
   fontSize: 13,
@@ -101,6 +102,7 @@ function getFileNameFromPath(path: string): string {
 
 const tabs = ref<TerminalTab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
+const tabBarMode = ref<TabBarMode>('horizontal')
 const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
 const renameDialogVisible = ref(false)
@@ -200,7 +202,10 @@ function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | und
   const nextPaneId = createId('pane')
   const currentPane = createPane(paneId, node.cwd)
   const nextPane = createPane(nextPaneId, node.cwd)
-  Object.assign(node, insertNode(currentPane, paneId, nextPane, side, () => createId('split')))
+  Object.assign(
+    node,
+    insertNode(currentPane, paneId, nextPane, side, () => createId('split'))
+  )
   activeTab.value.activePaneId = nextPaneId
   activeTab.value.layoutVersion += 1
   return nextPaneId
@@ -251,7 +256,9 @@ function activateVisiblePane(tab: TerminalTab, paneId: string): void {
   tab.activePaneId = paneId
 }
 
-function ignorePreviewPaneActivate(): void {}
+function ignorePreviewPaneActivate(): void {
+  return
+}
 
 function openTab(cwd?: string, title?: string): void {
   const tab = createTab(title, cwd)
@@ -376,6 +383,10 @@ function switchPane(): void {
   activeTab.value.activePaneId = paneIds[nextIndex]
 }
 
+function updateTabBarMode(value: TabBarMode): void {
+  tabBarMode.value = value
+}
+
 function handleGlobalKeydown(event: KeyboardEvent): void {
   if (renameDialogVisible.value) return
 
@@ -453,7 +464,14 @@ function handleTabDragOver(event: DragEvent, tabId: string): void {
   event.preventDefault()
   const tabRect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   dragOverTabId.value = tabId
-  dragOverTabSide.value = event.clientX < tabRect.left + tabRect.width / 2 ? 'before' : 'after'
+  dragOverTabSide.value =
+    tabBarMode.value === 'vertical'
+      ? event.clientY < tabRect.top + tabRect.height / 2
+        ? 'before'
+        : 'after'
+      : event.clientX < tabRect.left + tabRect.width / 2
+        ? 'before'
+        : 'after'
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 
@@ -513,6 +531,17 @@ function dropTabAtEnd(event: DragEvent): void {
   event.preventDefault()
 
   moveTab(sourceTabId)
+}
+
+function clearTabDragOver(tabId: string): void {
+  if (dragOverTabId.value === tabId) dragOverTabId.value = undefined
+}
+
+function handleTabAuxClick(event: MouseEvent, tabId: string): void {
+  if (event.button !== 1) return
+  event.preventDefault()
+  event.stopPropagation()
+  closeTab(tabId)
 }
 
 function createTabProps(tab: TerminalTab): HTMLAttributes {
@@ -600,6 +629,14 @@ function normalizeFontFamily(): void {
 
 function updateFontSize(value: number | null): void {
   terminalSettings.fontSize = normalizeFontSize(value)
+}
+
+function updateFontFamily(value: string): void {
+  terminalSettings.fontFamily = value
+}
+
+function updateBackgroundImageEnabled(value: boolean): void {
+  terminalSettings.backgroundImageEnabled = value
 }
 
 function updateBackgroundOpacity(value: number): void {
@@ -815,6 +852,7 @@ onBeforeUnmount(() => {
         />
       </div>
       <NTabs
+        v-show="tabBarMode === 'horizontal'"
         v-model:value="activeTabId"
         type="card"
         size="small"
@@ -836,6 +874,7 @@ onBeforeUnmount(() => {
           </template>
         </NTabPane>
       </NTabs>
+      <div v-show="tabBarMode === 'vertical'" class="workspace-title-spacer" />
       <div class="header-actions">
         <NButton class="new-tab-button" size="small" secondary circle @click="addTab">
           <template #icon>
@@ -863,11 +902,15 @@ onBeforeUnmount(() => {
         />
         <TerminalSettingsPopover
           :primary-color="props.primaryColor"
+          :tab-bar-mode="tabBarMode"
           :terminal-settings="terminalSettings"
           :terminal-background-name="terminalBackgroundName"
           @update-primary-color="updatePrimaryColor"
+          @update-tab-bar-mode="updateTabBarMode"
+          @update-font-family="updateFontFamily"
           @normalize-font-family="normalizeFontFamily"
           @update-font-size="updateFontSize"
+          @update-background-image-enabled="updateBackgroundImageEnabled"
           @select-background="selectTerminalBackground"
           @clear-background="clearTerminalBackground"
           @update-background-opacity="updateBackgroundOpacity"
@@ -913,74 +956,117 @@ onBeforeUnmount(() => {
       @drop-pane="handleDropPane"
     />
 
-    <main class="workspace-body">
-      <div
-        v-for="tab in tabs"
-        v-show="tab.id === activeTabId"
-        :key="tab.id"
-        class="tab-terminal-view"
+    <div class="workspace-main" :class="`tab-bar-${tabBarMode}`">
+      <aside
+        v-show="tabBarMode === 'vertical'"
+        class="workspace-tab-sidebar"
+        aria-label="垂直标签栏"
+        @dragover="handleTabListDragOver"
+        @drop="dropTabAtEnd"
       >
-        <SplitNode
-          :node="tab.root"
-          :active-pane-id="tab.activePaneId"
-          :layout-version="tab.layoutVersion"
-          :terminal-settings="terminalSettings"
-          :animated-pane-id="animatedPaneId"
-          :animated-node-id="animatedNodeId"
-          @activate="tab.activePaneId = $event"
-          @split="handleSplit"
-          @collapse="handleCollapsePane"
-          @close="handleClosePane"
-          @drop-pane="handleDropPane"
-        />
-        <Teleport
-          v-for="pane in collectTabPaneLeaves(tab)"
-          :key="pane.id"
-          defer
-          :to="getPaneTeleportTarget(tab, pane.id)"
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          class="workspace-tab-item"
+          :class="{
+            active: tab.id === activeTabId,
+            'terminal-tab-dragging': draggingTabId === tab.id,
+            'terminal-tab-drag-before': dragOverTabId === tab.id && dragOverTabSide === 'before',
+            'terminal-tab-drag-after': dragOverTabId === tab.id && dragOverTabSide === 'after'
+          }"
+          type="button"
+          draggable="true"
+          :title="tab.title"
+          @click="activeTabId = tab.id"
+          @dblclick.stop="startRenameTab(tab)"
+          @auxclick="handleTabAuxClick($event, tab.id)"
+          @dragstart="startTabDrag($event, tab.id)"
+          @dragover="handleTabDragOver($event, tab.id)"
+          @dragleave="clearTabDragOver(tab.id)"
+          @drop="dropTab($event, tab.id)"
+          @dragend="finishTabDrag"
         >
-          <TerminalPane
-            :class="{ 'terminal-pane-collapsed': isPaneCollapsed(tab, pane.id) }"
-            :pane-id="pane.id"
-            :cwd="pane.cwd"
-            :active="
-              (tab.id === activeTabId &&
-                !isPaneInPreview(pane.id) &&
-                pane.id === tab.activePaneId) ||
-              isPaneActiveInPreview(tab, pane.id)
-            "
+          <span class="workspace-tab-item-title">{{ tab.title }}</span>
+          <span
+            v-if="tabs.length > 1"
+            class="workspace-tab-close"
+            aria-label="关闭 Tab"
+            @click.stop="closeTab(tab.id)"
+          >
+            ×
+          </span>
+        </button>
+      </aside>
+
+      <main class="workspace-body">
+        <div
+          v-for="tab in tabs"
+          v-show="tab.id === activeTabId"
+          :key="tab.id"
+          class="tab-terminal-view"
+        >
+          <SplitNode
+            :node="tab.root"
+            :active-pane-id="tab.activePaneId"
+            :layout-version="tab.layoutVersion"
             :terminal-settings="terminalSettings"
             :animated-pane-id="animatedPaneId"
             :animated-node-id="animatedNodeId"
-            :hide-actions="isPaneInPreview(pane.id)"
-            :show-reload-action="isPaneInPreview(pane.id)"
-            @activate="activateVisiblePane(tab, $event)"
+            @activate="tab.activePaneId = $event"
             @split="handleSplit"
             @collapse="handleCollapsePane"
             @close="handleClosePane"
             @drop-pane="handleDropPane"
           />
-        </Teleport>
-        <Transition name="collapsed-pane-fab">
-          <div v-if="tab.collapsedNodes.length" class="collapsed-pane-fab-wrap">
-            <NButton
-              class="collapsed-pane-fab"
-              tertiary
-              circle
-              type="primary"
-              @click="openCollapsedPreview(tab)"
-            >
-              <template #icon>
-                <NIcon>
-                  <ArrowMaximize20Regular />
-                </NIcon>
-              </template>
-            </NButton>
-            <span class="collapsed-pane-count">{{ tab.collapsedNodes.length }}</span>
-          </div>
-        </Transition>
-      </div>
-    </main>
+          <Teleport
+            v-for="pane in collectTabPaneLeaves(tab)"
+            :key="pane.id"
+            defer
+            :to="getPaneTeleportTarget(tab, pane.id)"
+          >
+            <TerminalPane
+              :class="{ 'terminal-pane-collapsed': isPaneCollapsed(tab, pane.id) }"
+              :pane-id="pane.id"
+              :cwd="pane.cwd"
+              :active="
+                (tab.id === activeTabId &&
+                  !isPaneInPreview(pane.id) &&
+                  pane.id === tab.activePaneId) ||
+                isPaneActiveInPreview(tab, pane.id)
+              "
+              :terminal-settings="terminalSettings"
+              :animated-pane-id="animatedPaneId"
+              :animated-node-id="animatedNodeId"
+              :hide-actions="isPaneInPreview(pane.id)"
+              :show-reload-action="isPaneInPreview(pane.id)"
+              @activate="activateVisiblePane(tab, $event)"
+              @split="handleSplit"
+              @collapse="handleCollapsePane"
+              @close="handleClosePane"
+              @drop-pane="handleDropPane"
+            />
+          </Teleport>
+          <Transition name="collapsed-pane-fab">
+            <div v-if="tab.collapsedNodes.length" class="collapsed-pane-fab-wrap">
+              <NButton
+                class="collapsed-pane-fab"
+                tertiary
+                circle
+                type="primary"
+                @click="openCollapsedPreview(tab)"
+              >
+                <template #icon>
+                  <NIcon>
+                    <ArrowMaximize20Regular />
+                  </NIcon>
+                </template>
+              </NButton>
+              <span class="collapsed-pane-count">{{ tab.collapsedNodes.length }}</span>
+            </div>
+          </Transition>
+        </div>
+      </main>
+    </div>
   </NLayout>
   <Transition name="tab-switch-overlay">
     <div v-if="tabSwitchOverlayVisible" class="tab-switch-overlay">
