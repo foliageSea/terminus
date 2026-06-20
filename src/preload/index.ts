@@ -38,7 +38,10 @@ const api = {
     setPathFavorites: (settings: { items: { id: string; name: string; path: string }[] }) =>
       ipcRenderer.invoke('settings:set-path-favorites', settings),
     getZoomFactor: () => ipcRenderer.invoke('settings:get-zoom-factor'),
-    setZoomFactor: (factor: number) => ipcRenderer.invoke('settings:set-zoom-factor', factor)
+    setZoomFactor: (factor: number) => ipcRenderer.invoke('settings:set-zoom-factor', factor),
+    getTabBarMode: () => ipcRenderer.invoke('settings:get-tab-bar-mode'),
+    setTabBarMode: (mode: 'horizontal' | 'vertical') =>
+      ipcRenderer.invoke('settings:set-tab-bar-mode', mode)
   },
   terminal: {
     create: (id: string, cols?: number, rows?: number, cwd?: string) =>

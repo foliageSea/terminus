@@ -5,9 +5,11 @@ import {
   AppSettings,
   PathFavorite,
   PathFavoritesSettings,
+  TabBarMode,
   TerminalSettings,
   ThemeSettings,
   defaultPathFavoritesSettings,
+  defaultTabBarMode,
   defaultTerminalSettings,
   defaultThemeSettings,
   defaultZoomFactor,
@@ -104,6 +106,10 @@ function normalizeZoomFactor(value: unknown): number {
   return Math.min(maxZoomFactor, Math.max(minZoomFactor, Math.round(factor * 100) / 100))
 }
 
+function normalizeTabBarMode(value: unknown): TabBarMode {
+  return value === 'vertical' || value === 'horizontal' ? value : defaultTabBarMode
+}
+
 function normalizeAppSettings(value: unknown): AppSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
   const legacyTerminalSettings =
@@ -113,7 +119,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
     terminal: normalizeTerminalSettings(settings.terminal ?? legacyTerminalSettings),
     theme: normalizeThemeSettings(settings.theme),
     pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
-    zoomFactor: normalizeZoomFactor(settings.zoomFactor)
+    zoomFactor: normalizeZoomFactor(settings.zoomFactor),
+    tabBarMode: normalizeTabBarMode(settings.tabBarMode)
   }
 }
 
@@ -173,4 +180,12 @@ export function readZoomFactor(): number {
 export function writeZoomFactor(factor: number): number {
   const nextSettings = writeAppSettings({ ...readAppSettings(), zoomFactor: factor })
   return nextSettings.zoomFactor ?? defaultZoomFactor
+}
+
+export function readTabBarMode(): TabBarMode {
+  return readAppSettings().tabBarMode
+}
+
+export function writeTabBarMode(mode: TabBarMode): TabBarMode {
+  return writeAppSettings({ ...readAppSettings(), tabBarMode: mode }).tabBarMode
 }

@@ -27,6 +27,7 @@ import type {
   PathFavorite,
   PathFavoritesSettings,
   PaneNode,
+  TabBarMode,
   TerminalSettings,
   TerminalTab
 } from '../types/terminal'
@@ -57,7 +58,6 @@ const emit = defineEmits<{
 let nextId = 1
 let nextTabNumber = 1
 const tabDragDataType = 'application/x-terminus-tab'
-type TabBarMode = 'horizontal' | 'vertical'
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
   fontSize: 13,
@@ -383,8 +383,8 @@ function switchPane(): void {
   activeTab.value.activePaneId = paneIds[nextIndex]
 }
 
-function updateTabBarMode(value: TabBarMode): void {
-  tabBarMode.value = value
+async function updateTabBarMode(value: TabBarMode): Promise<void> {
+  tabBarMode.value = await window.api.settings.setTabBarMode(value)
 }
 
 function handleGlobalKeydown(event: KeyboardEvent): void {
@@ -800,6 +800,8 @@ onMounted(async () => {
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
     tabs.value.some((tab) => updateTabPaneCwd(tab, id, cwd))
   })
+
+  tabBarMode.value = await window.api.settings.getTabBarMode()
 
   const savedSettings = await window.api.settings.getTerminal()
   Object.assign(terminalSettings, savedSettings)

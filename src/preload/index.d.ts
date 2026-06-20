@@ -50,6 +50,8 @@ export interface PathFavoritesSettings {
   items: PathFavorite[]
 }
 
+export type TabBarMode = 'horizontal' | 'vertical'
+
 export interface SettingsApi {
   getTerminal: () => Promise<TerminalSettings>
   setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
@@ -61,6 +63,8 @@ export interface SettingsApi {
   setPathFavorites: (settings: PathFavoritesSettings) => Promise<PathFavoritesSettings>
   getZoomFactor: () => Promise<number>
   setZoomFactor: (factor: number) => Promise<number>
+  getTabBarMode: () => Promise<TabBarMode>
+  setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
 }
 
 export interface AppApi {

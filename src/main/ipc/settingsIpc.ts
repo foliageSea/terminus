@@ -3,15 +3,18 @@ import { extname } from 'path'
 import { existsSync, readFileSync, statSync } from 'fs'
 import type {
   PathFavoritesSettings,
+  TabBarMode,
   TerminalSettings,
   ThemeSettings
 } from '../settings/settingsTypes'
 import {
   readPathFavoritesSettings,
+  readTabBarMode,
   readTerminalSettings,
   readThemeSettings,
   readZoomFactor,
   writePathFavoritesSettings,
+  writeTabBarMode,
   writeTerminalSettings,
   writeThemeSettings,
   writeZoomFactor
@@ -78,4 +81,6 @@ export function registerSettingsIpc(): void {
   )
   ipcMain.handle('settings:get-zoom-factor', () => readZoomFactor())
   ipcMain.handle('settings:set-zoom-factor', (_, factor: number) => writeZoomFactor(factor))
+  ipcMain.handle('settings:get-tab-bar-mode', () => readTabBarMode())
+  ipcMain.handle('settings:set-tab-bar-mode', (_, mode: TabBarMode) => writeTabBarMode(mode))
 }

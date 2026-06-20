@@ -21,11 +21,14 @@ export interface PathFavoritesSettings {
   items: PathFavorite[]
 }
 
+export type TabBarMode = 'horizontal' | 'vertical'
+
 export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
   pathFavorites: PathFavoritesSettings
   zoomFactor?: number
+  tabBarMode: TabBarMode
 }
 
 export const defaultTerminalSettings: TerminalSettings = {
@@ -49,3 +52,4 @@ export const defaultZoomFactor = 1.0
 export const minZoomFactor = 0.5
 export const maxZoomFactor = 3.0
 export const zoomStep = 0.1
+export const defaultTabBarMode: TabBarMode = 'horizontal'
