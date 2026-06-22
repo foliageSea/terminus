@@ -34,7 +34,6 @@ export interface TerminalTab {
   root: PaneNode
   activePaneId: string
   layoutVersion: number
-  collapsedNodes: PaneNode[]
 }
 
 export interface TerminalSettings {

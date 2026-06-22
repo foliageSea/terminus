@@ -2,7 +2,6 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
 import {
-  ArrowMinimize20Regular,
   ArrowClockwise20Regular,
   Dismiss20Regular,
   SplitHorizontal20Regular,
@@ -34,7 +33,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   activate: [id: string]
   split: [id: string, side: PaneSide]
-  collapse: [id: string]
   close: [id: string]
   dropPane: [payload: PaneDropPayload]
 }>()
@@ -337,14 +335,6 @@ onBeforeUnmount(() => {
           <template #icon>
             <NIcon>
               <SplitVertical20Regular />
-            </NIcon>
-          </template>
-        </NButton>
-        <span v-if="!hideActions" class="pane-action-divider" />
-        <NButton v-if="!hideActions" size="tiny" quaternary @click.stop="emit('collapse', paneId)">
-          <template #icon>
-            <NIcon>
-              <ArrowMinimize20Regular />
             </NIcon>
           </template>
         </NButton>

@@ -22,15 +22,15 @@ export function collectPaneLeaves(node: PaneNode): PaneLeaf[] {
 }
 
 export function collectTabPaneIds(tab: TerminalTab): string[] {
-  return [tab.root, ...tab.collapsedNodes].flatMap((node) => collectPaneIds(node))
+  return collectPaneIds(tab.root)
 }
 
 export function collectTabPaneLeaves(tab: TerminalTab): PaneLeaf[] {
-  return [tab.root, ...tab.collapsedNodes].flatMap((node) => collectPaneLeaves(node))
+  return collectPaneLeaves(tab.root)
 }
 
 export function updateTabPaneCwd(tab: TerminalTab, paneId: string, cwd: string): boolean {
-  return [tab.root, ...tab.collapsedNodes].some((node) => updatePaneCwd(node, paneId, cwd))
+  return updatePaneCwd(tab.root, paneId, cwd)
 }
 
 export function findPaneLeaf(node: PaneNode, paneId: string): PaneLeaf | undefined {

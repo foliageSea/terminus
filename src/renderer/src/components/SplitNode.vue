@@ -15,7 +15,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   activate: [id: string]
   split: [id: string, side: PaneSide]
-  collapse: [id: string]
   close: [id: string]
   dropPane: [payload: PaneDropPayload]
 }>()
@@ -99,7 +98,6 @@ function finishGroupDrag(): void {
         :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"
         @split="(id, direction) => emit('split', id, direction)"
-        @collapse="emit('collapse', $event)"
         @close="emit('close', $event)"
         @drop-pane="emit('dropPane', $event)"
       />
@@ -115,7 +113,6 @@ function finishGroupDrag(): void {
         :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"
         @split="(id, direction) => emit('split', id, direction)"
-        @collapse="emit('collapse', $event)"
         @close="emit('close', $event)"
         @drop-pane="emit('dropPane', $event)"
       />
