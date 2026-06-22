@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { NButton, NIcon, NPopover } from 'naive-ui'
+import { NButton, NIcon } from 'naive-ui'
 import {
   ArrowMinimize20Regular,
   ArrowClockwise20Regular,
   Dismiss20Regular,
+  SplitHorizontal20Regular,
   SplitVertical20Regular
 } from '@vicons/fluent'
 import { Terminal } from '@xterm/xterm'
@@ -43,7 +44,6 @@ const dropSide = ref<DropSide>()
 const dragging = ref(false)
 const copyBubbleVisible = ref(false)
 const reloading = ref(false)
-const splitPopoverVisible = ref(false)
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
 let resizeObserver: ResizeObserver | undefined
@@ -52,28 +52,8 @@ let removeExitListener: (() => void) | undefined
 let copyBubbleTimer: number | undefined
 let suppressedExitMessages = 0
 
-const splitKeySideMap: Record<string, PaneSide> = {
-  w: 'top',
-  a: 'left',
-  s: 'bottom',
-  d: 'right'
-}
-
 function splitTo(side: PaneSide): void {
-  splitPopoverVisible.value = false
   emit('split', props.paneId, side)
-}
-
-function handleSplitPopoverKeydown(event: KeyboardEvent): void {
-  if (props.hideActions) return
-  if (!splitPopoverVisible.value || event.repeat) return
-
-  const side = splitKeySideMap[event.key.toLowerCase()]
-  if (!side) return
-
-  event.preventDefault()
-  event.stopPropagation()
-  splitTo(side)
 }
 
 function resolveDropSide(event: DragEvent): DropSide {
@@ -244,8 +224,6 @@ async function reloadTerminal(): Promise<void> {
 onMounted(async () => {
   if (!host.value) return
 
-  window.addEventListener('keydown', handleSplitPopoverKeydown, true)
-
   terminal = new Terminal({
     cursorBlink: true,
     cursorStyle: 'bar',
@@ -305,7 +283,6 @@ watch(
 
 onBeforeUnmount(() => {
   if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
-  window.removeEventListener('keydown', handleSplitPopoverKeydown, true)
   removeDataListener?.()
   removeExitListener?.()
   resizeObserver?.disconnect()
@@ -349,33 +326,20 @@ onBeforeUnmount(() => {
         draggable="false"
         @dragstart.stop.prevent
       >
-        <NPopover
-          v-if="!hideActions"
-          v-model:show="splitPopoverVisible"
-          trigger="click"
-          placement="bottom-end"
-          @click.stop
-        >
-          <template #trigger>
-            <NButton size="tiny" quaternary @click.stop>
-              <template #icon>
-                <NIcon>
-                  <SplitVertical20Regular />
-                </NIcon>
-              </template>
-            </NButton>
+        <NButton v-if="!hideActions" size="tiny" quaternary title="向下分屏" @click.stop="splitTo('bottom')">
+          <template #icon>
+            <NIcon>
+              <SplitHorizontal20Regular />
+            </NIcon>
           </template>
-
-          <div class="split-direction-popover" aria-label="选择分屏方向">
-            <div class="split-direction-title">选择分屏方向</div>
-            <div class="split-direction-grid">
-              <NButton size="tiny" secondary @click="splitTo('top')">上 <kbd>W</kbd></NButton>
-              <NButton size="tiny" secondary @click="splitTo('left')">左 <kbd>A</kbd></NButton>
-              <NButton size="tiny" secondary @click="splitTo('right')">右 <kbd>D</kbd></NButton>
-              <NButton size="tiny" secondary @click="splitTo('bottom')">下 <kbd>S</kbd></NButton>
-            </div>
-          </div>
-        </NPopover>
+        </NButton>
+        <NButton v-if="!hideActions" size="tiny" quaternary title="向右分屏" @click.stop="splitTo('right')">
+          <template #icon>
+            <NIcon>
+              <SplitVertical20Regular />
+            </NIcon>
+          </template>
+        </NButton>
         <span v-if="!hideActions" class="pane-action-divider" />
         <NButton v-if="!hideActions" size="tiny" quaternary @click.stop="emit('collapse', paneId)">
           <template #icon>
@@ -417,64 +381,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.split-direction-popover {
-  display: grid;
-  gap: 8px;
-  width: 176px;
-  padding: 2px;
-}
-
-.split-direction-title {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
-  text-align: center;
-}
-
-.split-direction-grid {
-  display: grid;
-  grid-template-areas:
-    '. top .'
-    'left . right'
-    '. bottom .';
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
-}
-
-.split-direction-grid :deep(.n-button) {
-  width: 100%;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.split-direction-grid :deep(.n-button *) {
-  cursor: pointer;
-}
-
 .pane-action-bar :deep(.n-button),
 .pane-action-bar :deep(.n-button *) {
   cursor: pointer;
-}
-
-.split-direction-grid > :nth-child(1) {
-  grid-area: top;
-}
-
-.split-direction-grid > :nth-child(2) {
-  grid-area: left;
-}
-
-.split-direction-grid > :nth-child(3) {
-  grid-area: right;
-}
-
-.split-direction-grid > :nth-child(4) {
-  grid-area: bottom;
-}
-
-.split-direction-grid kbd {
-  margin-left: 3px;
-  color: rgba(255, 255, 255, 0.54);
-  font-family: inherit;
-  font-size: 10px;
 }
 </style>

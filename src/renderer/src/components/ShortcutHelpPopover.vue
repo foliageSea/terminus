@@ -23,7 +23,6 @@ import { QuestionCircle20Regular } from '@vicons/fluent'
         <span>上一个 Tab</span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Tab</kbd>
       </div>
       <div class="shortcut-row"><span>切换分屏焦点</span><kbd>Ctrl</kbd><kbd>`</kbd></div>
-      <div class="shortcut-row"><span>分屏方向选择</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
       <div class="shortcut-row"><span>关闭当前分屏</span><kbd>Ctrl</kbd><kbd>W</kbd></div>
       <div class="shortcut-row"><span>最小化窗口</span><kbd>Alt</kbd><kbd>H</kbd></div>
       <div class="shortcut-row"><span>复制选中文本</span><kbd>Alt</kbd><kbd>C</kbd></div>
