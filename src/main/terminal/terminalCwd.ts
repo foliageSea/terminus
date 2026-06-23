@@ -3,6 +3,8 @@ import os from 'os'
 
 const escapeCharacter = String.fromCharCode(27)
 const bellCharacter = String.fromCharCode(7)
+const cwdQuickCheck = `${escapeCharacter}]633;P;Cwd=`
+const commandCompleteQuickCheck = `${escapeCharacter}]633;D;ExitCode=`
 const cwdPattern = new RegExp(
   `${escapeCharacter}\\]633;P;Cwd=([^${bellCharacter}${escapeCharacter}]*)(?:${bellCharacter}|${escapeCharacter}\\\\)`,
   'g'
@@ -30,6 +32,8 @@ export function powershellCwdPromptCommand(): string {
 }
 
 export function extractTerminalCwd(data: string): string | undefined {
+  if (!data.includes(cwdQuickCheck)) return undefined
+
   let cwd: string | undefined
   let match: RegExpExecArray | null
 
@@ -41,6 +45,8 @@ export function extractTerminalCwd(data: string): string | undefined {
 }
 
 export function extractTerminalCommandComplete(data: string): number | undefined {
+  if (!data.includes(commandCompleteQuickCheck)) return undefined
+
   let exitCode: number | undefined
   let match: RegExpExecArray | null
 
