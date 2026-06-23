@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron'
-import { electronApp } from '@electron-toolkit/utils'
+import { electronApp, is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { createWindow } from './app/createWindow'
 import { registerAppLifecycle, registerWindowAllClosedHandler } from './app/lifecycle'
@@ -9,9 +9,10 @@ import { registerOpencodeSystemThemeSync } from './opencode/systemTheme'
 
 const appId = 'com.terminus.app'
 const appName = 'terminus'
+const effectiveName = is.dev ? `${appName}-dev` : appName
 
-app.setName(appName)
-app.setPath('userData', join(app.getPath('appData'), appName))
+app.setName(effectiveName)
+app.setPath('userData', join(app.getPath('appData'), effectiveName))
 app.setPath('sessionData', join(app.getPath('userData'), 'Session Data'))
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
