@@ -121,6 +121,8 @@ const pathFavoritesLoaded = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
+let fontSizeWheelDelta = 0
+let fontSizeWheelResetTimer: number | undefined
 
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
@@ -402,6 +404,33 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
   event.preventDefault()
   event.stopPropagation()
   switchTab(event.shiftKey ? -1 : 1)
+}
+
+function handleGlobalWheel(event: WheelEvent): void {
+  if (!event.ctrlKey || event.deltaY === 0) return
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (fontSizeWheelResetTimer) window.clearTimeout(fontSizeWheelResetTimer)
+  fontSizeWheelResetTimer = window.setTimeout(() => {
+    fontSizeWheelDelta = 0
+    fontSizeWheelResetTimer = undefined
+  }, 220)
+
+  const deltaMultiplier =
+    event.deltaMode === event.DOM_DELTA_LINE
+      ? 16
+      : event.deltaMode === event.DOM_DELTA_PAGE
+        ? window.innerHeight
+        : 1
+  fontSizeWheelDelta += event.deltaY * deltaMultiplier
+
+  const steps = Math.trunc(fontSizeWheelDelta / 100)
+  if (steps === 0) return
+
+  fontSizeWheelDelta -= steps * 100
+  updateFontSize(terminalSettings.fontSize - steps)
 }
 
 function startTabDrag(event: DragEvent, tabId: string): void {
@@ -698,6 +727,7 @@ watch(
 
 onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown, true)
+  window.addEventListener('wheel', handleGlobalWheel, { capture: true, passive: false })
 
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
     tabs.value.some((tab) => updateTabPaneCwd(tab, id, cwd))
@@ -720,7 +750,9 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (layoutAnimationTimer) window.clearTimeout(layoutAnimationTimer)
+  if (fontSizeWheelResetTimer) window.clearTimeout(fontSizeWheelResetTimer)
   window.removeEventListener('keydown', handleGlobalKeydown, true)
+  window.removeEventListener('wheel', handleGlobalWheel, true)
   removeCwdListener?.()
 })
 </script>
