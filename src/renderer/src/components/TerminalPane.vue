@@ -324,17 +324,17 @@ onBeforeUnmount(() => {
         draggable="false"
         @dragstart.stop.prevent
       >
-        <NButton v-if="!hideActions" size="tiny" quaternary title="向下分屏" @click.stop="splitTo('bottom')">
-          <template #icon>
-            <NIcon>
-              <SplitHorizontal20Regular />
-            </NIcon>
-          </template>
-        </NButton>
         <NButton v-if="!hideActions" size="tiny" quaternary title="向右分屏" @click.stop="splitTo('right')">
           <template #icon>
             <NIcon>
               <SplitVertical20Regular />
+            </NIcon>
+          </template>
+        </NButton>
+        <NButton v-if="!hideActions" size="tiny" quaternary title="向下分屏" @click.stop="splitTo('bottom')">
+          <template #icon>
+            <NIcon>
+              <SplitHorizontal20Regular />
             </NIcon>
           </template>
         </NButton>
