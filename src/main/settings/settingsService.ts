@@ -8,10 +8,12 @@ import {
   TabBarMode,
   TerminalSettings,
   ThemeSettings,
+  WindowBoundsSettings,
   defaultPathFavoritesSettings,
   defaultTabBarMode,
   defaultTerminalSettings,
   defaultThemeSettings,
+  defaultWindowBoundsSettings,
   defaultZoomFactor,
   minZoomFactor,
   maxZoomFactor
@@ -110,6 +112,36 @@ function normalizeTabBarMode(value: unknown): TabBarMode {
   return value === 'vertical' || value === 'horizontal' ? value : defaultTabBarMode
 }
 
+function normalizeWindowDimension(value: unknown, fallback: number): number {
+  const dimension = Number(value)
+  if (!Number.isFinite(dimension)) return fallback
+  return Math.min(10000, Math.max(320, Math.round(dimension)))
+}
+
+function normalizeWindowPosition(value: unknown): number | undefined {
+  const position = Number(value)
+  if (!Number.isFinite(position)) return undefined
+  return Math.round(position)
+}
+
+function normalizeWindowBoundsSettings(value: unknown): WindowBoundsSettings {
+  const settings =
+    value && typeof value === 'object' ? (value as Partial<WindowBoundsSettings>) : {}
+  const x = normalizeWindowPosition(settings.x)
+  const y = normalizeWindowPosition(settings.y)
+
+  return {
+    width: normalizeWindowDimension(settings.width, defaultWindowBoundsSettings.width),
+    height: normalizeWindowDimension(settings.height, defaultWindowBoundsSettings.height),
+    ...(x === undefined ? {} : { x }),
+    ...(y === undefined ? {} : { y }),
+    isMaximized:
+      typeof settings.isMaximized === 'boolean'
+        ? settings.isMaximized
+        : defaultWindowBoundsSettings.isMaximized
+  }
+}
+
 function normalizeAppSettings(value: unknown): AppSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
   const legacyTerminalSettings =
@@ -120,7 +152,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
     theme: normalizeThemeSettings(settings.theme),
     pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
-    tabBarMode: normalizeTabBarMode(settings.tabBarMode)
+    tabBarMode: normalizeTabBarMode(settings.tabBarMode),
+    windowBounds: normalizeWindowBoundsSettings(settings.windowBounds)
   }
 }
 
@@ -188,4 +221,12 @@ export function readTabBarMode(): TabBarMode {
 
 export function writeTabBarMode(mode: TabBarMode): TabBarMode {
   return writeAppSettings({ ...readAppSettings(), tabBarMode: mode }).tabBarMode
+}
+
+export function readWindowBoundsSettings(): WindowBoundsSettings {
+  return readAppSettings().windowBounds
+}
+
+export function writeWindowBoundsSettings(settings: WindowBoundsSettings): WindowBoundsSettings {
+  return writeAppSettings({ ...readAppSettings(), windowBounds: settings }).windowBounds
 }

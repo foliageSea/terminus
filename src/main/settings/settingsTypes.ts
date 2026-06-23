@@ -23,12 +23,21 @@ export interface PathFavoritesSettings {
 
 export type TabBarMode = 'horizontal' | 'vertical'
 
+export interface WindowBoundsSettings {
+  width: number
+  height: number
+  x?: number
+  y?: number
+  isMaximized: boolean
+}
+
 export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
   pathFavorites: PathFavoritesSettings
   zoomFactor?: number
   tabBarMode: TabBarMode
+  windowBounds: WindowBoundsSettings
 }
 
 export const defaultTerminalSettings: TerminalSettings = {
@@ -53,3 +62,8 @@ export const minZoomFactor = 0.5
 export const maxZoomFactor = 3.0
 export const zoomStep = 0.1
 export const defaultTabBarMode: TabBarMode = 'horizontal'
+export const defaultWindowBoundsSettings: WindowBoundsSettings = {
+  width: 900,
+  height: 670,
+  isMaximized: false
+}
