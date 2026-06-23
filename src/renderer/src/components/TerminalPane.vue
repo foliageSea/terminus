@@ -48,6 +48,7 @@ let resizeObserver: ResizeObserver | undefined
 let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
 let copyBubbleTimer: number | undefined
+let resizeTimer: number | undefined
 let suppressedExitMessages = 0
 
 function splitTo(side: PaneSide): void {
@@ -256,7 +257,13 @@ onMounted(async () => {
     terminal?.writeln('\r\n[process exited]')
   })
 
-  resizeObserver = new ResizeObserver(() => fit())
+  resizeObserver = new ResizeObserver(() => {
+    if (resizeTimer) window.clearTimeout(resizeTimer)
+    resizeTimer = window.setTimeout(() => {
+      resizeTimer = undefined
+      fit()
+    }, 16)
+  })
   resizeObserver.observe(host.value)
 
   await createPty()
@@ -281,6 +288,7 @@ watch(
 
 onBeforeUnmount(() => {
   if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
+  if (resizeTimer) window.clearTimeout(resizeTimer)
   removeDataListener?.()
   removeExitListener?.()
   resizeObserver?.disconnect()
