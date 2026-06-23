@@ -41,7 +41,7 @@ export const defaultTerminalSettings: TerminalSettings = {
 }
 
 export const defaultThemeSettings: ThemeSettings = {
-  primaryColor: '#63e2b7'
+  primaryColor: '#8d9dd5'
 }
 
 export const defaultPathFavoritesSettings: PathFavoritesSettings = {

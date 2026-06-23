@@ -15,6 +15,8 @@ app.setName(effectiveName)
 app.setPath('userData', join(app.getPath('appData'), effectiveName))
 app.setPath('sessionData', join(app.getPath('userData'), 'Session Data'))
 
+console.log(`[Terminus] Data directory: ${app.getPath('userData')}`)
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
 
 if (!gotSingleInstanceLock) {
