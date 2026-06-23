@@ -269,11 +269,13 @@ button {
 
 .workspace-tab-sidebar {
   display: flex;
-  flex: 0 0 172px;
+  flex: 0 0 var(--vertical-tab-sidebar-width, 172px);
   flex-direction: column;
   gap: 6px;
+  width: var(--vertical-tab-sidebar-width, 172px);
   height: 100%;
-  min-width: 0;
+  min-width: 140px;
+  max-width: 320px;
   padding: 8px 0 8px 8px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -296,6 +298,38 @@ button {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);
   background-clip: content-box;
+}
+
+.workspace-tab-sidebar-resizer {
+  position: relative;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.workspace-tab-sidebar-resizer::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(-50%);
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    width 160ms ease;
+  content: '';
+}
+
+.workspace-tab-sidebar-resizer:hover::after,
+.workspace-tab-sidebar-resizer.active::after {
+  width: 3px;
+  background: color-mix(in srgb, var(--terminal-active-color) 72%, rgba(255, 255, 255, 0.22));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--terminal-active-color) 28%, transparent);
 }
 
 .workspace-tab-item {
@@ -827,10 +861,6 @@ button {
     grid-template-columns: 66px minmax(0, 1fr) auto;
     gap: 8px;
     padding-left: 10px;
-  }
-
-  .workspace-tab-sidebar {
-    flex-basis: 128px;
   }
 
   .workspace-tab-item {

@@ -67,6 +67,9 @@ const defaultTerminalSettings: TerminalSettings = {
 const defaultPathFavoritesSettings: PathFavoritesSettings = {
   items: []
 }
+const defaultVerticalTabBarWidth = 172
+const minVerticalTabBarWidth = 140
+const maxVerticalTabBarWidth = 320
 
 function createId(prefix: string): string {
   nextId += 1
@@ -118,8 +121,11 @@ const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings
 const terminalSettingsLoaded = ref(false)
 const pathFavorites = reactive<PathFavoritesSettings>({ ...defaultPathFavoritesSettings })
 const pathFavoritesLoaded = ref(false)
+const verticalTabBarWidth = ref(defaultVerticalTabBarWidth)
+const sidebarResizeActive = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
+let removeSidebarResizeListeners: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
 let fontSizeWheelDelta = 0
 let fontSizeWheelResetTimer: number | undefined
@@ -151,6 +157,13 @@ const workspaceThemeStyle = computed(() => ({
 const workspaceHeaderStyle = computed(() => ({
   backdropFilter: `blur(${terminalSettings.backgroundBlur}px)`
 }))
+const workspaceMainStyle = computed(() => ({
+  '--vertical-tab-sidebar-width': `${verticalTabBarWidth.value}px`
+}))
+const workspaceTabSidebarStyle = computed(() => ({
+  width: `${verticalTabBarWidth.value}px`,
+  flexBasis: `${verticalTabBarWidth.value}px`
+}))
 const workspaceBackgroundStyle = computed(() => {
   if (!terminalSettings.backgroundImageEnabled) return undefined
   if (!terminalBackgroundUrl.value) return undefined
@@ -179,6 +192,10 @@ const terminalBackgroundName = computed(() =>
 function toHexAlpha(opacity: number): string {
   const alpha = Math.min(255, Math.max(0, Math.round((opacity / 100) * 255)))
   return alpha.toString(16).padStart(2, '0')
+}
+
+function clampVerticalTabBarWidth(value: number): number {
+  return Math.min(maxVerticalTabBarWidth, Math.max(minVerticalTabBarWidth, Math.round(value)))
 }
 
 function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | undefined {
@@ -341,6 +358,56 @@ function switchPane(): void {
 
 async function updateTabBarMode(value: TabBarMode): Promise<void> {
   tabBarMode.value = await window.api.settings.setTabBarMode(value)
+}
+
+function setVerticalTabBarWidth(value: number): number {
+  const nextWidth = clampVerticalTabBarWidth(value)
+  verticalTabBarWidth.value = nextWidth
+  return nextWidth
+}
+
+function cleanupSidebarResize(): void {
+  removeSidebarResizeListeners?.()
+  removeSidebarResizeListeners = undefined
+  sidebarResizeActive.value = false
+}
+
+function startVerticalTabBarResize(event: PointerEvent): void {
+  if (tabBarMode.value !== 'vertical') return
+
+  const workspaceMain = (event.currentTarget as HTMLElement).parentElement
+  if (!workspaceMain) return
+
+  const rect = workspaceMain.getBoundingClientRect()
+
+  event.preventDefault()
+  cleanupSidebarResize()
+  sidebarResizeActive.value = true
+  setVerticalTabBarWidth(event.clientX - rect.left)
+
+  const onMove = (moveEvent: PointerEvent): void => {
+    setVerticalTabBarWidth(moveEvent.clientX - rect.left)
+  }
+
+  const onUp = (): void => {
+    cleanupSidebarResize()
+    void window.api.settings
+      .setVerticalTabBarWidth(verticalTabBarWidth.value)
+      .then((width) => setVerticalTabBarWidth(width))
+  }
+
+  const onCancel = (): void => {
+    cleanupSidebarResize()
+  }
+
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp, { once: true })
+  window.addEventListener('pointercancel', onCancel, { once: true })
+  removeSidebarResizeListeners = () => {
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onCancel)
+  }
 }
 
 function handleGlobalKeydown(event: KeyboardEvent): void {
@@ -734,6 +801,9 @@ onMounted(async () => {
   })
 
   tabBarMode.value = await window.api.settings.getTabBarMode()
+  verticalTabBarWidth.value = clampVerticalTabBarWidth(
+    await window.api.settings.getVerticalTabBarWidth()
+  )
 
   const savedSettings = await window.api.settings.getTerminal()
   Object.assign(terminalSettings, savedSettings)
@@ -751,6 +821,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (layoutAnimationTimer) window.clearTimeout(layoutAnimationTimer)
   if (fontSizeWheelResetTimer) window.clearTimeout(fontSizeWheelResetTimer)
+  cleanupSidebarResize()
   window.removeEventListener('keydown', handleGlobalKeydown, true)
   window.removeEventListener('wheel', handleGlobalWheel, true)
   removeCwdListener?.()
@@ -875,10 +946,11 @@ onBeforeUnmount(() => {
       />
     </NModal>
 
-    <div class="workspace-main" :class="`tab-bar-${tabBarMode}`">
+    <div class="workspace-main" :class="`tab-bar-${tabBarMode}`" :style="workspaceMainStyle">
       <aside
         v-show="tabBarMode === 'vertical'"
         class="workspace-tab-sidebar"
+        :style="workspaceTabSidebarStyle"
         aria-label="垂直标签栏"
         @dragover="handleTabListDragOver"
         @drop="dropTabAtEnd"
@@ -916,6 +988,15 @@ onBeforeUnmount(() => {
           </span>
         </button>
       </aside>
+      <div
+        v-show="tabBarMode === 'vertical'"
+        class="workspace-tab-sidebar-resizer"
+        :class="{ active: sidebarResizeActive }"
+        role="separator"
+        aria-label="调整垂直标签栏宽度"
+        aria-orientation="vertical"
+        @pointerdown="startVerticalTabBarResize"
+      />
 
       <main class="workspace-body">
         <div

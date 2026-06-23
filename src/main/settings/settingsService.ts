@@ -13,10 +13,13 @@ import {
   defaultTabBarMode,
   defaultTerminalSettings,
   defaultThemeSettings,
+  defaultVerticalTabBarWidth,
   defaultWindowBoundsSettings,
   defaultZoomFactor,
-  minZoomFactor,
-  maxZoomFactor
+  maxVerticalTabBarWidth,
+  maxZoomFactor,
+  minVerticalTabBarWidth,
+  minZoomFactor
 } from './settingsTypes'
 
 const maxPathFavorites = 50
@@ -112,6 +115,12 @@ function normalizeTabBarMode(value: unknown): TabBarMode {
   return value === 'vertical' || value === 'horizontal' ? value : defaultTabBarMode
 }
 
+function normalizeVerticalTabBarWidth(value: unknown): number {
+  const width = Number(value)
+  if (!Number.isFinite(width)) return defaultVerticalTabBarWidth
+  return Math.min(maxVerticalTabBarWidth, Math.max(minVerticalTabBarWidth, Math.round(width)))
+}
+
 function normalizeWindowDimension(value: unknown, fallback: number): number {
   const dimension = Number(value)
   if (!Number.isFinite(dimension)) return fallback
@@ -153,6 +162,7 @@ function normalizeAppSettings(value: unknown): AppSettings {
     pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
     tabBarMode: normalizeTabBarMode(settings.tabBarMode),
+    verticalTabBarWidth: normalizeVerticalTabBarWidth(settings.verticalTabBarWidth),
     windowBounds: normalizeWindowBoundsSettings(settings.windowBounds)
   }
 }
@@ -221,6 +231,14 @@ export function readTabBarMode(): TabBarMode {
 
 export function writeTabBarMode(mode: TabBarMode): TabBarMode {
   return writeAppSettings({ ...readAppSettings(), tabBarMode: mode }).tabBarMode
+}
+
+export function readVerticalTabBarWidth(): number {
+  return readAppSettings().verticalTabBarWidth
+}
+
+export function writeVerticalTabBarWidth(width: number): number {
+  return writeAppSettings({ ...readAppSettings(), verticalTabBarWidth: width }).verticalTabBarWidth
 }
 
 export function readWindowBoundsSettings(): WindowBoundsSettings {

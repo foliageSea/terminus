@@ -37,6 +37,7 @@ export interface AppSettings {
   pathFavorites: PathFavoritesSettings
   zoomFactor?: number
   tabBarMode: TabBarMode
+  verticalTabBarWidth: number
   windowBounds: WindowBoundsSettings
 }
 
@@ -62,6 +63,9 @@ export const minZoomFactor = 0.5
 export const maxZoomFactor = 3.0
 export const zoomStep = 0.1
 export const defaultTabBarMode: TabBarMode = 'horizontal'
+export const defaultVerticalTabBarWidth = 172
+export const minVerticalTabBarWidth = 140
+export const maxVerticalTabBarWidth = 320
 export const defaultWindowBoundsSettings: WindowBoundsSettings = {
   width: 900,
   height: 670,

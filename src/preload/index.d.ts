@@ -65,6 +65,8 @@ export interface SettingsApi {
   setZoomFactor: (factor: number) => Promise<number>
   getTabBarMode: () => Promise<TabBarMode>
   setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
+  getVerticalTabBarWidth: () => Promise<number>
+  setVerticalTabBarWidth: (width: number) => Promise<number>
 }
 
 export interface AppApi {

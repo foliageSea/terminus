@@ -13,10 +13,12 @@ import {
   readTerminalSettings,
   readThemeSettings,
   readZoomFactor,
+  readVerticalTabBarWidth,
   writePathFavoritesSettings,
   writeTabBarMode,
   writeTerminalSettings,
   writeThemeSettings,
+  writeVerticalTabBarWidth,
   writeZoomFactor
 } from '../settings/settingsService'
 import { writeOpencodeSystemTheme } from '../opencode/systemTheme'
@@ -83,4 +85,8 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:set-zoom-factor', (_, factor: number) => writeZoomFactor(factor))
   ipcMain.handle('settings:get-tab-bar-mode', () => readTabBarMode())
   ipcMain.handle('settings:set-tab-bar-mode', (_, mode: TabBarMode) => writeTabBarMode(mode))
+  ipcMain.handle('settings:get-vertical-tab-bar-width', () => readVerticalTabBarWidth())
+  ipcMain.handle('settings:set-vertical-tab-bar-width', (_, width: number) =>
+    writeVerticalTabBarWidth(width)
+  )
 }
