@@ -93,6 +93,26 @@ function updateWindowControlsStyle(value: string): void {
   }
 }
 
+function clampRangeValue(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+function handleSliderWheel(
+  event: WheelEvent,
+  currentValue: number,
+  min: number,
+  max: number,
+  update: (value: number) => void
+): void {
+  if (event.deltaY === 0) return
+
+  event.preventDefault()
+  event.stopPropagation()
+
+  const nextValue = clampRangeValue(currentValue + (event.deltaY < 0 ? 1 : -1), min, max)
+  if (nextValue !== currentValue) update(nextValue)
+}
+
 function changeSection(section: SettingsSection): void {
   if (section !== 'shortcuts' && recordingActionId.value) {
     cancelShortcutRecording()
@@ -317,7 +337,18 @@ onBeforeUnmount(() => {
             </div>
           </NFormItem>
           <NFormItem label="背景遮罩" path="backgroundOpacity">
-            <div class="settings-range-control">
+            <div
+              class="settings-range-control"
+              @wheel="
+                handleSliderWheel(
+                  $event,
+                  terminalSettings.backgroundOpacity,
+                  0,
+                  100,
+                  (value) => emit('updateBackgroundOpacity', value)
+                )
+              "
+            >
               <NSlider
                 :value="terminalSettings.backgroundOpacity"
                 :min="0"
@@ -329,7 +360,18 @@ onBeforeUnmount(() => {
             </div>
           </NFormItem>
           <NFormItem label="背景模糊" path="backgroundBlur">
-            <div class="settings-range-control">
+            <div
+              class="settings-range-control"
+              @wheel="
+                handleSliderWheel(
+                  $event,
+                  terminalSettings.backgroundBlur,
+                  0,
+                  40,
+                  (value) => emit('updateBackgroundBlur', value)
+                )
+              "
+            >
               <NSlider
                 :value="terminalSettings.backgroundBlur"
                 :min="0"
