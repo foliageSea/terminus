@@ -1,4 +1,5 @@
 import type { ShortcutSettings } from '../../shared/shortcuts'
+export type { ShortcutSettings } from '../../shared/shortcuts'
 import { cloneShortcutSettings, defaultShortcutSettings } from '../../shared/shortcuts'
 
 export interface TerminalSettings {
