@@ -144,8 +144,8 @@ function applyTerminalSettings(): void {
   fit()
 }
 
-function currentRendererMode(): 'WebGL' | 'Canvas' {
-  return props.terminalSettings.webglEnabled ? 'WebGL' : 'Canvas'
+function currentRendererMode(): 'WEBGL' | 'CANVAS' {
+  return props.terminalSettings.webglEnabled ? 'WEBGL' : 'CANVAS'
 }
 
 function disableWebgl(): void {
