@@ -1,5 +1,6 @@
 import { clipboard, contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { ShortcutSettings } from '../shared/shortcuts'
 
 // Custom APIs for renderer
 const api = {
@@ -40,6 +41,8 @@ const api = {
     getPathFavorites: () => ipcRenderer.invoke('settings:get-path-favorites'),
     setPathFavorites: (settings: { items: { id: string; name: string; path: string }[] }) =>
       ipcRenderer.invoke('settings:set-path-favorites', settings),
+    getShortcuts: () => ipcRenderer.invoke('settings:get-shortcuts'),
+    setShortcuts: (settings: ShortcutSettings) => ipcRenderer.invoke('settings:set-shortcuts', settings),
     getZoomFactor: () => ipcRenderer.invoke('settings:get-zoom-factor'),
     setZoomFactor: (factor: number) => ipcRenderer.invoke('settings:set-zoom-factor', factor),
     getTabBarMode: () => ipcRenderer.invoke('settings:get-tab-bar-mode'),

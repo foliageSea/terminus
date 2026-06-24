@@ -1,6 +1,22 @@
 <script setup lang="ts">
 import { NButton, NIcon, NPopover } from 'naive-ui'
 import { QuestionCircle20Regular } from '@vicons/fluent'
+import {
+  formatShortcutBindingTokens,
+  shortcutActionDefinitions,
+  shortcutGroupLabels
+} from '../../../shared/shortcuts'
+import type { ShortcutGroupId, ShortcutSettings } from '../../../shared/shortcuts'
+
+const props = defineProps<{
+  shortcuts: ShortcutSettings
+}>()
+
+const shortcutGroups = Object.entries(shortcutGroupLabels).map(([id, label]) => ({
+  id: id as ShortcutGroupId,
+  label,
+  actions: shortcutActionDefinitions.filter((action) => action.group === id)
+}))
 </script>
 
 <template>
@@ -16,20 +32,18 @@ import { QuestionCircle20Regular } from '@vicons/fluent'
     </template>
 
     <div class="shortcut-popover" aria-label="快捷键列表">
-      <div class="shortcut-section-title">快捷键</div>
-      <div class="shortcut-row"><span>新建 Tab</span><kbd>Ctrl</kbd><kbd>T</kbd></div>
-      <div class="shortcut-row"><span>下一个 Tab</span><kbd>Ctrl</kbd><kbd>Tab</kbd></div>
-      <div class="shortcut-row">
-        <span>上一个 Tab</span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Tab</kbd>
+      <template v-for="group in shortcutGroups" :key="group.id">
+        <div class="shortcut-section-title">{{ group.label }}</div>
+        <div v-for="action in group.actions" :key="action.id" class="shortcut-row">
+          <span>{{ action.label }}</span>
+          <kbd v-for="token in formatShortcutBindingTokens(props.shortcuts[action.id])" :key="token">
+            {{ token }}
+          </kbd>
+        </div>
+      </template>
+      <div class="shortcut-note">
+        复制支持 `Alt + C`，粘贴支持当前设置以及终端常见的 `Alt + V` / `Ctrl + V`
       </div>
-      <div class="shortcut-row"><span>切换分屏焦点</span><kbd>Ctrl</kbd><kbd>`</kbd></div>
-      <div class="shortcut-row"><span>关闭当前分屏</span><kbd>Ctrl</kbd><kbd>W</kbd></div>
-      <div class="shortcut-row"><span>最小化窗口</span><kbd>Alt</kbd><kbd>H</kbd></div>
-      <div class="shortcut-row"><span>复制选中文本</span><kbd>Alt</kbd><kbd>C</kbd></div>
-      <div class="shortcut-row"><span>粘贴</span><kbd>Ctrl</kbd><kbd>V</kbd></div>
-      <div class="shortcut-row"><span>放大</span><kbd>Alt</kbd><kbd>+</kbd></div>
-      <div class="shortcut-row"><span>缩小</span><kbd>Alt</kbd><kbd>-</kbd></div>
-      <div class="shortcut-row"><span>重置缩放</span><kbd>Alt</kbd><kbd>0</kbd></div>
     </div>
   </NPopover>
 </template>
@@ -38,7 +52,7 @@ import { QuestionCircle20Regular } from '@vicons/fluent'
 .shortcut-popover {
   display: grid;
   gap: 8px;
-  width: 240px;
+  width: 280px;
   padding: 4px;
 }
 
@@ -67,5 +81,12 @@ import { QuestionCircle20Regular } from '@vicons/fluent'
   font-size: 11px;
   line-height: 18px;
   text-align: center;
+}
+
+.shortcut-note {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 11px;
+  line-height: 1.5;
 }
 </style>

@@ -1,3 +1,5 @@
+import type { ShortcutBinding, ShortcutSettings } from '../../../shared/shortcuts'
+
 export type SplitDirection = 'horizontal' | 'vertical'
 
 export type TabBarMode = 'horizontal' | 'vertical'
@@ -10,7 +12,7 @@ export type DropSide = PaneSide
 
 export type TabType = 'terminal' | 'settings'
 
-export type SettingsSection = 'appearance' | 'font' | 'render' | 'background'
+export type SettingsSection = 'appearance' | 'font' | 'render' | 'background' | 'shortcuts'
 
 export interface PaneDropPayload {
   sourceNodeId: string
@@ -84,3 +86,5 @@ export interface WindowBoundsSettings {
   y?: number
   isMaximized: boolean
 }
+
+export type { ShortcutBinding, ShortcutSettings }

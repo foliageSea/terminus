@@ -1,3 +1,6 @@
+import type { ShortcutSettings } from '../../shared/shortcuts'
+import { cloneShortcutSettings, defaultShortcutSettings } from '../../shared/shortcuts'
+
 export interface TerminalSettings {
   fontFamily: string
   fontSize: number
@@ -39,6 +42,7 @@ export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
   pathFavorites: PathFavoritesSettings
+  shortcuts: ShortcutSettings
   zoomFactor?: number
   tabBarMode: TabBarMode
   windowControlsStyle: WindowControlsStyle
@@ -63,6 +67,9 @@ export const defaultThemeSettings: ThemeSettings = {
 export const defaultPathFavoritesSettings: PathFavoritesSettings = {
   items: []
 }
+
+export const defaultShortcutSettingsValue: ShortcutSettings =
+  cloneShortcutSettings(defaultShortcutSettings)
 
 export const defaultZoomFactor = 1.0
 export const minZoomFactor = 0.5

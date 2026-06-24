@@ -5,12 +5,14 @@ import {
   AppSettings,
   PathFavorite,
   PathFavoritesSettings,
+  ShortcutSettings,
   TabBarMode,
   TerminalSettings,
   ThemeSettings,
   WindowBoundsSettings,
   WindowControlsStyle,
   defaultPathFavoritesSettings,
+  defaultShortcutSettingsValue,
   defaultTabBarMode,
   defaultTerminalSettings,
   defaultThemeSettings,
@@ -23,6 +25,14 @@ import {
   minVerticalTabBarWidth,
   minZoomFactor
 } from './settingsTypes'
+import {
+  cloneShortcutSettings,
+  createShortcutSignature,
+  defaultShortcutSettings,
+  hasPrimaryModifier,
+  normalizeShortcutBinding,
+  shortcutActionIds
+} from '../../shared/shortcuts'
 
 const maxPathFavorites = 50
 
@@ -111,6 +121,41 @@ function normalizePathFavoritesSettings(value: unknown): PathFavoritesSettings {
   return { items: normalizedItems }
 }
 
+function normalizeShortcutSettings(value: unknown): ShortcutSettings {
+  const settings = value && typeof value === 'object' ? (value as Partial<ShortcutSettings>) : {}
+  const normalizedSettings = cloneShortcutSettings(defaultShortcutSettingsValue)
+  const signatures = new Set<string>(
+    shortcutActionIds.map((actionId) =>
+      createShortcutSignature(defaultShortcutSettingsValue[actionId])
+    )
+  )
+
+  for (const actionId of shortcutActionIds) {
+    const fallbackBinding = defaultShortcutSettings[actionId]
+    const fallbackSignature = createShortcutSignature(fallbackBinding)
+    signatures.delete(fallbackSignature)
+
+    const binding = normalizeShortcutBinding(settings[actionId], defaultShortcutSettings[actionId])
+    if (!hasPrimaryModifier(binding)) {
+      normalizedSettings[actionId] = fallbackBinding
+      signatures.add(fallbackSignature)
+      continue
+    }
+
+    const signature = createShortcutSignature(binding)
+    if (signatures.has(signature)) {
+      normalizedSettings[actionId] = fallbackBinding
+      signatures.add(fallbackSignature)
+      continue
+    }
+
+    normalizedSettings[actionId] = binding
+    signatures.add(signature)
+  }
+
+  return normalizedSettings
+}
+
 function normalizeZoomFactor(value: unknown): number {
   const factor = Number(value)
   if (!Number.isFinite(factor)) return defaultZoomFactor
@@ -177,6 +222,7 @@ function normalizeAppSettings(value: unknown): AppSettings {
     terminal: normalizeTerminalSettings(settings.terminal ?? legacyTerminalSettings),
     theme: normalizeThemeSettings(settings.theme),
     pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
+    shortcuts: normalizeShortcutSettings(settings.shortcuts),
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
     tabBarMode: normalizeTabBarMode(settings.tabBarMode),
     windowControlsStyle: normalizeWindowControlsStyle(settings.windowControlsStyle),
@@ -236,6 +282,15 @@ export function writePathFavoritesSettings(settings: PathFavoritesSettings): Pat
 
 export function readZoomFactor(): number {
   return readAppSettings().zoomFactor ?? defaultZoomFactor
+}
+
+export function readShortcutSettings(): ShortcutSettings {
+  return readAppSettings().shortcuts
+}
+
+export function writeShortcutSettings(settings: ShortcutSettings): ShortcutSettings {
+  const nextSettings = writeAppSettings({ ...readAppSettings(), shortcuts: settings })
+  return nextSettings.shortcuts
 }
 
 export function writeZoomFactor(factor: number): number {

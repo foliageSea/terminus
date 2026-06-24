@@ -3,6 +3,7 @@ import { extname } from 'path'
 import { existsSync, readFileSync, statSync } from 'fs'
 import type {
   PathFavoritesSettings,
+  ShortcutSettings,
   TabBarMode,
   TerminalSettings,
   ThemeSettings,
@@ -11,6 +12,7 @@ import type {
 } from '../settings/settingsTypes'
 import {
   readPathFavoritesSettings,
+  readShortcutSettings,
   readTabBarMode,
   readTerminalSettings,
   readThemeSettings,
@@ -19,6 +21,7 @@ import {
   readZoomFactor,
   readVerticalTabBarWidth,
   writePathFavoritesSettings,
+  writeShortcutSettings,
   writeTabBarMode,
   writeTerminalSettings,
   writeThemeSettings,
@@ -86,6 +89,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-path-favorites', () => readPathFavoritesSettings())
   ipcMain.handle('settings:set-path-favorites', (_, settings: PathFavoritesSettings) =>
     writePathFavoritesSettings(settings)
+  )
+  ipcMain.handle('settings:get-shortcuts', () => readShortcutSettings())
+  ipcMain.handle('settings:set-shortcuts', (_, settings: ShortcutSettings) =>
+    writeShortcutSettings(settings)
   )
   ipcMain.handle('settings:get-zoom-factor', () => readZoomFactor())
   ipcMain.handle('settings:set-zoom-factor', (_, factor: number) => writeZoomFactor(factor))

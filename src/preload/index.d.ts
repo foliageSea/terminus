@@ -1,4 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
+import type { ShortcutSettings } from '../shared/shortcuts'
 
 export interface TerminalApi {
   create: (id: string, cols?: number, rows?: number, cwd?: string) => Promise<void>
@@ -75,6 +76,8 @@ export interface SettingsApi {
   setTheme: (settings: ThemeSettings) => Promise<ThemeSettings>
   getPathFavorites: () => Promise<PathFavoritesSettings>
   setPathFavorites: (settings: PathFavoritesSettings) => Promise<PathFavoritesSettings>
+  getShortcuts: () => Promise<ShortcutSettings>
+  setShortcuts: (settings: ShortcutSettings) => Promise<ShortcutSettings>
   getZoomFactor: () => Promise<number>
   setZoomFactor: (factor: number) => Promise<number>
   getTabBarMode: () => Promise<TabBarMode>

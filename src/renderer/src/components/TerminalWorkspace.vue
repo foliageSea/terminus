@@ -28,6 +28,7 @@ import type {
   PathFavoritesSettings,
   PaneNode,
   SettingsTab,
+  ShortcutSettings,
   Tab,
   TabBarMode,
   TerminalSettings,
@@ -35,6 +36,12 @@ import type {
   WindowBoundsSettings,
   WindowControlsStyle
 } from '../types/terminal'
+import {
+  cloneShortcutSettings,
+  defaultShortcutSettings,
+  matchesShortcut,
+  matchesShortcutWithShiftAlias
+} from '../../../shared/shortcuts'
 import {
   closePane,
   collectPaneIds,
@@ -73,6 +80,7 @@ const defaultTerminalSettings: TerminalSettings = {
 const defaultPathFavoritesSettings: PathFavoritesSettings = {
   items: []
 }
+const defaultShortcutSettingsValue: ShortcutSettings = cloneShortcutSettings(defaultShortcutSettings)
 const defaultVerticalTabBarWidth = 172
 const minVerticalTabBarWidth = 140
 const maxVerticalTabBarWidth = 320
@@ -157,6 +165,9 @@ const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings
 const terminalSettingsLoaded = ref(false)
 const pathFavorites = reactive<PathFavoritesSettings>({ ...defaultPathFavoritesSettings })
 const pathFavoritesLoaded = ref(false)
+const shortcuts = reactive<ShortcutSettings>(cloneShortcutSettings(defaultShortcutSettingsValue))
+const shortcutsLoaded = ref(false)
+const shortcutRecording = ref(false)
 const windowBoundsSettings = reactive<WindowBoundsSettings>({ ...defaultWindowBoundsSettings })
 const verticalTabBarWidth = ref(defaultVerticalTabBarWidth)
 const sidebarResizeActive = ref(false)
@@ -484,55 +495,51 @@ function startVerticalTabBarResize(event: PointerEvent): void {
 }
 
 function handleGlobalKeydown(event: KeyboardEvent): void {
-  if (renameDialogVisible.value) return
+  if (renameDialogVisible.value || shortcutRecording.value) return
 
-  if (event.key.toLowerCase() === 'h' && event.altKey && !event.ctrlKey && !event.metaKey) {
+  if (matchesShortcut(event, shortcuts.minimizeWindow)) {
     event.preventDefault()
     event.stopPropagation()
     minimizeWindow()
     return
   }
 
-  if (event.altKey && !event.ctrlKey && !event.metaKey) {
-    if (event.key === '=' || event.key === '+') {
-      event.preventDefault()
-      event.stopPropagation()
-      zoomIn()
-      return
-    }
-
-    if (event.key === '-') {
-      event.preventDefault()
-      event.stopPropagation()
-      zoomOut()
-      return
-    }
-
-    if (event.key === '0') {
-      event.preventDefault()
-      event.stopPropagation()
-      zoomReset()
-      return
-    }
+  if (matchesShortcutWithShiftAlias(event, shortcuts.zoomIn)) {
+    event.preventDefault()
+    event.stopPropagation()
+    zoomIn()
+    return
   }
 
-  if (!event.ctrlKey || event.altKey || event.metaKey) return
+  if (matchesShortcut(event, shortcuts.zoomOut)) {
+    event.preventDefault()
+    event.stopPropagation()
+    zoomOut()
+    return
+  }
 
-  if (event.code === 'Backquote') {
+  if (matchesShortcut(event, shortcuts.zoomReset)) {
+    event.preventDefault()
+    event.stopPropagation()
+    zoomReset()
+    return
+  }
+
+  if (matchesShortcut(event, shortcuts.switchPane)) {
     event.preventDefault()
     event.stopPropagation()
     switchPane()
     return
   }
 
-  if (event.key.toLowerCase() === 't' && !event.shiftKey) {
+  if (matchesShortcut(event, shortcuts.newTab)) {
     event.preventDefault()
     event.stopPropagation()
     addTab()
     return
   }
 
-  if (event.key.toLowerCase() === 'w') {
+  if (matchesShortcut(event, shortcuts.closePane)) {
     event.preventDefault()
     event.stopPropagation()
     const tab = activeTab.value
@@ -542,11 +549,18 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
     return
   }
 
-  if (event.key !== 'Tab') return
+  if (matchesShortcut(event, shortcuts.nextTab)) {
+    event.preventDefault()
+    event.stopPropagation()
+    switchTab(1)
+    return
+  }
 
-  event.preventDefault()
-  event.stopPropagation()
-  switchTab(event.shiftKey ? -1 : 1)
+  if (matchesShortcut(event, shortcuts.previousTab)) {
+    event.preventDefault()
+    event.stopPropagation()
+    switchTab(-1)
+  }
 }
 
 function handleGlobalWheel(event: WheelEvent): void {
@@ -884,6 +898,15 @@ watch(
   { deep: true }
 )
 
+watch(
+  shortcuts,
+  async () => {
+    if (!shortcutsLoaded.value) return
+    await window.api.settings.setShortcuts(cloneShortcutSettings(shortcuts))
+  },
+  { deep: true }
+)
+
 onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown, true)
   window.addEventListener('wheel', handleGlobalWheel, { capture: true, passive: false })
@@ -909,6 +932,10 @@ onMounted(async () => {
   const savedPathFavorites = await window.api.settings.getPathFavorites()
   Object.assign(pathFavorites, savedPathFavorites)
   pathFavoritesLoaded.value = true
+
+  const savedShortcuts = await window.api.settings.getShortcuts()
+  Object.assign(shortcuts, savedShortcuts)
+  shortcutsLoaded.value = true
 
   const savedWindowBoundsSettings = await window.api.settings.getWindowBounds()
   Object.assign(windowBoundsSettings, savedWindowBoundsSettings)
@@ -1025,7 +1052,7 @@ onBeforeUnmount(() => {
             </NIcon>
           </template>
         </NButton>
-        <ShortcutHelpPopover />
+        <ShortcutHelpPopover :shortcuts="shortcuts" />
       </div>
     </NLayoutHeader>
 
@@ -1119,6 +1146,7 @@ onBeforeUnmount(() => {
               :active-pane-id="tab.activePaneId"
               :layout-version="tab.layoutVersion"
               :terminal-settings="terminalSettings"
+              :shortcuts="shortcuts"
               :animated-pane-id="animatedPaneId"
               :animated-node-id="animatedNodeId"
               @activate="tab.activePaneId = $event"
@@ -1137,6 +1165,7 @@ onBeforeUnmount(() => {
                 :cwd="pane.cwd"
                 :active="tab.id === activeTabId && pane.id === tab.activePaneId"
                 :terminal-settings="terminalSettings"
+                :shortcuts="shortcuts"
                 :animated-pane-id="animatedPaneId"
                 :animated-node-id="animatedNodeId"
                 @activate="tab.activePaneId = $event"
@@ -1148,6 +1177,7 @@ onBeforeUnmount(() => {
           </template>
           <SettingsView
             v-else-if="tab.type === 'settings'"
+            :active="tab.id === activeTabId"
             :active-section="tab.activeSection"
             :primary-color="props.primaryColor"
             :tab-bar-mode="tabBarMode"
@@ -1155,6 +1185,7 @@ onBeforeUnmount(() => {
             :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
             :terminal-settings="terminalSettings"
             :terminal-background-name="terminalBackgroundName"
+            :shortcuts="shortcuts"
             @update-active-section="tab.activeSection = $event"
             @update-primary-color="updatePrimaryColor"
             @update-tab-bar-mode="updateTabBarMode"
@@ -1169,6 +1200,9 @@ onBeforeUnmount(() => {
             @clear-background="clearTerminalBackground"
             @update-background-opacity="updateBackgroundOpacity"
             @update-background-blur="updateBackgroundBlur"
+            @update-shortcuts="Object.assign(shortcuts, $event)"
+            @reset-shortcuts="Object.assign(shortcuts, cloneShortcutSettings(defaultShortcutSettingsValue))"
+            @update-shortcut-recording="shortcutRecording = $event"
           />
         </div>
       </main>

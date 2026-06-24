@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { clearDraggingNodeId, dragDataType, setDraggingNodeId } from './paneDragState'
-import type { PaneDropPayload, PaneNode, PaneSide, TerminalSettings } from '../types/terminal'
+import type {
+  PaneDropPayload,
+  PaneNode,
+  PaneSide,
+  ShortcutSettings,
+  TerminalSettings
+} from '../types/terminal'
 
 const props = defineProps<{
   node: PaneNode
   activePaneId: string
   layoutVersion: number
   terminalSettings: TerminalSettings
+  shortcuts: ShortcutSettings
   animatedPaneId?: string
   animatedNodeId?: string
 }>()
@@ -94,6 +101,7 @@ function finishGroupDrag(): void {
         :active-pane-id="activePaneId"
         :layout-version="layoutVersion"
         :terminal-settings="terminalSettings"
+        :shortcuts="shortcuts"
         :animated-pane-id="animatedPaneId"
         :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"
@@ -109,6 +117,7 @@ function finishGroupDrag(): void {
         :active-pane-id="activePaneId"
         :layout-version="layoutVersion"
         :terminal-settings="terminalSettings"
+        :shortcuts="shortcuts"
         :animated-pane-id="animatedPaneId"
         :animated-node-id="animatedNodeId"
         @activate="emit('activate', $event)"

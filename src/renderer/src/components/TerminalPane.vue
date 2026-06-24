@@ -19,12 +19,15 @@ import {
   setDraggingNodeId
 } from './paneDragState'
 import type { DropSide, PaneDropPayload, PaneSide, TerminalSettings } from '../types/terminal'
+import { matchesShortcut, matchesShortcutWithShiftAlias } from '../../../shared/shortcuts'
+import type { ShortcutSettings } from '../types/terminal'
 
 const props = defineProps<{
   paneId: string
   cwd?: string
   active: boolean
   terminalSettings: TerminalSettings
+  shortcuts: ShortcutSettings
   animatedPaneId?: string
   animatedNodeId?: string
   hideActions?: boolean
@@ -195,31 +198,31 @@ function pasteClipboardText(): void {
 function handleTerminalKey(event: KeyboardEvent): boolean {
   if (event.type !== 'keydown' || event.repeat) return true
 
-  const key = event.key.toLowerCase()
-  const isCopyShortcut =
-    key === 'c' && event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
-  const isPasteShortcut =
-    key === 'v' &&
-    !event.metaKey &&
-    !event.shiftKey &&
-    ((event.ctrlKey && !event.altKey) || (event.altKey && !event.ctrlKey))
-
-  if (isCopyShortcut) {
+  if (matchesShortcut(event, props.shortcuts.copy)) {
     event.preventDefault()
     copySelectedText()
     return false
   }
 
-  if (isPasteShortcut) {
+  const allowLegacyAltPaste =
+    event.key.toLowerCase() === 'v' &&
+    event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey
+
+  if (matchesShortcut(event, props.shortcuts.paste) || allowLegacyAltPaste) {
     event.preventDefault()
     pasteClipboardText()
     return false
   }
 
-  if (event.altKey && !event.ctrlKey && !event.metaKey) {
-    if (event.key === '=' || event.key === '+' || event.key === '-' || event.key === '0') {
-      return false
-    }
+  if (
+    matchesShortcutWithShiftAlias(event, props.shortcuts.zoomIn) ||
+    matchesShortcut(event, props.shortcuts.zoomOut) ||
+    matchesShortcut(event, props.shortcuts.zoomReset)
+  ) {
+    return false
   }
 
   return true
