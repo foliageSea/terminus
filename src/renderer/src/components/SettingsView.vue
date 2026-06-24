@@ -106,7 +106,7 @@ function updateWindowControlsStyle(value: string): void {
               </span>
             </div>
           </NFormItem>
-          <NFormItem label="窗口按钮风格" path="windowControlsStyle">
+          <NFormItem label="窗口按钮风格" path="windowControlsStyle" style="width: 160px">
             <NSelect
               :value="windowControlsStyle"
               :options="windowControlsStyleOptions"
