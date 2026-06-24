@@ -6,7 +6,8 @@ import type {
   TabBarMode,
   TerminalSettings,
   ThemeSettings,
-  WindowBoundsSettings
+  WindowBoundsSettings,
+  WindowControlsStyle
 } from '../settings/settingsTypes'
 import {
   readPathFavoritesSettings,
@@ -14,6 +15,7 @@ import {
   readTerminalSettings,
   readThemeSettings,
   readWindowBoundsSettings,
+  readWindowControlsStyle,
   readZoomFactor,
   readVerticalTabBarWidth,
   writePathFavoritesSettings,
@@ -21,6 +23,7 @@ import {
   writeTerminalSettings,
   writeThemeSettings,
   writeWindowBoundsSettings,
+  writeWindowControlsStyle,
   writeVerticalTabBarWidth,
   writeZoomFactor
 } from '../settings/settingsService'
@@ -88,6 +91,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:set-zoom-factor', (_, factor: number) => writeZoomFactor(factor))
   ipcMain.handle('settings:get-tab-bar-mode', () => readTabBarMode())
   ipcMain.handle('settings:set-tab-bar-mode', (_, mode: TabBarMode) => writeTabBarMode(mode))
+  ipcMain.handle('settings:get-window-controls-style', () => readWindowControlsStyle())
+  ipcMain.handle('settings:set-window-controls-style', (_, style: WindowControlsStyle) =>
+    writeWindowControlsStyle(style)
+  )
   ipcMain.handle('settings:get-vertical-tab-bar-width', () => readVerticalTabBarWidth())
   ipcMain.handle('settings:set-vertical-tab-bar-width', (_, width: number) =>
     writeVerticalTabBarWidth(width)

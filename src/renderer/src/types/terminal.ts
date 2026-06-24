@@ -2,6 +2,8 @@ export type SplitDirection = 'horizontal' | 'vertical'
 
 export type TabBarMode = 'horizontal' | 'vertical'
 
+export type WindowControlsStyle = 'system' | 'mac' | 'windows'
+
 export type PaneSide = 'left' | 'right' | 'top' | 'bottom'
 
 export type DropSide = PaneSide

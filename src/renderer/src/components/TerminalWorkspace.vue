@@ -29,7 +29,8 @@ import type {
   TabBarMode,
   TerminalSettings,
   TerminalTab,
-  WindowBoundsSettings
+  WindowBoundsSettings,
+  WindowControlsStyle
 } from '../types/terminal'
 import {
   closePane,
@@ -111,6 +112,9 @@ function getFileNameFromPath(path: string): string {
 const tabs = ref<TerminalTab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
 const tabBarMode = ref<TabBarMode>('horizontal')
+const windowControlsStyle = ref<WindowControlsStyle>('system')
+const platform = ref('win32')
+const windowMaximized = ref(false)
 const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
 const renameDialogVisible = ref(false)
@@ -166,6 +170,14 @@ const workspaceThemeStyle = computed(() => ({
 const workspaceHeaderStyle = computed(() => ({
   backdropFilter: `blur(${terminalSettings.backgroundBlur}px)`
 }))
+const resolvedWindowControlsStyle = computed<'mac' | 'windows'>(() => {
+  if (windowControlsStyle.value === 'system') return platform.value === 'darwin' ? 'mac' : 'windows'
+  return windowControlsStyle.value
+})
+const workspaceHeaderClass = computed(() => [
+  `window-controls-${resolvedWindowControlsStyle.value}`,
+  { 'window-maximized': windowMaximized.value }
+])
 const workspaceMainStyle = computed(() => ({
   '--vertical-tab-sidebar-width': `${verticalTabBarWidth.value}px`
 }))
@@ -367,6 +379,10 @@ function switchPane(): void {
 
 async function updateTabBarMode(value: TabBarMode): Promise<void> {
   tabBarMode.value = await window.api.settings.setTabBarMode(value)
+}
+
+async function updateWindowControlsStyle(value: WindowControlsStyle): Promise<void> {
+  windowControlsStyle.value = await window.api.settings.setWindowControlsStyle(value)
 }
 
 async function updateRememberWindowBounds(value: boolean): Promise<void> {
@@ -671,8 +687,13 @@ function minimizeWindow(): void {
   window.api.window.minimize()
 }
 
-function toggleMaximizeWindow(): void {
+async function refreshWindowMaximized(): Promise<void> {
+  windowMaximized.value = await window.api.window.isMaximized()
+}
+
+async function toggleMaximizeWindow(): Promise<void> {
   window.api.window.toggleMaximize()
+  window.setTimeout(() => void refreshWindowMaximized(), 80)
 }
 
 function closeWindow(): void {
@@ -818,12 +839,16 @@ watch(
 onMounted(async () => {
   window.addEventListener('keydown', handleGlobalKeydown, true)
   window.addEventListener('wheel', handleGlobalWheel, { capture: true, passive: false })
+  window.addEventListener('resize', refreshWindowMaximized)
 
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
     tabs.value.some((tab) => updateTabPaneCwd(tab, id, cwd))
   })
 
   tabBarMode.value = await window.api.settings.getTabBarMode()
+  windowControlsStyle.value = await window.api.settings.getWindowControlsStyle()
+  platform.value = await window.api.window.getPlatform()
+  await refreshWindowMaximized()
   verticalTabBarWidth.value = clampVerticalTabBarWidth(
     await window.api.settings.getVerticalTabBarWidth()
   )
@@ -850,6 +875,7 @@ onBeforeUnmount(() => {
   cleanupSidebarResize()
   window.removeEventListener('keydown', handleGlobalKeydown, true)
   window.removeEventListener('wheel', handleGlobalWheel, true)
+  window.removeEventListener('resize', refreshWindowMaximized)
   removeCwdListener?.()
 })
 </script>
@@ -863,7 +889,12 @@ onBeforeUnmount(() => {
     />
     <div class="workspace-background-mask" :style="workspaceBackgroundMaskStyle" />
 
-    <NLayoutHeader class="workspace-header" :style="workspaceHeaderStyle" bordered>
+    <NLayoutHeader
+      class="workspace-header"
+      :class="workspaceHeaderClass"
+      :style="workspaceHeaderStyle"
+      bordered
+    >
       <div class="window-controls" aria-label="窗口控制">
         <button
           class="window-control close"
@@ -936,11 +967,13 @@ onBeforeUnmount(() => {
         <TerminalSettingsPopover
           :primary-color="props.primaryColor"
           :tab-bar-mode="tabBarMode"
+          :window-controls-style="windowControlsStyle"
           :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
           :terminal-settings="terminalSettings"
           :terminal-background-name="terminalBackgroundName"
           @update-primary-color="updatePrimaryColor"
           @update-tab-bar-mode="updateTabBarMode"
+          @update-window-controls-style="updateWindowControlsStyle"
           @update-remember-window-bounds="updateRememberWindowBounds"
           @update-font-family="updateFontFamily"
           @normalize-font-family="normalizeFontFamily"

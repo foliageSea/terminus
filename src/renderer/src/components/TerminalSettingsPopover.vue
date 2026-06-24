@@ -8,17 +8,19 @@ import {
   NInput,
   NInputNumber,
   NPopover,
+  NSelect,
   NSlider,
   NSwitch,
   NTabPane,
   NTabs
 } from 'naive-ui'
 import { Settings20Regular } from '@vicons/fluent'
-import type { TerminalSettings } from '../types/terminal'
+import type { TerminalSettings, WindowControlsStyle } from '../types/terminal'
 
 defineProps<{
   primaryColor: string
   tabBarMode: 'horizontal' | 'vertical'
+  windowControlsStyle: WindowControlsStyle
   rememberWindowBounds: boolean
   terminalSettings: TerminalSettings
   terminalBackgroundName: string
@@ -27,6 +29,7 @@ defineProps<{
 const emit = defineEmits<{
   updatePrimaryColor: [color: string]
   updateTabBarMode: [value: 'horizontal' | 'vertical']
+  updateWindowControlsStyle: [value: WindowControlsStyle]
   updateRememberWindowBounds: [value: boolean]
   updateFontFamily: [value: string]
   normalizeFontFamily: []
@@ -38,6 +41,18 @@ const emit = defineEmits<{
   updateBackgroundOpacity: [value: number]
   updateBackgroundBlur: [value: number]
 }>()
+
+const windowControlsStyleOptions: { label: string; value: WindowControlsStyle }[] = [
+  { label: '跟随系统', value: 'system' },
+  { label: 'Mac 风格', value: 'mac' },
+  { label: 'Windows 风格', value: 'windows' }
+]
+
+function updateWindowControlsStyle(value: string): void {
+  if (value === 'system' || value === 'mac' || value === 'windows') {
+    emit('updateWindowControlsStyle', value)
+  }
+}
 </script>
 
 <template>
@@ -73,6 +88,13 @@ const emit = defineEmits<{
                 {{ tabBarMode === 'vertical' ? '垂直标签栏' : '顶部标签栏' }}
               </span>
             </div>
+          </NFormItem>
+          <NFormItem label="窗口按钮风格" path="windowControlsStyle">
+            <NSelect
+              :value="windowControlsStyle"
+              :options="windowControlsStyleOptions"
+              @update:value="updateWindowControlsStyle"
+            />
           </NFormItem>
           <NFormItem label="窗口大小缓存" path="rememberWindowBounds">
             <div class="terminal-settings-switch-row">

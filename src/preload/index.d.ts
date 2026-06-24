@@ -11,6 +11,8 @@ export interface TerminalApi {
 }
 
 export interface WindowApi {
+  getPlatform: () => Promise<string>
+  isMaximized: () => Promise<boolean>
   minimize: () => void
   toggleMaximize: () => void
   close: () => void
@@ -53,6 +55,8 @@ export interface PathFavoritesSettings {
 
 export type TabBarMode = 'horizontal' | 'vertical'
 
+export type WindowControlsStyle = 'system' | 'mac' | 'windows'
+
 export interface WindowBoundsSettings {
   rememberWindowBounds: boolean
   width: number
@@ -75,6 +79,8 @@ export interface SettingsApi {
   setZoomFactor: (factor: number) => Promise<number>
   getTabBarMode: () => Promise<TabBarMode>
   setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
+  getWindowControlsStyle: () => Promise<WindowControlsStyle>
+  setWindowControlsStyle: (style: WindowControlsStyle) => Promise<WindowControlsStyle>
   getVerticalTabBarWidth: () => Promise<number>
   setVerticalTabBarWidth: (width: number) => Promise<number>
   getWindowBounds: () => Promise<WindowBoundsSettings>

@@ -9,11 +9,13 @@ import {
   TerminalSettings,
   ThemeSettings,
   WindowBoundsSettings,
+  WindowControlsStyle,
   defaultPathFavoritesSettings,
   defaultTabBarMode,
   defaultTerminalSettings,
   defaultThemeSettings,
   defaultVerticalTabBarWidth,
+  defaultWindowControlsStyle,
   defaultWindowBoundsSettings,
   defaultZoomFactor,
   maxVerticalTabBarWidth,
@@ -119,6 +121,12 @@ function normalizeTabBarMode(value: unknown): TabBarMode {
   return value === 'vertical' || value === 'horizontal' ? value : defaultTabBarMode
 }
 
+function normalizeWindowControlsStyle(value: unknown): WindowControlsStyle {
+  return value === 'system' || value === 'mac' || value === 'windows'
+    ? value
+    : defaultWindowControlsStyle
+}
+
 function normalizeVerticalTabBarWidth(value: unknown): number {
   const width = Number(value)
   if (!Number.isFinite(width)) return defaultVerticalTabBarWidth
@@ -171,6 +179,7 @@ function normalizeAppSettings(value: unknown): AppSettings {
     pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
     tabBarMode: normalizeTabBarMode(settings.tabBarMode),
+    windowControlsStyle: normalizeWindowControlsStyle(settings.windowControlsStyle),
     verticalTabBarWidth: normalizeVerticalTabBarWidth(settings.verticalTabBarWidth),
     windowBounds: normalizeWindowBoundsSettings(settings.windowBounds)
   }
@@ -240,6 +249,14 @@ export function readTabBarMode(): TabBarMode {
 
 export function writeTabBarMode(mode: TabBarMode): TabBarMode {
   return writeAppSettings({ ...readAppSettings(), tabBarMode: mode }).tabBarMode
+}
+
+export function readWindowControlsStyle(): WindowControlsStyle {
+  return readAppSettings().windowControlsStyle
+}
+
+export function writeWindowControlsStyle(style: WindowControlsStyle): WindowControlsStyle {
+  return writeAppSettings({ ...readAppSettings(), windowControlsStyle: style }).windowControlsStyle
 }
 
 export function readVerticalTabBarWidth(): number {

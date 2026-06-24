@@ -37,13 +37,39 @@ button {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr) auto;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   height: 46px;
   padding: 0 10px 0 14px;
   background: transparent;
   -webkit-app-region: drag;
+}
+
+.workspace-header.window-controls-windows {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  padding: 0 0 0 12px;
+}
+
+.workspace-header.window-controls-windows .window-controls {
+  grid-column: 3;
+}
+
+.workspace-header.window-controls-windows .n-tabs,
+.workspace-header.window-controls-windows .workspace-title-spacer {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.workspace-header.window-controls-windows .header-actions {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.workspace-header.window-controls-mac {
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  padding: 0 14px;
 }
 
 .window-controls {
@@ -66,6 +92,40 @@ button {
     0 1px 1px rgba(0, 0, 0, 0.22);
 }
 
+.window-controls-windows .window-controls {
+  align-self: stretch;
+  gap: 0;
+}
+
+.window-controls-windows .window-control {
+  width: 46px;
+  height: 46px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: background-color 120ms ease;
+}
+
+.window-controls-windows .window-control:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.window-controls-windows .window-control.close:hover {
+  background: #e81123;
+}
+
+.window-controls-windows .window-control.minimize {
+  order: 1;
+}
+
+.window-controls-windows .window-control.maximize {
+  order: 2;
+}
+
+.window-controls-windows .window-control.close {
+  order: 3;
+}
+
 .window-control.close {
   background: #ff5f57;
 }
@@ -76,6 +136,16 @@ button {
 
 .window-control.maximize {
   background: #28c840;
+}
+
+.window-controls-windows .window-control.close,
+.window-controls-windows .window-control.minimize,
+.window-controls-windows .window-control.maximize {
+  background: transparent;
+}
+
+.window-controls-windows .window-control.close:hover {
+  background: #e81123;
 }
 
 .window-control::before,
@@ -91,6 +161,13 @@ button {
   opacity: 0.62;
 }
 
+.window-controls-windows .window-control::before,
+.window-controls-windows .window-control::after,
+.window-controls-windows .window-controls:hover .window-control::before,
+.window-controls-windows .window-controls:hover .window-control::after {
+  opacity: 0.82;
+}
+
 .window-control.close::before,
 .window-control.close::after {
   top: 5px;
@@ -98,6 +175,14 @@ button {
   width: 6px;
   height: 1px;
   background: #5f1010;
+}
+
+.window-controls-windows .window-control.close::before,
+.window-controls-windows .window-control.close::after {
+  top: 22px;
+  left: 17px;
+  width: 12px;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .window-control.close::before {
@@ -116,10 +201,40 @@ button {
   background: #684b00;
 }
 
+.window-controls-windows .window-control.minimize::before {
+  top: 23px;
+  left: 17px;
+  width: 12px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
 .window-control.maximize::before {
   inset: 3px;
   border: 1px solid #0b5f1d;
   border-radius: 2px;
+}
+
+.window-controls-windows .window-control.maximize::before {
+  inset: auto;
+  top: 17px;
+  left: 17px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 0;
+}
+
+.window-controls-windows.window-maximized .window-control.maximize::before {
+  top: 19px;
+  left: 16px;
+}
+
+.window-controls-windows.window-maximized .window-control.maximize::after {
+  top: 16px;
+  left: 19px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
 }
 
 .workspace-header .n-tabs,

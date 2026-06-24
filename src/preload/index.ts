@@ -4,6 +4,8 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   window: {
+    getPlatform: () => ipcRenderer.invoke('window:get-platform'),
+    isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
@@ -43,6 +45,9 @@ const api = {
     getTabBarMode: () => ipcRenderer.invoke('settings:get-tab-bar-mode'),
     setTabBarMode: (mode: 'horizontal' | 'vertical') =>
       ipcRenderer.invoke('settings:set-tab-bar-mode', mode),
+    getWindowControlsStyle: () => ipcRenderer.invoke('settings:get-window-controls-style'),
+    setWindowControlsStyle: (style: 'system' | 'mac' | 'windows') =>
+      ipcRenderer.invoke('settings:set-window-controls-style', style),
     getVerticalTabBarWidth: () => ipcRenderer.invoke('settings:get-vertical-tab-bar-width'),
     setVerticalTabBarWidth: (width: number) =>
       ipcRenderer.invoke('settings:set-vertical-tab-bar-width', width),

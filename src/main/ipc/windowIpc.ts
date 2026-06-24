@@ -17,6 +17,12 @@ function isSafeExternalUrl(url: string): boolean {
 }
 
 export function registerWindowIpc(): void {
+  ipcMain.handle('window:get-platform', () => process.platform)
+
+  ipcMain.handle('window:is-maximized', (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
+  })
+
   ipcMain.on('window:minimize', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize()
   })
