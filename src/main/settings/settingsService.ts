@@ -52,6 +52,10 @@ function normalizeTerminalSettings(value: unknown): TerminalSettings {
   return {
     fontFamily: settings.fontFamily?.trim() || defaultTerminalSettings.fontFamily,
     fontSize: normalizeFontSize(settings.fontSize),
+    webglEnabled:
+      typeof settings.webglEnabled === 'boolean'
+        ? settings.webglEnabled
+        : defaultTerminalSettings.webglEnabled,
     backgroundImageEnabled:
       typeof settings.backgroundImageEnabled === 'boolean'
         ? settings.backgroundImageEnabled

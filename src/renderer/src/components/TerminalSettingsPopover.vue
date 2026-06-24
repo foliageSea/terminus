@@ -31,6 +31,7 @@ const emit = defineEmits<{
   updateFontFamily: [value: string]
   normalizeFontFamily: []
   updateFontSize: [value: number | null]
+  updateWebglEnabled: [value: boolean]
   updateBackgroundImageEnabled: [value: boolean]
   selectBackground: []
   clearBackground: []
@@ -105,6 +106,17 @@ const emit = defineEmits<{
               button-placement="both"
               @update:value="emit('updateFontSize', $event)"
             />
+          </NFormItem>
+          <NFormItem label="WebGL 渲染" path="webglEnabled">
+            <div class="terminal-settings-switch-row">
+              <NSwitch
+                :value="terminalSettings.webglEnabled"
+                @update:value="emit('updateWebglEnabled', $event)"
+              />
+              <span class="terminal-settings-switch-label">
+                {{ terminalSettings.webglEnabled ? '启用 GPU 加速渲染' : '关闭 GPU 加速渲染' }}
+              </span>
+            </div>
           </NFormItem>
         </NTabPane>
         <NTabPane name="background" tab="背景">

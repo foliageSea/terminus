@@ -10,6 +10,7 @@ import {
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { WebglAddon } from '@xterm/addon-webgl'
 import type { ITheme } from '@xterm/xterm'
 import {
   clearDraggingNodeId,
@@ -44,6 +45,7 @@ const copyBubbleVisible = ref(false)
 const reloading = ref(false)
 let terminal: Terminal | undefined
 let fitAddon: FitAddon | undefined
+let webglAddon: WebglAddon | undefined
 let resizeObserver: ResizeObserver | undefined
 let removeDataListener: (() => void) | undefined
 let removeExitListener: (() => void) | undefined
@@ -135,7 +137,35 @@ function applyTerminalSettings(): void {
   terminal.options.fontFamily = props.terminalSettings.fontFamily
   terminal.options.fontSize = props.terminalSettings.fontSize
   terminal.options.theme = createTerminalTheme()
+  syncWebglAddon()
   fit()
+}
+
+function currentRendererMode(): 'WebGL' | 'Canvas' {
+  return props.terminalSettings.webglEnabled ? 'WebGL' : 'Canvas'
+}
+
+function disableWebgl(): void {
+  webglAddon?.dispose()
+  webglAddon = undefined
+}
+
+function syncWebglAddon(): void {
+  if (!terminal) return
+
+  if (!props.terminalSettings.webglEnabled) {
+    disableWebgl()
+    return
+  }
+
+  if (webglAddon) return
+
+  try {
+    webglAddon = new WebglAddon()
+    terminal.loadAddon(webglAddon)
+  } catch {
+    disableWebgl()
+  }
 }
 
 function showCopyBubble(): void {
@@ -241,6 +271,7 @@ onMounted(async () => {
   )
   terminal.attachCustomKeyEventHandler(handleTerminalKey)
   terminal.open(host.value)
+  syncWebglAddon()
 
   terminal.onData((data) => window.api.terminal.write(props.paneId, data))
 
@@ -292,6 +323,7 @@ onBeforeUnmount(() => {
   removeDataListener?.()
   removeExitListener?.()
   resizeObserver?.disconnect()
+  disableWebgl()
   terminal?.dispose()
 })
 </script>
@@ -332,6 +364,9 @@ onBeforeUnmount(() => {
         draggable="false"
         @dragstart.stop.prevent
       >
+        <span class="pane-renderer-badge" :title="`当前渲染模式：${currentRendererMode()}`">
+          {{ currentRendererMode() }}
+        </span>
         <NButton v-if="!hideActions" size="tiny" quaternary title="向右分屏" @click.stop="splitTo('right')">
           <template #icon>
             <NIcon>
@@ -379,6 +414,26 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.pane-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pane-renderer-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  line-height: 1;
+  user-select: none;
+}
+
 .pane-action-bar :deep(.n-button),
 .pane-action-bar :deep(.n-button *) {
   cursor: pointer;

@@ -30,6 +30,7 @@ export interface ClipboardApi {
 export interface TerminalSettings {
   fontFamily: string
   fontSize: number
+  webglEnabled: boolean
   backgroundImageEnabled: boolean
   backgroundImagePath: string
   backgroundOpacity: number

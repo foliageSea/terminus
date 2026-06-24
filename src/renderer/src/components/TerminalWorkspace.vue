@@ -60,6 +60,7 @@ const tabDragDataType = 'application/x-terminus-tab'
 const defaultTerminalSettings: TerminalSettings = {
   fontFamily: 'Cascadia Mono, Consolas, monospace',
   fontSize: 13,
+  webglEnabled: false,
   backgroundImageEnabled: true,
   backgroundImagePath: '',
   backgroundOpacity: 60,
@@ -703,6 +704,10 @@ function updateFontFamily(value: string): void {
   terminalSettings.fontFamily = value
 }
 
+function updateWebglEnabled(value: boolean): void {
+  terminalSettings.webglEnabled = value
+}
+
 function updateBackgroundImageEnabled(value: boolean): void {
   terminalSettings.backgroundImageEnabled = value
 }
@@ -940,6 +945,7 @@ onBeforeUnmount(() => {
           @update-font-family="updateFontFamily"
           @normalize-font-family="normalizeFontFamily"
           @update-font-size="updateFontSize"
+          @update-webgl-enabled="updateWebglEnabled"
           @update-background-image-enabled="updateBackgroundImageEnabled"
           @select-background="selectTerminalBackground"
           @clear-background="clearTerminalBackground"
