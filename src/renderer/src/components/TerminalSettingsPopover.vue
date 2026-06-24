@@ -107,6 +107,8 @@ const emit = defineEmits<{
               @update:value="emit('updateFontSize', $event)"
             />
           </NFormItem>
+        </NTabPane>
+        <NTabPane name="render" tab="渲染">
           <NFormItem label="WebGL 渲染" path="webglEnabled">
             <div class="terminal-settings-switch-row">
               <NSwitch
