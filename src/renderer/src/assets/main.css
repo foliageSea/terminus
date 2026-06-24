@@ -162,10 +162,15 @@ button {
 }
 
 .window-controls-windows .window-control::before,
-.window-controls-windows .window-control::after,
-.window-controls-windows .window-controls:hover .window-control::before,
-.window-controls-windows .window-controls:hover .window-control::after {
-  opacity: 0.82;
+.window-controls-windows .window-control::after {
+  opacity: 0.6;
+  transition:
+    opacity 120ms ease;
+}
+
+.window-controls-windows .window-control:hover::before,
+.window-controls-windows .window-control:hover::after {
+  opacity: 1;
 }
 
 .window-control.close::before,
