@@ -52,6 +52,15 @@ export interface PathFavoritesSettings {
 
 export type TabBarMode = 'horizontal' | 'vertical'
 
+export interface WindowBoundsSettings {
+  rememberWindowBounds: boolean
+  width: number
+  height: number
+  x?: number
+  y?: number
+  isMaximized: boolean
+}
+
 export interface SettingsApi {
   getTerminal: () => Promise<TerminalSettings>
   setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
@@ -67,6 +76,8 @@ export interface SettingsApi {
   setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
   getVerticalTabBarWidth: () => Promise<number>
   setVerticalTabBarWidth: (width: number) => Promise<number>
+  getWindowBounds: () => Promise<WindowBoundsSettings>
+  setWindowBounds: (settings: WindowBoundsSettings) => Promise<WindowBoundsSettings>
 }
 
 export interface AppApi {

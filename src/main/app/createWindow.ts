@@ -23,7 +23,7 @@ export function createWindow(): void {
   const persistWindowBounds = createWindowBoundsPersistor(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
-    if (windowBounds.isMaximized) mainWindow.maximize()
+    if (windowBounds.rememberWindowBounds && windowBounds.isMaximized) mainWindow.maximize()
     mainWindow.show()
   })
 
@@ -50,6 +50,13 @@ export function createWindow(): void {
 function getRestorableWindowBounds(
   settings: WindowBoundsSettings
 ): Electron.BrowserWindowConstructorOptions {
+  if (!settings.rememberWindowBounds) {
+    return {
+      width: settings.width,
+      height: settings.height
+    }
+  }
+
   const options: Electron.BrowserWindowConstructorOptions = {
     width: settings.width,
     height: settings.height
@@ -89,9 +96,12 @@ function createWindowBoundsPersistor(window: BrowserWindow): (immediate?: boolea
   let writeTimer: NodeJS.Timeout | undefined
 
   function writeBounds(): void {
+    if (!readWindowBoundsSettings().rememberWindowBounds) return
+
     const bounds = window.getNormalBounds()
 
     writeWindowBoundsSettings({
+      rememberWindowBounds: true,
       x: bounds.x,
       y: bounds.y,
       width: bounds.width,

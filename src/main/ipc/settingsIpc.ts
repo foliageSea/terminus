@@ -5,19 +5,22 @@ import type {
   PathFavoritesSettings,
   TabBarMode,
   TerminalSettings,
-  ThemeSettings
+  ThemeSettings,
+  WindowBoundsSettings
 } from '../settings/settingsTypes'
 import {
   readPathFavoritesSettings,
   readTabBarMode,
   readTerminalSettings,
   readThemeSettings,
+  readWindowBoundsSettings,
   readZoomFactor,
   readVerticalTabBarWidth,
   writePathFavoritesSettings,
   writeTabBarMode,
   writeTerminalSettings,
   writeThemeSettings,
+  writeWindowBoundsSettings,
   writeVerticalTabBarWidth,
   writeZoomFactor
 } from '../settings/settingsService'
@@ -88,5 +91,9 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-vertical-tab-bar-width', () => readVerticalTabBarWidth())
   ipcMain.handle('settings:set-vertical-tab-bar-width', (_, width: number) =>
     writeVerticalTabBarWidth(width)
+  )
+  ipcMain.handle('settings:get-window-bounds', () => readWindowBoundsSettings())
+  ipcMain.handle('settings:set-window-bounds', (_, settings: WindowBoundsSettings) =>
+    writeWindowBoundsSettings(settings)
   )
 }

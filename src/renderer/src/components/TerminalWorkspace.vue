@@ -28,7 +28,8 @@ import type {
   PaneNode,
   TabBarMode,
   TerminalSettings,
-  TerminalTab
+  TerminalTab,
+  WindowBoundsSettings
 } from '../types/terminal'
 import {
   closePane,
@@ -70,6 +71,12 @@ const defaultPathFavoritesSettings: PathFavoritesSettings = {
 const defaultVerticalTabBarWidth = 172
 const minVerticalTabBarWidth = 140
 const maxVerticalTabBarWidth = 320
+const defaultWindowBoundsSettings: WindowBoundsSettings = {
+  rememberWindowBounds: true,
+  width: 900,
+  height: 670,
+  isMaximized: false
+}
 
 function createId(prefix: string): string {
   nextId += 1
@@ -121,6 +128,7 @@ const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings
 const terminalSettingsLoaded = ref(false)
 const pathFavorites = reactive<PathFavoritesSettings>({ ...defaultPathFavoritesSettings })
 const pathFavoritesLoaded = ref(false)
+const windowBoundsSettings = reactive<WindowBoundsSettings>({ ...defaultWindowBoundsSettings })
 const verticalTabBarWidth = ref(defaultVerticalTabBarWidth)
 const sidebarResizeActive = ref(false)
 const themeVars = useThemeVars()
@@ -358,6 +366,16 @@ function switchPane(): void {
 
 async function updateTabBarMode(value: TabBarMode): Promise<void> {
   tabBarMode.value = await window.api.settings.setTabBarMode(value)
+}
+
+async function updateRememberWindowBounds(value: boolean): Promise<void> {
+  Object.assign(
+    windowBoundsSettings,
+    await window.api.settings.setWindowBounds({
+      ...windowBoundsSettings,
+      rememberWindowBounds: value
+    })
+  )
 }
 
 function setVerticalTabBarWidth(value: number): number {
@@ -814,6 +832,9 @@ onMounted(async () => {
   Object.assign(pathFavorites, savedPathFavorites)
   pathFavoritesLoaded.value = true
 
+  const savedWindowBoundsSettings = await window.api.settings.getWindowBounds()
+  Object.assign(windowBoundsSettings, savedWindowBoundsSettings)
+
   const savedZoomFactor = await window.api.settings.getZoomFactor()
   if (savedZoomFactor !== 1) await window.api.window.setZoomFactor(savedZoomFactor)
 })
@@ -910,10 +931,12 @@ onBeforeUnmount(() => {
         <TerminalSettingsPopover
           :primary-color="props.primaryColor"
           :tab-bar-mode="tabBarMode"
+          :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
           :terminal-settings="terminalSettings"
           :terminal-background-name="terminalBackgroundName"
           @update-primary-color="updatePrimaryColor"
           @update-tab-bar-mode="updateTabBarMode"
+          @update-remember-window-bounds="updateRememberWindowBounds"
           @update-font-family="updateFontFamily"
           @normalize-font-family="normalizeFontFamily"
           @update-font-size="updateFontSize"

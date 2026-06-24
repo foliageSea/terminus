@@ -138,8 +138,13 @@ function normalizeWindowBoundsSettings(value: unknown): WindowBoundsSettings {
     value && typeof value === 'object' ? (value as Partial<WindowBoundsSettings>) : {}
   const x = normalizeWindowPosition(settings.x)
   const y = normalizeWindowPosition(settings.y)
+  const rememberWindowBounds =
+    typeof settings.rememberWindowBounds === 'boolean'
+      ? settings.rememberWindowBounds
+      : defaultWindowBoundsSettings.rememberWindowBounds
 
   return {
+    rememberWindowBounds,
     width: normalizeWindowDimension(settings.width, defaultWindowBoundsSettings.width),
     height: normalizeWindowDimension(settings.height, defaultWindowBoundsSettings.height),
     ...(x === undefined ? {} : { x }),
@@ -246,5 +251,13 @@ export function readWindowBoundsSettings(): WindowBoundsSettings {
 }
 
 export function writeWindowBoundsSettings(settings: WindowBoundsSettings): WindowBoundsSettings {
-  return writeAppSettings({ ...readAppSettings(), windowBounds: settings }).windowBounds
+  const normalizedSettings = normalizeWindowBoundsSettings(settings)
+  const nextWindowBounds = normalizedSettings.rememberWindowBounds
+    ? normalizedSettings
+    : {
+        ...defaultWindowBoundsSettings,
+        rememberWindowBounds: false
+      }
+
+  return writeAppSettings({ ...readAppSettings(), windowBounds: nextWindowBounds }).windowBounds
 }

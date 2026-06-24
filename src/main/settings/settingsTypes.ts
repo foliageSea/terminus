@@ -24,6 +24,7 @@ export interface PathFavoritesSettings {
 export type TabBarMode = 'horizontal' | 'vertical'
 
 export interface WindowBoundsSettings {
+  rememberWindowBounds: boolean
   width: number
   height: number
   x?: number
@@ -67,6 +68,7 @@ export const defaultVerticalTabBarWidth = 172
 export const minVerticalTabBarWidth = 140
 export const maxVerticalTabBarWidth = 320
 export const defaultWindowBoundsSettings: WindowBoundsSettings = {
+  rememberWindowBounds: true,
   width: 900,
   height: 670,
   isMaximized: false

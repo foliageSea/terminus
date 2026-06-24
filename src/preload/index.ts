@@ -44,7 +44,16 @@ const api = {
       ipcRenderer.invoke('settings:set-tab-bar-mode', mode),
     getVerticalTabBarWidth: () => ipcRenderer.invoke('settings:get-vertical-tab-bar-width'),
     setVerticalTabBarWidth: (width: number) =>
-      ipcRenderer.invoke('settings:set-vertical-tab-bar-width', width)
+      ipcRenderer.invoke('settings:set-vertical-tab-bar-width', width),
+    getWindowBounds: () => ipcRenderer.invoke('settings:get-window-bounds'),
+    setWindowBounds: (settings: {
+      rememberWindowBounds: boolean
+      width: number
+      height: number
+      x?: number
+      y?: number
+      isMaximized: boolean
+    }) => ipcRenderer.invoke('settings:set-window-bounds', settings)
   },
   terminal: {
     create: (id: string, cols?: number, rows?: number, cwd?: string) =>

@@ -19,6 +19,7 @@ import type { TerminalSettings } from '../types/terminal'
 defineProps<{
   primaryColor: string
   tabBarMode: 'horizontal' | 'vertical'
+  rememberWindowBounds: boolean
   terminalSettings: TerminalSettings
   terminalBackgroundName: string
 }>()
@@ -26,6 +27,7 @@ defineProps<{
 const emit = defineEmits<{
   updatePrimaryColor: [color: string]
   updateTabBarMode: [value: 'horizontal' | 'vertical']
+  updateRememberWindowBounds: [value: boolean]
   updateFontFamily: [value: string]
   normalizeFontFamily: []
   updateFontSize: [value: number | null]
@@ -68,6 +70,17 @@ const emit = defineEmits<{
               />
               <span class="terminal-settings-switch-label">
                 {{ tabBarMode === 'vertical' ? '垂直标签栏' : '顶部标签栏' }}
+              </span>
+            </div>
+          </NFormItem>
+          <NFormItem label="窗口大小缓存" path="rememberWindowBounds">
+            <div class="terminal-settings-switch-row">
+              <NSwitch
+                :value="rememberWindowBounds"
+                @update:value="emit('updateRememberWindowBounds', $event)"
+              />
+              <span class="terminal-settings-switch-label">
+                {{ rememberWindowBounds ? '记住窗口大小和位置' : '关闭后恢复默认窗口大小' }}
               </span>
             </div>
           </NFormItem>

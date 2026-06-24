@@ -58,3 +58,12 @@ export interface PathFavorite {
 export interface PathFavoritesSettings {
   items: PathFavorite[]
 }
+
+export interface WindowBoundsSettings {
+  rememberWindowBounds: boolean
+  width: number
+  height: number
+  x?: number
+  y?: number
+  isMaximized: boolean
+}
