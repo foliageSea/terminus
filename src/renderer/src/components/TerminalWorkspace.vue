@@ -15,6 +15,7 @@ import {
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
 import { Add20Regular, Settings20Regular } from '@vicons/fluent'
+import { SquareTerminal } from '@lucide/vue'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
 import SettingsView from './SettingsView.vue'
 import ShortcutHelpPopover from './ShortcutHelpPopover.vue'
@@ -980,6 +981,9 @@ onBeforeUnmount(() => {
                   <NIcon v-if="tab.type === 'settings'" :size="14" class="tab-icon">
                     <Settings20Regular />
                   </NIcon>
+                  <NIcon v-else :size="14" class="tab-icon">
+                    <SquareTerminal style="margin-top: -2px" />
+                  </NIcon>
                   <span class="tab-title">{{ tab.title }}</span>
                 </span>
               </template>
@@ -1077,6 +1081,9 @@ onBeforeUnmount(() => {
         >
           <NIcon v-if="tab.type === 'settings'" :size="16" class="workspace-tab-item-icon">
             <Settings20Regular />
+          </NIcon>
+          <NIcon v-else :size="16" class="workspace-tab-item-icon">
+            <SquareTerminal />
           </NIcon>
           <span class="workspace-tab-item-title">{{ tab.title }}</span>
           <span
@@ -1178,6 +1185,7 @@ onBeforeUnmount(() => {
 .tab-content {
   display: flex;
   align-items: center;
+  gap: 6px;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -1185,8 +1193,18 @@ onBeforeUnmount(() => {
 }
 
 .tab-icon {
-  margin-right: 6px;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
   opacity: 0.7;
+  line-height: 1;
+}
+
+.tab-icon :deep(svg) {
+  display: block;
 }
 
 .tab-title {
@@ -1199,8 +1217,18 @@ onBeforeUnmount(() => {
 }
 
 .workspace-tab-item-icon {
-  margin-right: 8px;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   opacity: 0.7;
+  line-height: 1;
+}
+
+.workspace-tab-item-icon :deep(svg) {
+  display: block;
 }
 
 :deep(.terminal-tab-dragging) {
