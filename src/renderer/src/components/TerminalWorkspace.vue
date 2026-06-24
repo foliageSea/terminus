@@ -14,18 +14,20 @@ import {
   useThemeVars
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
-import { Add20Regular } from '@vicons/fluent'
+import { Add20Regular, Settings20Regular } from '@vicons/fluent'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
+import SettingsView from './SettingsView.vue'
 import ShortcutHelpPopover from './ShortcutHelpPopover.vue'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
-import TerminalSettingsPopover from './TerminalSettingsPopover.vue'
 import type {
   PaneDropPayload,
   PaneSide,
   PathFavorite,
   PathFavoritesSettings,
   PaneNode,
+  SettingsTab,
+  Tab,
   TabBarMode,
   TerminalSettings,
   TerminalTab,
@@ -93,10 +95,31 @@ function createTab(title?: string, cwd?: string): TerminalTab {
   return {
     id: createId('tab'),
     title: tabTitle,
+    type: 'terminal',
     root: { type: 'pane', id: paneId, cwd },
     activePaneId: paneId,
     layoutVersion: 0
   }
+}
+
+function createSettingsTab(): SettingsTab {
+  return {
+    id: createId('tab'),
+    title: '设置',
+    type: 'settings',
+    activeSection: 'appearance'
+  }
+}
+
+function openSettingsTab(): void {
+  const existing = tabs.value.find((tab) => tab.type === 'settings')
+  if (existing) {
+    activeTabId.value = existing.id
+    return
+  }
+  const tab = createSettingsTab()
+  tabs.value.push(tab)
+  activeTabId.value = tab.id
 }
 
 function normalizeFontSize(value: unknown): number {
@@ -109,7 +132,7 @@ function getFileNameFromPath(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() || path
 }
 
-const tabs = ref<TerminalTab[]>([createTab()])
+const tabs = ref<Tab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
 const tabBarMode = ref<TabBarMode>('horizontal')
 const windowControlsStyle = ref<WindowControlsStyle>('system')
@@ -146,7 +169,16 @@ let fontSizeWheelResetTimer: number | undefined
 const activeTab = computed(
   () => tabs.value.find((tab) => tab.id === activeTabId.value) ?? tabs.value[0]
 )
-const activePane = computed(() => findPaneLeaf(activeTab.value.root, activeTab.value.activePaneId))
+
+function isTerminalTab(tab: Tab): tab is TerminalTab {
+  return tab.type === 'terminal'
+}
+
+const activePane = computed(() => {
+  const tab = activeTab.value
+  if (!isTerminalTab(tab)) return undefined
+  return findPaneLeaf(tab.root, tab.activePaneId)
+})
 const activePaneCwd = computed(() => activePane.value?.cwd?.trim() || '')
 const canFavoriteActivePath = computed(
   () =>
@@ -233,8 +265,11 @@ function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | und
     node,
     insertNode(currentPane, paneId, nextPane, side, () => createId('split'))
   )
-  activeTab.value.activePaneId = nextPaneId
-  activeTab.value.layoutVersion += 1
+  const tab = activeTab.value
+  if (isTerminalTab(tab)) {
+    tab.activePaneId = nextPaneId
+    tab.layoutVersion += 1
+  }
   return nextPaneId
 }
 
@@ -369,12 +404,14 @@ function switchTab(direction: 1 | -1): void {
 }
 
 function switchPane(): void {
-  const paneIds = collectPaneIds(activeTab.value.root)
+  const tab = activeTab.value
+  if (!isTerminalTab(tab)) return
+  const paneIds = collectPaneIds(tab.root)
   if (paneIds.length < 2) return
 
-  const currentIndex = paneIds.findIndex((paneId) => paneId === activeTab.value.activePaneId)
+  const currentIndex = paneIds.findIndex((paneId) => paneId === tab.activePaneId)
   const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % paneIds.length
-  activeTab.value.activePaneId = paneIds[nextIndex]
+  tab.activePaneId = paneIds[nextIndex]
 }
 
 async function updateTabBarMode(value: TabBarMode): Promise<void> {
@@ -497,7 +534,10 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
   if (event.key.toLowerCase() === 'w') {
     event.preventDefault()
     event.stopPropagation()
-    handleClosePane(activeTab.value.activePaneId)
+    const tab = activeTab.value
+    if (isTerminalTab(tab)) {
+      handleClosePane(tab.activePaneId)
+    }
     return
   }
 
@@ -629,7 +669,7 @@ function handleTabAuxClick(event: MouseEvent, tabId: string): void {
   closeTab(tabId)
 }
 
-function createTabProps(tab: TerminalTab): HTMLAttributes {
+function createTabProps(tab: Tab): HTMLAttributes {
   return {
     class: {
       'terminal-tab-dragging': draggingTabId.value === tab.id,
@@ -658,7 +698,7 @@ function createTabProps(tab: TerminalTab): HTMLAttributes {
   }
 }
 
-async function startRenameTab(tab: TerminalTab): Promise<void> {
+async function startRenameTab(tab: Tab): Promise<void> {
   editingTabId.value = tab.id
   editingTitle.value = tab.title
   renameDialogVisible.value = true
@@ -767,13 +807,16 @@ function updatePrimaryColor(color: string): void {
 }
 
 function closeTab(tabId: string): void {
-  if (tabs.value.length === 1) return
-
   const tab = tabs.value.find((item) => item.id === tabId)
-  if (tab) collectTabPaneIds(tab).forEach((paneId) => window.api.terminal.kill(paneId))
+  if (!tab) return
 
-  const index = tabs.value.findIndex((tab) => tab.id === tabId)
-  tabs.value = tabs.value.filter((tab) => tab.id !== tabId)
+  if (isTerminalTab(tab)) {
+    if (tabs.value.length === 1) return
+    collectTabPaneIds(tab).forEach((paneId) => window.api.terminal.kill(paneId))
+  }
+
+  const index = tabs.value.findIndex((t) => t.id === tabId)
+  tabs.value = tabs.value.filter((t) => t.id !== tabId)
 
   if (activeTabId.value === tabId) {
     activeTabId.value = tabs.value[Math.max(0, index - 1)].id
@@ -781,12 +824,15 @@ function closeTab(tabId: string): void {
 }
 
 function handleSplit(paneId: string, side: PaneSide): void {
-  const nextPaneId = splitPane(activeTab.value.root, paneId, side)
+  const tab = activeTab.value
+  if (!isTerminalTab(tab)) return
+  const nextPaneId = splitPane(tab.root, paneId, side)
   if (nextPaneId) setLayoutAnimation(nextPaneId)
 }
 
 function handleClosePane(paneId: string): void {
   const tab = activeTab.value
+  if (!isTerminalTab(tab)) return
   const nextRoot = closePane(tab.root, paneId)
   if (!nextRoot) return
 
@@ -800,6 +846,7 @@ function handleClosePane(paneId: string): void {
 
 function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): void {
   const tab = activeTab.value
+  if (!isTerminalTab(tab)) return
   if (sourceNodeId === targetPaneId) return
 
   const sourceNode = findNode(tab.root, sourceNodeId)
@@ -842,7 +889,7 @@ onMounted(async () => {
   window.addEventListener('resize', refreshWindowMaximized)
 
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
-    tabs.value.some((tab) => updateTabPaneCwd(tab, id, cwd))
+    tabs.value.some((tab) => isTerminalTab(tab) && updateTabPaneCwd(tab, id, cwd))
   })
 
   tabBarMode.value = await window.api.settings.getTabBarMode()
@@ -930,6 +977,9 @@ onBeforeUnmount(() => {
             <NTooltip>
               <template #trigger>
                 <span class="tab-content">
+                  <NIcon v-if="tab.type === 'settings'" :size="14" class="tab-icon">
+                    <Settings20Regular />
+                  </NIcon>
                   <span class="tab-title">{{ tab.title }}</span>
                 </span>
               </template>
@@ -964,27 +1014,13 @@ onBeforeUnmount(() => {
           @dragend="finishPathFavoriteDrag"
           @drop="dropPathFavorite"
         />
-        <TerminalSettingsPopover
-          :primary-color="props.primaryColor"
-          :tab-bar-mode="tabBarMode"
-          :window-controls-style="windowControlsStyle"
-          :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
-          :terminal-settings="terminalSettings"
-          :terminal-background-name="terminalBackgroundName"
-          @update-primary-color="updatePrimaryColor"
-          @update-tab-bar-mode="updateTabBarMode"
-          @update-window-controls-style="updateWindowControlsStyle"
-          @update-remember-window-bounds="updateRememberWindowBounds"
-          @update-font-family="updateFontFamily"
-          @normalize-font-family="normalizeFontFamily"
-          @update-font-size="updateFontSize"
-          @update-webgl-enabled="updateWebglEnabled"
-          @update-background-image-enabled="updateBackgroundImageEnabled"
-          @select-background="selectTerminalBackground"
-          @clear-background="clearTerminalBackground"
-          @update-background-opacity="updateBackgroundOpacity"
-          @update-background-blur="updateBackgroundBlur"
-        />
+        <NButton class="settings-button" size="small" secondary circle @click="openSettingsTab">
+          <template #icon>
+            <NIcon>
+              <Settings20Regular />
+            </NIcon>
+          </template>
+        </NButton>
         <ShortcutHelpPopover />
       </div>
     </NLayoutHeader>
@@ -1039,6 +1075,9 @@ onBeforeUnmount(() => {
           @drop="dropTab($event, tab.id)"
           @dragend="finishTabDrag"
         >
+          <NIcon v-if="tab.type === 'settings'" :size="16" class="workspace-tab-item-icon">
+            <Settings20Regular />
+          </NIcon>
           <span class="workspace-tab-item-title">{{ tab.title }}</span>
           <span
             v-if="tabs.length > 1"
@@ -1067,28 +1106,11 @@ onBeforeUnmount(() => {
           :key="tab.id"
           class="tab-terminal-view"
         >
-          <SplitNode
-            :node="tab.root"
-            :active-pane-id="tab.activePaneId"
-            :layout-version="tab.layoutVersion"
-            :terminal-settings="terminalSettings"
-            :animated-pane-id="animatedPaneId"
-            :animated-node-id="animatedNodeId"
-            @activate="tab.activePaneId = $event"
-            @split="handleSplit"
-            @close="handleClosePane"
-            @drop-pane="handleDropPane"
-          />
-          <Teleport
-            v-for="pane in collectTabPaneLeaves(tab)"
-            :key="pane.id"
-            defer
-            :to="getPaneTeleportTarget(tab, pane.id)"
-          >
-            <TerminalPane
-              :pane-id="pane.id"
-              :cwd="pane.cwd"
-              :active="tab.id === activeTabId && pane.id === tab.activePaneId"
+          <template v-if="isTerminalTab(tab)">
+            <SplitNode
+              :node="tab.root"
+              :active-pane-id="tab.activePaneId"
+              :layout-version="tab.layoutVersion"
               :terminal-settings="terminalSettings"
               :animated-pane-id="animatedPaneId"
               :animated-node-id="animatedNodeId"
@@ -1097,7 +1119,50 @@ onBeforeUnmount(() => {
               @close="handleClosePane"
               @drop-pane="handleDropPane"
             />
-          </Teleport>
+            <Teleport
+              v-for="pane in collectTabPaneLeaves(tab)"
+              :key="pane.id"
+              defer
+              :to="getPaneTeleportTarget(tab, pane.id)"
+            >
+              <TerminalPane
+                :pane-id="pane.id"
+                :cwd="pane.cwd"
+                :active="tab.id === activeTabId && pane.id === tab.activePaneId"
+                :terminal-settings="terminalSettings"
+                :animated-pane-id="animatedPaneId"
+                :animated-node-id="animatedNodeId"
+                @activate="tab.activePaneId = $event"
+                @split="handleSplit"
+                @close="handleClosePane"
+                @drop-pane="handleDropPane"
+              />
+            </Teleport>
+          </template>
+          <SettingsView
+            v-else-if="tab.type === 'settings'"
+            :active-section="tab.activeSection"
+            :primary-color="props.primaryColor"
+            :tab-bar-mode="tabBarMode"
+            :window-controls-style="windowControlsStyle"
+            :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
+            :terminal-settings="terminalSettings"
+            :terminal-background-name="terminalBackgroundName"
+            @update-active-section="tab.activeSection = $event"
+            @update-primary-color="updatePrimaryColor"
+            @update-tab-bar-mode="updateTabBarMode"
+            @update-window-controls-style="updateWindowControlsStyle"
+            @update-remember-window-bounds="updateRememberWindowBounds"
+            @update-font-family="updateFontFamily"
+            @normalize-font-family="normalizeFontFamily"
+            @update-font-size="updateFontSize"
+            @update-webgl-enabled="updateWebglEnabled"
+            @update-background-image-enabled="updateBackgroundImageEnabled"
+            @select-background="selectTerminalBackground"
+            @clear-background="clearTerminalBackground"
+            @update-background-opacity="updateBackgroundOpacity"
+            @update-background-blur="updateBackgroundBlur"
+          />
         </div>
       </main>
     </div>
@@ -1119,6 +1184,11 @@ onBeforeUnmount(() => {
   padding: 0 8px;
 }
 
+.tab-icon {
+  margin-right: 6px;
+  opacity: 0.7;
+}
+
 .tab-title {
   display: block;
   min-width: 0;
@@ -1126,6 +1196,11 @@ onBeforeUnmount(() => {
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.workspace-tab-item-icon {
+  margin-right: 8px;
+  opacity: 0.7;
 }
 
 :deep(.terminal-tab-dragging) {

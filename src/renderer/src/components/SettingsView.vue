@@ -7,17 +7,20 @@ import {
   NIcon,
   NInput,
   NInputNumber,
-  NPopover,
   NSelect,
   NSlider,
-  NSwitch,
-  NTabPane,
-  NTabs
+  NSwitch
 } from 'naive-ui'
-import { Settings20Regular } from '@vicons/fluent'
-import type { TerminalSettings, WindowControlsStyle } from '../types/terminal'
+import {
+  PaintBrush20Regular,
+  TextFont20Regular,
+  Video20Regular,
+  Image20Regular
+} from '@vicons/fluent'
+import type { SettingsSection, TerminalSettings, WindowControlsStyle } from '../types/terminal'
 
-defineProps<{
+const props = defineProps<{
+  activeSection: SettingsSection
   primaryColor: string
   tabBarMode: 'horizontal' | 'vertical'
   windowControlsStyle: WindowControlsStyle
@@ -27,6 +30,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
+  updateActiveSection: [section: SettingsSection]
   updatePrimaryColor: [color: string]
   updateTabBarMode: [value: 'horizontal' | 'vertical']
   updateWindowControlsStyle: [value: WindowControlsStyle]
@@ -42,6 +46,13 @@ const emit = defineEmits<{
   updateBackgroundBlur: [value: number]
 }>()
 
+const sections: { key: SettingsSection; label: string; icon: typeof PaintBrush20Regular }[] = [
+  { key: 'appearance', label: '外观', icon: PaintBrush20Regular },
+  { key: 'font', label: '字体', icon: TextFont20Regular },
+  { key: 'render', label: '渲染', icon: Video20Regular },
+  { key: 'background', label: '背景', icon: Image20Regular }
+]
+
 const windowControlsStyleOptions: { label: string; value: WindowControlsStyle }[] = [
   { label: '跟随系统', value: 'system' },
   { label: 'Mac 风格', value: 'mac' },
@@ -56,21 +67,27 @@ function updateWindowControlsStyle(value: string): void {
 </script>
 
 <template>
-  <NPopover trigger="click" placement="bottom-end">
-    <template #trigger>
-      <NButton class="settings-button" size="small" secondary circle>
-        <template #icon>
-          <NIcon>
-            <Settings20Regular />
-          </NIcon>
-        </template>
-      </NButton>
-    </template>
+  <div class="settings-view">
+    <nav class="settings-nav">
+      <button
+        v-for="section in sections"
+        :key="section.key"
+        class="settings-nav-item"
+        :class="{ active: activeSection === section.key }"
+        @click="emit('updateActiveSection', section.key)"
+      >
+        <NIcon :size="18">
+          <component :is="section.icon" />
+        </NIcon>
+        <span>{{ section.label }}</span>
+      </button>
+    </nav>
 
-    <NForm class="terminal-settings" label-placement="top" size="small">
-      <NTabs class="terminal-settings-tabs" type="line" size="small" animated>
-        <NTabPane name="appearance" tab="外观">
-          <NFormItem label="主题色" path="primaryColor">
+    <div class="settings-content">
+      <NForm label-placement="top" size="medium" class="settings-form">
+        <template v-if="activeSection === 'appearance'">
+          <h3 class="settings-section-title">外观设置</h3>
+          <NFormItem label="主题色" path="primaryColor" style="width: 120px">
             <NColorPicker
               :value="primaryColor"
               :show-alpha="false"
@@ -79,12 +96,12 @@ function updateWindowControlsStyle(value: string): void {
             />
           </NFormItem>
           <NFormItem label="标签栏位置" path="tabBarMode">
-            <div class="terminal-settings-switch-row">
+            <div class="settings-switch-row">
               <NSwitch
                 :value="tabBarMode === 'vertical'"
                 @update:value="emit('updateTabBarMode', $event ? 'vertical' : 'horizontal')"
               />
-              <span class="terminal-settings-switch-label">
+              <span class="settings-switch-label">
                 {{ tabBarMode === 'vertical' ? '垂直标签栏' : '顶部标签栏' }}
               </span>
             </div>
@@ -97,18 +114,20 @@ function updateWindowControlsStyle(value: string): void {
             />
           </NFormItem>
           <NFormItem label="窗口大小缓存" path="rememberWindowBounds">
-            <div class="terminal-settings-switch-row">
+            <div class="settings-switch-row">
               <NSwitch
                 :value="rememberWindowBounds"
                 @update:value="emit('updateRememberWindowBounds', $event)"
               />
-              <span class="terminal-settings-switch-label">
+              <span class="settings-switch-label">
                 {{ rememberWindowBounds ? '记住窗口大小和位置' : '关闭后恢复默认窗口大小' }}
               </span>
             </div>
           </NFormItem>
-        </NTabPane>
-        <NTabPane name="font" tab="字体">
+        </template>
+
+        <template v-else-if="activeSection === 'font'">
+          <h3 class="settings-section-title">字体设置</h3>
           <NFormItem label="字体" path="fontFamily">
             <NInput
               :value="terminalSettings.fontFamily"
@@ -129,39 +148,43 @@ function updateWindowControlsStyle(value: string): void {
               @update:value="emit('updateFontSize', $event)"
             />
           </NFormItem>
-        </NTabPane>
-        <NTabPane name="render" tab="渲染">
+        </template>
+
+        <template v-else-if="activeSection === 'render'">
+          <h3 class="settings-section-title">渲染设置</h3>
           <NFormItem label="WebGL 渲染" path="webglEnabled">
-            <div class="terminal-settings-switch-row">
+            <div class="settings-switch-row">
               <NSwitch
                 :value="terminalSettings.webglEnabled"
                 @update:value="emit('updateWebglEnabled', $event)"
               />
-              <span class="terminal-settings-switch-label">
+              <span class="settings-switch-label">
                 {{ terminalSettings.webglEnabled ? '启用 GPU 加速渲染' : '关闭 GPU 加速渲染' }}
               </span>
             </div>
           </NFormItem>
-        </NTabPane>
-        <NTabPane name="background" tab="背景">
+        </template>
+
+        <template v-else-if="activeSection === 'background'">
+          <h3 class="settings-section-title">背景设置</h3>
           <NFormItem label="背景图" path="backgroundImageEnabled">
-            <div class="terminal-background-control">
-              <div class="terminal-background-switch-row">
+            <div class="settings-background-control">
+              <div class="settings-background-switch-row">
                 <NSwitch
                   :value="terminalSettings.backgroundImageEnabled"
                   @update:value="emit('updateBackgroundImageEnabled', $event)"
                 />
                 <span
-                  class="terminal-background-name"
+                  class="settings-background-name"
                   :title="terminalSettings.backgroundImagePath"
                 >
                   {{ terminalBackgroundName }}
                 </span>
               </div>
-              <div class="terminal-background-actions">
-                <NButton size="tiny" secondary @click="emit('selectBackground')">选择图片</NButton>
+              <div class="settings-background-actions">
+                <NButton size="small" secondary @click="emit('selectBackground')">选择图片</NButton>
                 <NButton
-                  size="tiny"
+                  size="small"
                   quaternary
                   :disabled="!terminalSettings.backgroundImagePath"
                   @click="emit('clearBackground')"
@@ -172,7 +195,7 @@ function updateWindowControlsStyle(value: string): void {
             </div>
           </NFormItem>
           <NFormItem label="背景遮罩" path="backgroundOpacity">
-            <div class="terminal-range-control">
+            <div class="settings-range-control">
               <NSlider
                 :value="terminalSettings.backgroundOpacity"
                 :min="0"
@@ -180,11 +203,11 @@ function updateWindowControlsStyle(value: string): void {
                 :step="1"
                 @update:value="emit('updateBackgroundOpacity', $event)"
               />
-              <span class="terminal-range-value">{{ terminalSettings.backgroundOpacity }}%</span>
+              <span class="settings-range-value">{{ terminalSettings.backgroundOpacity }}%</span>
             </div>
           </NFormItem>
           <NFormItem label="背景模糊" path="backgroundBlur">
-            <div class="terminal-range-control">
+            <div class="settings-range-control">
               <NSlider
                 :value="terminalSettings.backgroundBlur"
                 :min="0"
@@ -192,71 +215,127 @@ function updateWindowControlsStyle(value: string): void {
                 :step="1"
                 @update:value="emit('updateBackgroundBlur', $event)"
               />
-              <span class="terminal-range-value">{{ terminalSettings.backgroundBlur }}px</span>
+              <span class="settings-range-value">{{ terminalSettings.backgroundBlur }}px</span>
             </div>
           </NFormItem>
-        </NTabPane>
-      </NTabs>
-    </NForm>
-  </NPopover>
+        </template>
+      </NForm>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.settings-button {
-  margin-left: 0;
+.settings-view {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 100%;
+  overflow: hidden;
 }
 
-.terminal-settings {
-  width: 260px;
-  padding: 4px;
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.settings-nav-item.active {
+  background: color-mix(in srgb, var(--terminal-active-color, #7c3aed) 15%, rgba(255, 255, 255, 0.06));
+  color: var(--terminal-active-color, #7c3aed);
+}
+
+.settings-content {
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.settings-form {
+  max-width: 480px;
+}
+
+.settings-section-title {
+  margin: 0 0 24px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.settings-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-switch-label {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
 }
 
 .font-size-input :deep(input) {
   text-align: center;
 }
 
-.terminal-background-control {
+.settings-background-control {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
 }
 
-.terminal-settings-switch-row,
-.terminal-background-switch-row,
-.terminal-background-actions {
+.settings-background-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-background-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
 }
 
-.terminal-settings-switch-label {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
-}
-
-.terminal-background-name {
+.settings-background-name {
   display: block;
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.64);
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.terminal-range-control {
+.settings-range-control {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr) 48px;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
 }
 
-.terminal-range-value {
+.settings-range-value {
   color: rgba(255, 255, 255, 0.64);
-  font-size: 12px;
+  font-size: 13px;
   text-align: right;
 }
 </style>

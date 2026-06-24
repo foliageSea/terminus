@@ -8,6 +8,10 @@ export type PaneSide = 'left' | 'right' | 'top' | 'bottom'
 
 export type DropSide = PaneSide
 
+export type TabType = 'terminal' | 'settings'
+
+export type SettingsSection = 'appearance' | 'font' | 'render' | 'background'
+
 export interface PaneDropPayload {
   sourceNodeId: string
   targetPaneId: string
@@ -33,10 +37,20 @@ export type PaneNode = PaneLeaf | SplitNode
 export interface TerminalTab {
   id: string
   title: string
+  type: 'terminal'
   root: PaneNode
   activePaneId: string
   layoutVersion: number
 }
+
+export interface SettingsTab {
+  id: string
+  title: string
+  type: 'settings'
+  activeSection: SettingsSection
+}
+
+export type Tab = TerminalTab | SettingsTab
 
 export interface TerminalSettings {
   fontFamily: string
