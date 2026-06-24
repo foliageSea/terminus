@@ -1158,11 +1158,11 @@ onBeforeUnmount(() => {
 }
 
 .settings-button {
-  margin-left: 6px;
+  margin-left: 0;
 }
 
 .path-favorites-button {
-  margin-left: 6px;
+  margin-left: 0;
 }
 
 .path-favorites-popover {

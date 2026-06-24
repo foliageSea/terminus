@@ -203,7 +203,7 @@ function updateWindowControlsStyle(value: string): void {
 
 <style scoped>
 .settings-button {
-  margin-left: 6px;
+  margin-left: 0;
 }
 
 .terminal-settings {

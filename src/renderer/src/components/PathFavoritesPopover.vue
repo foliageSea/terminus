@@ -49,7 +49,12 @@ const emit = defineEmits<{
           <div class="path-favorites-title">路径收藏</div>
           <div class="path-favorites-subtitle">点击打开，拖拽排序</div>
         </div>
-        <NButton size="tiny" secondary :disabled="!canFavoriteActivePath" @click="emit('addCurrent')">
+        <NButton
+          size="tiny"
+          secondary
+          :disabled="!canFavoriteActivePath"
+          @click="emit('addCurrent')"
+        >
           收藏当前
         </NButton>
       </div>
@@ -131,7 +136,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .path-favorites-button {
-  margin-left: 6px;
+  margin-left: 0;
 }
 
 .path-favorites-popover {
