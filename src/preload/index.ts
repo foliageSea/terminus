@@ -7,9 +7,13 @@ const api = {
   window: {
     getPlatform: () => ipcRenderer.invoke('window:get-platform'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+    isAlwaysOnTop: () => ipcRenderer.invoke('window:is-always-on-top'),
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
+    setAlwaysOnTop: (alwaysOnTop: boolean) =>
+      ipcRenderer.invoke('window:set-always-on-top', alwaysOnTop),
+    toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggle-always-on-top'),
     openExternal: (url: string) => ipcRenderer.send('window:open-external', url),
     getZoomFactor: () => ipcRenderer.invoke('window:get-zoom-factor'),
     setZoomFactor: (factor: number) => ipcRenderer.invoke('window:set-zoom-factor', factor),
@@ -51,6 +55,9 @@ const api = {
     getWindowControlsStyle: () => ipcRenderer.invoke('settings:get-window-controls-style'),
     setWindowControlsStyle: (style: 'system' | 'mac' | 'windows') =>
       ipcRenderer.invoke('settings:set-window-controls-style', style),
+    getWindowAlwaysOnTop: () => ipcRenderer.invoke('settings:get-window-always-on-top'),
+    setWindowAlwaysOnTop: (alwaysOnTop: boolean) =>
+      ipcRenderer.invoke('settings:set-window-always-on-top', alwaysOnTop),
     getVerticalTabBarWidth: () => ipcRenderer.invoke('settings:get-vertical-tab-bar-width'),
     setVerticalTabBarWidth: (width: number) =>
       ipcRenderer.invoke('settings:set-vertical-tab-bar-width', width),

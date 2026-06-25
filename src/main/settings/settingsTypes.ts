@@ -47,6 +47,7 @@ export interface AppSettings {
   zoomFactor?: number
   tabBarMode: TabBarMode
   windowControlsStyle: WindowControlsStyle
+  windowAlwaysOnTop: boolean
   verticalTabBarWidth: number
   windowBounds: WindowBoundsSettings
 }
@@ -78,6 +79,7 @@ export const maxZoomFactor = 3.0
 export const zoomStep = 0.1
 export const defaultTabBarMode: TabBarMode = 'horizontal'
 export const defaultWindowControlsStyle: WindowControlsStyle = 'system'
+export const defaultWindowAlwaysOnTop = false
 export const defaultVerticalTabBarWidth = 172
 export const minVerticalTabBarWidth = 140
 export const maxVerticalTabBarWidth = 320

@@ -17,6 +17,7 @@ import {
   readTerminalSettings,
   readThemeSettings,
   readWindowBoundsSettings,
+  readWindowAlwaysOnTop,
   readWindowControlsStyle,
   readZoomFactor,
   readVerticalTabBarWidth,
@@ -26,6 +27,7 @@ import {
   writeTerminalSettings,
   writeThemeSettings,
   writeWindowBoundsSettings,
+  writeWindowAlwaysOnTop,
   writeWindowControlsStyle,
   writeVerticalTabBarWidth,
   writeZoomFactor
@@ -101,6 +103,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-window-controls-style', () => readWindowControlsStyle())
   ipcMain.handle('settings:set-window-controls-style', (_, style: WindowControlsStyle) =>
     writeWindowControlsStyle(style)
+  )
+  ipcMain.handle('settings:get-window-always-on-top', () => readWindowAlwaysOnTop())
+  ipcMain.handle('settings:set-window-always-on-top', (_, alwaysOnTop: boolean) =>
+    writeWindowAlwaysOnTop(alwaysOnTop)
   )
   ipcMain.handle('settings:get-vertical-tab-bar-width', () => readVerticalTabBarWidth())
   ipcMain.handle('settings:set-vertical-tab-bar-width', (_, width: number) =>

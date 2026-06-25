@@ -14,9 +14,12 @@ export interface TerminalApi {
 export interface WindowApi {
   getPlatform: () => Promise<string>
   isMaximized: () => Promise<boolean>
+  isAlwaysOnTop: () => Promise<boolean>
   minimize: () => void
   toggleMaximize: () => void
   close: () => void
+  setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>
+  toggleAlwaysOnTop: () => Promise<boolean>
   openExternal: (url: string) => void
   getZoomFactor: () => Promise<number>
   setZoomFactor: (factor: number) => Promise<number>
@@ -84,6 +87,8 @@ export interface SettingsApi {
   setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
   getWindowControlsStyle: () => Promise<WindowControlsStyle>
   setWindowControlsStyle: (style: WindowControlsStyle) => Promise<WindowControlsStyle>
+  getWindowAlwaysOnTop: () => Promise<boolean>
+  setWindowAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>
   getVerticalTabBarWidth: () => Promise<number>
   setVerticalTabBarWidth: (width: number) => Promise<number>
   getWindowBounds: () => Promise<WindowBoundsSettings>

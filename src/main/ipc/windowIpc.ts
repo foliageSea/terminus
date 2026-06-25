@@ -5,7 +5,7 @@ import {
   minZoomFactor,
   zoomStep
 } from '../settings/settingsTypes'
-import { writeZoomFactor } from '../settings/settingsService'
+import { writeWindowAlwaysOnTop, writeZoomFactor } from '../settings/settingsService'
 
 function isSafeExternalUrl(url: string): boolean {
   try {
@@ -21,6 +21,10 @@ export function registerWindowIpc(): void {
 
   ipcMain.handle('window:is-maximized', (event) => {
     return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
+  })
+
+  ipcMain.handle('window:is-always-on-top', (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isAlwaysOnTop() ?? false
   })
 
   ipcMain.on('window:minimize', (event) => {
@@ -40,6 +44,25 @@ export function registerWindowIpc(): void {
 
   ipcMain.on('window:close', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.close()
+  })
+
+  ipcMain.handle('window:set-always-on-top', (event, alwaysOnTop: boolean) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return false
+
+    window.setAlwaysOnTop(alwaysOnTop)
+    writeWindowAlwaysOnTop(alwaysOnTop)
+    return window.isAlwaysOnTop()
+  })
+
+  ipcMain.handle('window:toggle-always-on-top', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (!window) return false
+
+    const nextValue = !window.isAlwaysOnTop()
+    window.setAlwaysOnTop(nextValue)
+    writeWindowAlwaysOnTop(nextValue)
+    return window.isAlwaysOnTop()
   })
 
   ipcMain.on('window:open-external', (_event, url: string) => {

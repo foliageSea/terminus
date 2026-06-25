@@ -17,6 +17,7 @@ import {
   defaultTerminalSettings,
   defaultThemeSettings,
   defaultVerticalTabBarWidth,
+  defaultWindowAlwaysOnTop,
   defaultWindowControlsStyle,
   defaultWindowBoundsSettings,
   defaultZoomFactor,
@@ -172,6 +173,10 @@ function normalizeWindowControlsStyle(value: unknown): WindowControlsStyle {
     : defaultWindowControlsStyle
 }
 
+function normalizeWindowAlwaysOnTop(value: unknown): boolean {
+  return typeof value === 'boolean' ? value : defaultWindowAlwaysOnTop
+}
+
 function normalizeVerticalTabBarWidth(value: unknown): number {
   const width = Number(value)
   if (!Number.isFinite(width)) return defaultVerticalTabBarWidth
@@ -226,6 +231,7 @@ function normalizeAppSettings(value: unknown): AppSettings {
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
     tabBarMode: normalizeTabBarMode(settings.tabBarMode),
     windowControlsStyle: normalizeWindowControlsStyle(settings.windowControlsStyle),
+    windowAlwaysOnTop: normalizeWindowAlwaysOnTop(settings.windowAlwaysOnTop),
     verticalTabBarWidth: normalizeVerticalTabBarWidth(settings.verticalTabBarWidth),
     windowBounds: normalizeWindowBoundsSettings(settings.windowBounds)
   }
@@ -312,6 +318,14 @@ export function readWindowControlsStyle(): WindowControlsStyle {
 
 export function writeWindowControlsStyle(style: WindowControlsStyle): WindowControlsStyle {
   return writeAppSettings({ ...readAppSettings(), windowControlsStyle: style }).windowControlsStyle
+}
+
+export function readWindowAlwaysOnTop(): boolean {
+  return readAppSettings().windowAlwaysOnTop
+}
+
+export function writeWindowAlwaysOnTop(alwaysOnTop: boolean): boolean {
+  return writeAppSettings({ ...readAppSettings(), windowAlwaysOnTop: alwaysOnTop }).windowAlwaysOnTop
 }
 
 export function readVerticalTabBarWidth(): number {

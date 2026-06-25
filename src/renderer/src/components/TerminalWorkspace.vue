@@ -14,7 +14,7 @@ import {
   useThemeVars
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
-import { Add20Regular, Settings20Regular } from '@vicons/fluent'
+import { Add20Regular, Pin20Filled, Pin20Regular, Settings20Regular } from '@vicons/fluent'
 import { SquareTerminal } from '@lucide/vue'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
 import SettingsView from './SettingsView.vue'
@@ -33,6 +33,7 @@ import type {
   TabBarMode,
   TerminalSettings,
   TerminalTab,
+  WindowAppearanceSettings,
   WindowBoundsSettings,
   WindowControlsStyle
 } from '../types/terminal'
@@ -89,6 +90,9 @@ const defaultWindowBoundsSettings: WindowBoundsSettings = {
   width: 900,
   height: 670,
   isMaximized: false
+}
+const defaultWindowAppearanceSettings: WindowAppearanceSettings = {
+  alwaysOnTop: false
 }
 
 function createId(prefix: string): string {
@@ -147,6 +151,9 @@ const tabBarMode = ref<TabBarMode>('horizontal')
 const windowControlsStyle = ref<WindowControlsStyle>('system')
 const platform = ref('win32')
 const windowMaximized = ref(false)
+const windowAppearanceSettings = reactive<WindowAppearanceSettings>({
+  ...defaultWindowAppearanceSettings
+})
 const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
 const renameDialogVisible = ref(false)
@@ -432,6 +439,10 @@ async function updateTabBarMode(value: TabBarMode): Promise<void> {
 
 async function updateWindowControlsStyle(value: WindowControlsStyle): Promise<void> {
   windowControlsStyle.value = await window.api.settings.setWindowControlsStyle(value)
+}
+
+async function updateWindowAlwaysOnTop(value: boolean): Promise<void> {
+  windowAppearanceSettings.alwaysOnTop = await window.api.window.setAlwaysOnTop(value)
 }
 
 async function updateRememberWindowBounds(value: boolean): Promise<void> {
@@ -751,6 +762,10 @@ async function toggleMaximizeWindow(): Promise<void> {
   window.setTimeout(() => void refreshWindowMaximized(), 80)
 }
 
+async function toggleWindowAlwaysOnTop(): Promise<void> {
+  windowAppearanceSettings.alwaysOnTop = await window.api.window.toggleAlwaysOnTop()
+}
+
 function closeWindow(): void {
   window.api.window.close()
 }
@@ -926,6 +941,7 @@ onMounted(async () => {
   windowControlsStyle.value = await window.api.settings.getWindowControlsStyle()
   platform.value = await window.api.window.getPlatform()
   await refreshWindowMaximized()
+  windowAppearanceSettings.alwaysOnTop = await window.api.window.isAlwaysOnTop()
   verticalTabBarWidth.value = clampVerticalTabBarWidth(
     await window.api.settings.getVerticalTabBarWidth()
   )
@@ -1025,6 +1041,28 @@ onBeforeUnmount(() => {
       </NTabs>
       <div v-show="tabBarMode === 'vertical'" class="workspace-title-spacer" />
       <div class="header-actions">
+        <NTooltip>
+          <template #trigger>
+            <NButton
+              class="always-on-top-button"
+              size="small"
+              secondary
+              circle
+              :type="windowAppearanceSettings.alwaysOnTop ? 'primary' : 'default'"
+              :aria-label="windowAppearanceSettings.alwaysOnTop ? '取消窗口置顶' : '窗口置顶'"
+              :aria-pressed="windowAppearanceSettings.alwaysOnTop"
+              @click="toggleWindowAlwaysOnTop"
+            >
+              <template #icon>
+                <NIcon>
+                  <Pin20Filled v-if="windowAppearanceSettings.alwaysOnTop" />
+                  <Pin20Regular v-else />
+                </NIcon>
+              </template>
+            </NButton>
+          </template>
+          {{ windowAppearanceSettings.alwaysOnTop ? '取消置顶' : '窗口置顶' }}
+        </NTooltip>
         <NButton class="new-tab-button" size="small" secondary circle @click="addTab">
           <template #icon>
             <NIcon>
@@ -1186,6 +1224,7 @@ onBeforeUnmount(() => {
             :primary-color="props.primaryColor"
             :tab-bar-mode="tabBarMode"
             :window-controls-style="windowControlsStyle"
+            :window-always-on-top="windowAppearanceSettings.alwaysOnTop"
             :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
             :terminal-settings="terminalSettings"
             :terminal-background-name="terminalBackgroundName"
@@ -1194,6 +1233,7 @@ onBeforeUnmount(() => {
             @update-primary-color="updatePrimaryColor"
             @update-tab-bar-mode="updateTabBarMode"
             @update-window-controls-style="updateWindowControlsStyle"
+            @update-window-always-on-top="updateWindowAlwaysOnTop"
             @update-remember-window-bounds="updateRememberWindowBounds"
             @update-font-family="updateFontFamily"
             @normalize-font-family="normalizeFontFamily"
@@ -1300,6 +1340,10 @@ onBeforeUnmount(() => {
 
 .settings-button {
   margin-left: 0;
+}
+
+.always-on-top-button {
+  flex: none;
 }
 
 .path-favorites-button {

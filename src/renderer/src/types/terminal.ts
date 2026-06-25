@@ -87,4 +87,8 @@ export interface WindowBoundsSettings {
   isMaximized: boolean
 }
 
+export interface WindowAppearanceSettings {
+  alwaysOnTop: boolean
+}
+
 export type { ShortcutBinding, ShortcutSettings }

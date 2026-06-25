@@ -47,6 +47,7 @@ const props = defineProps<{
   primaryColor: string
   tabBarMode: 'horizontal' | 'vertical'
   windowControlsStyle: WindowControlsStyle
+  windowAlwaysOnTop: boolean
   rememberWindowBounds: boolean
   terminalSettings: TerminalSettings
   terminalBackgroundName: string
@@ -58,6 +59,7 @@ const emit = defineEmits<{
   updatePrimaryColor: [color: string]
   updateTabBarMode: [value: 'horizontal' | 'vertical']
   updateWindowControlsStyle: [value: WindowControlsStyle]
+  updateWindowAlwaysOnTop: [value: boolean]
   updateRememberWindowBounds: [value: boolean]
   updateFontFamily: [value: string]
   normalizeFontFamily: []
@@ -263,6 +265,17 @@ onBeforeUnmount(() => {
               />
               <span class="settings-switch-label">
                 {{ rememberWindowBounds ? '记住窗口大小和位置' : '关闭后恢复默认窗口大小' }}
+              </span>
+            </div>
+          </NFormItem>
+          <NFormItem label="窗口置顶" path="windowAlwaysOnTop">
+            <div class="settings-switch-row">
+              <NSwitch
+                :value="windowAlwaysOnTop"
+                @update:value="emit('updateWindowAlwaysOnTop', $event)"
+              />
+              <span class="settings-switch-label">
+                {{ windowAlwaysOnTop ? '始终显示在最前' : '允许其他窗口覆盖' }}
               </span>
             </div>
           </NFormItem>

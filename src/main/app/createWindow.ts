@@ -4,6 +4,7 @@ import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../../resources/icon.png?asset'
 import {
+  readWindowAlwaysOnTop,
   readWindowBoundsSettings,
   readZoomFactor,
   writeWindowBoundsSettings
@@ -12,6 +13,7 @@ import type { WindowBoundsSettings } from '../settings/settingsTypes'
 
 export function createWindow(): void {
   const windowBounds = readWindowBoundsSettings()
+  const alwaysOnTop = readWindowAlwaysOnTop()
   const zoomFactor = readZoomFactor()
   const mainWindow = new BrowserWindow({
     title: 'Terminus',
@@ -27,6 +29,7 @@ export function createWindow(): void {
   })
   const persistWindowBounds = createWindowBoundsPersistor(mainWindow)
 
+  mainWindow.setAlwaysOnTop(alwaysOnTop)
   mainWindow.webContents.setZoomFactor(zoomFactor)
 
   mainWindow.on('ready-to-show', () => {
