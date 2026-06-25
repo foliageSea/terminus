@@ -848,6 +848,12 @@ function handleSplit(paneId: string, side: PaneSide): void {
 function handleClosePane(paneId: string): void {
   const tab = activeTab.value
   if (!isTerminalTab(tab)) return
+
+  if (collectTabPaneIds(tab).length === 1) {
+    closeTab(tab.id)
+    return
+  }
+
   const nextRoot = closePane(tab.root, paneId)
   if (!nextRoot) return
 
