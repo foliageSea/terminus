@@ -940,8 +940,6 @@ onMounted(async () => {
   const savedWindowBoundsSettings = await window.api.settings.getWindowBounds()
   Object.assign(windowBoundsSettings, savedWindowBoundsSettings)
 
-  const savedZoomFactor = await window.api.settings.getZoomFactor()
-  if (savedZoomFactor !== 1) await window.api.window.setZoomFactor(savedZoomFactor)
 })
 
 onBeforeUnmount(() => {

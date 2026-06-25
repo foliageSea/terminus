@@ -3,11 +3,16 @@ import type { Rectangle } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../../resources/icon.png?asset'
-import { readWindowBoundsSettings, writeWindowBoundsSettings } from '../settings/settingsService'
+import {
+  readWindowBoundsSettings,
+  readZoomFactor,
+  writeWindowBoundsSettings
+} from '../settings/settingsService'
 import type { WindowBoundsSettings } from '../settings/settingsTypes'
 
 export function createWindow(): void {
   const windowBounds = readWindowBoundsSettings()
+  const zoomFactor = readZoomFactor()
   const mainWindow = new BrowserWindow({
     title: 'Terminus',
     ...getRestorableWindowBounds(windowBounds),
@@ -21,6 +26,8 @@ export function createWindow(): void {
     }
   })
   const persistWindowBounds = createWindowBoundsPersistor(mainWindow)
+
+  mainWindow.webContents.setZoomFactor(zoomFactor)
 
   mainWindow.on('ready-to-show', () => {
     if (windowBounds.rememberWindowBounds && windowBounds.isMaximized) mainWindow.maximize()
