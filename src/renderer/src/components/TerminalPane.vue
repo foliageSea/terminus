@@ -278,8 +278,10 @@ onMounted(async () => {
 
   terminal.onData((data) => window.api.terminal.write(props.paneId, data))
 
-  removeDataListener = window.api.terminal.onData(({ id, data }) => {
-    if (id === props.paneId) terminal?.write(data)
+  removeDataListener = window.api.terminal.onData(({ id, data, byteLength }) => {
+    if (id !== props.paneId) return
+
+    terminal?.write(data, () => window.api.terminal.ackData(id, byteLength))
   })
   removeExitListener = window.api.terminal.onExit(({ id }) => {
     if (id !== props.paneId) return

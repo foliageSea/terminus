@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain, Notification, WebContents } from 'electron'
 import { sendToRenderer } from '../shared/sendToRenderer'
 import {
+  ackTerminalData,
   createTerminal,
   killTerminalsForOwner,
   killTerminal,
@@ -53,6 +54,10 @@ export function registerTerminalIpc(): void {
 
   ipcMain.on('terminal:resize', (_, id: string, cols: number, rows: number) => {
     resizeTerminal(id, cols, rows)
+  })
+
+  ipcMain.on('terminal:ack-data', (_, id: string, byteLength: number) => {
+    ackTerminalData(id, byteLength)
   })
 
   ipcMain.on('terminal:kill', (_, id: string) => {

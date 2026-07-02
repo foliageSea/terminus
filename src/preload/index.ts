@@ -77,11 +77,13 @@ const api = {
     write: (id: string, data: string) => ipcRenderer.send('terminal:input', id, data),
     resize: (id: string, cols: number, rows: number) =>
       ipcRenderer.send('terminal:resize', id, cols, rows),
+    ackData: (id: string, byteLength: number) =>
+      ipcRenderer.send('terminal:ack-data', id, byteLength),
     kill: (id: string) => ipcRenderer.send('terminal:kill', id),
-    onData: (callback: (payload: { id: string; data: string }) => void) => {
+    onData: (callback: (payload: { id: string; data: string; byteLength: number }) => void) => {
       const listener = (
         _: Electron.IpcRendererEvent,
-        payload: { id: string; data: string }
+        payload: { id: string; data: string; byteLength: number }
       ): void => callback(payload)
 
       ipcRenderer.on('terminal:data', listener)
