@@ -55,6 +55,7 @@ let removeExitListener: (() => void) | undefined
 let copyBubbleTimer: number | undefined
 let resizeTimer: number | undefined
 let suppressedExitMessages = 0
+const maxCreateFitAttempts = 8
 
 function splitTo(side: PaneSide): void {
   emit('split', props.paneId, side)
@@ -117,14 +118,35 @@ function handleDragEnd(): void {
   clearDraggingNodeId()
 }
 
-function fit(): void {
-  if (!terminal || !fitAddon) return
+function hasMeasurableHost(): boolean {
+  if (!host.value) return false
+
+  const rect = host.value.getBoundingClientRect()
+  return rect.width > 0 && rect.height > 0
+}
+
+function fit(): boolean {
+  if (!terminal || !fitAddon || !hasMeasurableHost()) return false
 
   try {
     fitAddon.fit()
     window.api.terminal.resize(props.paneId, terminal.cols, terminal.rows)
+    return true
   } catch {
     // xterm fit can run before the pane has a measurable size.
+    return false
+  }
+}
+
+function waitForAnimationFrame(): Promise<void> {
+  return new Promise((resolve) => window.requestAnimationFrame(() => resolve()))
+}
+
+async function fitBeforeCreate(): Promise<void> {
+  for (let attempt = 0; attempt < maxCreateFitAttempts; attempt += 1) {
+    await nextTick()
+    await waitForAnimationFrame()
+    if (fit()) return
   }
 }
 
@@ -231,8 +253,7 @@ function handleTerminalKey(event: KeyboardEvent): boolean {
 async function createPty(): Promise<void> {
   if (!terminal) return
 
-  await nextTick()
-  fit()
+  await fitBeforeCreate()
   await window.api.terminal.create(props.paneId, terminal.cols, terminal.rows, props.cwd)
 }
 
