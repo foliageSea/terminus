@@ -3,6 +3,8 @@ export type ShortcutActionId =
   | 'nextTab'
   | 'previousTab'
   | 'switchPane'
+  | 'splitPaneRight'
+  | 'splitPaneDown'
   | 'closePane'
   | 'minimizeWindow'
   | 'copy'
@@ -53,6 +55,8 @@ export const shortcutActionDefinitions: ShortcutActionDefinition[] = [
   { id: 'nextTab', label: '下一个 Tab', group: 'tabs' },
   { id: 'previousTab', label: '上一个 Tab', group: 'tabs' },
   { id: 'switchPane', label: '切换分屏焦点', group: 'panes' },
+  { id: 'splitPaneRight', label: '向右分屏', group: 'panes' },
+  { id: 'splitPaneDown', label: '向下分屏', group: 'panes' },
   { id: 'closePane', label: '关闭当前分屏', group: 'panes' },
   { id: 'copy', label: '复制选中文本', group: 'terminal' },
   { id: 'paste', label: '粘贴', group: 'terminal' },
@@ -79,6 +83,22 @@ export const defaultShortcutSettings: ShortcutSettings = {
   switchPane: {
     key: '`',
     code: 'Backquote',
+    ctrl: true,
+    alt: false,
+    shift: false,
+    meta: false
+  },
+  splitPaneRight: {
+    key: 'ArrowRight',
+    code: 'ArrowRight',
+    ctrl: true,
+    alt: false,
+    shift: false,
+    meta: false
+  },
+  splitPaneDown: {
+    key: 'ArrowDown',
+    code: 'ArrowDown',
     ctrl: true,
     alt: false,
     shift: false,

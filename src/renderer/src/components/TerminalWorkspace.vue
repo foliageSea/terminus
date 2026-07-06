@@ -543,6 +543,26 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
     return
   }
 
+  if (matchesShortcut(event, shortcuts.splitPaneRight)) {
+    event.preventDefault()
+    event.stopPropagation()
+    const tab = activeTab.value
+    if (isTerminalTab(tab)) {
+      handleSplit(tab.activePaneId, 'right')
+    }
+    return
+  }
+
+  if (matchesShortcut(event, shortcuts.splitPaneDown)) {
+    event.preventDefault()
+    event.stopPropagation()
+    const tab = activeTab.value
+    if (isTerminalTab(tab)) {
+      handleSplit(tab.activePaneId, 'bottom')
+    }
+    return
+  }
+
   if (matchesShortcut(event, shortcuts.newTab)) {
     event.preventDefault()
     event.stopPropagation()
