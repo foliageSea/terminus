@@ -297,7 +297,15 @@ button {
 }
 
 .workspace-header .n-tabs-tab.n-tabs-tab--active {
+  color: rgba(255, 255, 255, 0.96);
   transform: translateY(-1px);
+}
+
+.workspace-header .n-tabs-tab.n-tabs-tab--active .n-tabs-tab__label,
+.workspace-header .n-tabs-tab.n-tabs-tab--active .tab-content,
+.workspace-header .n-tabs-tab.n-tabs-tab--active .tab-icon,
+.workspace-header .n-tabs-tab.n-tabs-tab--active .tab-title {
+  color: rgba(255, 255, 255, 0.96) !important;
 }
 
 .workspace-header .n-tabs-tab.n-tabs-tab--active::after {
