@@ -1061,6 +1061,13 @@ onBeforeUnmount(() => {
       </NTabs>
       <div v-show="tabBarMode === 'vertical'" class="workspace-title-spacer" />
       <div class="header-actions">
+        <NButton class="new-tab-button" size="small" secondary circle @click="addTab">
+          <template #icon>
+            <NIcon>
+              <Add20Regular />
+            </NIcon>
+          </template>
+        </NButton>
         <NTooltip>
           <template #trigger>
             <NButton
@@ -1083,13 +1090,6 @@ onBeforeUnmount(() => {
           </template>
           {{ windowAppearanceSettings.alwaysOnTop ? '取消置顶' : '窗口置顶' }}
         </NTooltip>
-        <NButton class="new-tab-button" size="small" secondary circle @click="addTab">
-          <template #icon>
-            <NIcon>
-              <Add20Regular />
-            </NIcon>
-          </template>
-        </NButton>
         <PathFavoritesPopover
           v-model:search="pathFavoriteSearch"
           :favorites="pathFavorites.items"
