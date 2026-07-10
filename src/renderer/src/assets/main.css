@@ -518,7 +518,8 @@ button {
 .workspace-tab-item-title {
   min-width: 0;
   overflow: hidden;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
