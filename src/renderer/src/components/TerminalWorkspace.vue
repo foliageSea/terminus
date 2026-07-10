@@ -100,14 +100,20 @@ function createId(prefix: string): string {
   return `${prefix}-${nextId}`
 }
 
-function createTab(title?: string, cwd?: string): TerminalTab {
+function getDirectoryName(path: string): string {
+  const normalizedPath = path.replace(/[\\/]+$/, '')
+  return normalizedPath.split(/[\\/]/).filter(Boolean).pop() || path
+}
+
+function createTab(cwd?: string): TerminalTab {
   const paneId = createId('pane')
-  const tabTitle = title ?? `#${nextTabNumber}`
-  if (!title) nextTabNumber = (nextTabNumber % 12) + 1
+  const tabTitle = cwd ? getDirectoryName(cwd) : `#${nextTabNumber}`
+  if (!cwd) nextTabNumber = (nextTabNumber % 12) + 1
 
   return {
     id: createId('tab'),
     title: tabTitle,
+    titleModified: false,
     type: 'terminal',
     root: { type: 'pane', id: paneId, cwd },
     activePaneId: paneId,
@@ -191,6 +197,18 @@ const activeTab = computed(
 
 function isTerminalTab(tab: Tab): tab is TerminalTab {
   return tab.type === 'terminal'
+}
+
+function syncTerminalTabTitle(tab: TerminalTab): void {
+  if (tab.titleModified) return
+
+  const cwd = findPaneLeaf(tab.root, tab.activePaneId)?.cwd?.trim()
+  if (cwd) tab.title = getDirectoryName(cwd)
+}
+
+function activateTabPane(tab: TerminalTab, paneId: string): void {
+  tab.activePaneId = paneId
+  syncTerminalTabTitle(tab)
 }
 
 const activePane = computed(() => {
@@ -286,7 +304,7 @@ function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | und
   )
   const tab = activeTab.value
   if (isTerminalTab(tab)) {
-    tab.activePaneId = nextPaneId
+    activateTabPane(tab, nextPaneId)
     tab.layoutVersion += 1
   }
   return nextPaneId
@@ -308,8 +326,8 @@ function getPaneTeleportTarget(tab: TerminalTab, paneId: string): string {
   return `#terminal-pane-slot-${paneId}-${tab.layoutVersion}`
 }
 
-function openTab(cwd?: string, title?: string): void {
-  const tab = createTab(title, cwd)
+function openTab(cwd?: string): void {
+  const tab = createTab(cwd)
   tabs.value.push(tab)
   activeTabId.value = tab.id
 }
@@ -319,9 +337,7 @@ function addTab(): void {
 }
 
 function createFavoriteName(path: string): string {
-  const normalizedPath = path.replace(/[\\/]+$/, '')
-  const name = normalizedPath.split(/[\\/]/).filter(Boolean).pop()
-  return name || path
+  return getDirectoryName(path)
 }
 
 function addCurrentPathFavorite(): void {
@@ -340,7 +356,7 @@ function removePathFavorite(id: string): void {
 }
 
 function openPathFavorite(favorite: PathFavorite): void {
-  openTab(favorite.path, favorite.name)
+  openTab(favorite.path)
 }
 
 function startPathFavoriteDrag(event: DragEvent, favoriteId: string): void {
@@ -430,7 +446,7 @@ function switchPane(): void {
 
   const currentIndex = paneIds.findIndex((paneId) => paneId === tab.activePaneId)
   const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % paneIds.length
-  tab.activePaneId = paneIds[nextIndex]
+  activateTabPane(tab, paneIds[nextIndex])
 }
 
 async function updateTabBarMode(value: TabBarMode): Promise<void> {
@@ -759,7 +775,10 @@ function finishRenameTab(): void {
   if (!tab) return
 
   const nextTitle = editingTitle.value.trim()
-  if (nextTitle) tab.title = nextTitle
+  if (nextTitle) {
+    tab.title = nextTitle
+    if (isTerminalTab(tab)) tab.titleModified = true
+  }
   renameDialogVisible.value = false
   editingTabId.value = undefined
 }
@@ -896,7 +915,7 @@ function handleClosePane(paneId: string): void {
   tab.root = nextRoot
   tab.layoutVersion += 1
   if (!findPane(tab.root, tab.activePaneId)) {
-    tab.activePaneId = firstPaneId(tab.root)
+    activateTabPane(tab, firstPaneId(tab.root))
   }
 }
 
@@ -914,7 +933,7 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
   if (!root || !removed || !findPane(root, targetPaneId)) return
 
   tab.root = insertNode(root, targetPaneId, removed, side, () => createId('split'))
-  tab.activePaneId = firstPaneId(removed)
+  activateTabPane(tab, firstPaneId(removed))
   tab.layoutVersion += 1
   setLayoutAnimation(undefined, sourceNodeId)
 }
@@ -954,7 +973,11 @@ onMounted(async () => {
   window.addEventListener('resize', refreshWindowMaximized)
 
   removeCwdListener = window.api.terminal.onCwd(({ id, cwd }) => {
-    tabs.value.some((tab) => isTerminalTab(tab) && updateTabPaneCwd(tab, id, cwd))
+    tabs.value.some((tab) => {
+      if (!isTerminalTab(tab) || !updateTabPaneCwd(tab, id, cwd)) return false
+      if (tab.activePaneId === id) syncTerminalTabTitle(tab)
+      return true
+    })
   })
 
   tabBarMode.value = await window.api.settings.getTabBarMode()
@@ -1211,7 +1234,7 @@ onBeforeUnmount(() => {
               :shortcuts="shortcuts"
               :animated-pane-id="animatedPaneId"
               :animated-node-id="animatedNodeId"
-              @activate="tab.activePaneId = $event"
+              @activate="activateTabPane(tab, $event)"
               @split="handleSplit"
               @close="handleClosePane"
               @drop-pane="handleDropPane"
@@ -1230,7 +1253,7 @@ onBeforeUnmount(() => {
                 :shortcuts="shortcuts"
                 :animated-pane-id="animatedPaneId"
                 :animated-node-id="animatedNodeId"
-                @activate="tab.activePaneId = $event"
+                @activate="activateTabPane(tab, $event)"
                 @split="handleSplit"
                 @close="handleClosePane"
                 @drop-pane="handleDropPane"

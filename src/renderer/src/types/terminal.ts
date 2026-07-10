@@ -39,6 +39,7 @@ export type PaneNode = PaneLeaf | SplitNode
 export interface TerminalTab {
   id: string
   title: string
+  titleModified: boolean
   type: 'terminal'
   root: PaneNode
   activePaneId: string
