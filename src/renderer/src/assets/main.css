@@ -481,7 +481,7 @@ button {
   align-items: center;
   gap: 6px;
   width: calc(100% - 8px);
-  min-height: 34px;
+  min-height: 38px;
   padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 0;
