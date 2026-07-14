@@ -32,6 +32,13 @@ export function createWindow(): void {
   mainWindow.setAlwaysOnTop(alwaysOnTop)
   mainWindow.webContents.setZoomFactor(zoomFactor)
 
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown' || input.key !== 'F11') return
+
+    event.preventDefault()
+    mainWindow.setFullScreen(!mainWindow.isFullScreen())
+  })
+
   mainWindow.on('ready-to-show', () => {
     if (windowBounds.rememberWindowBounds && windowBounds.isMaximized) mainWindow.maximize()
     mainWindow.show()
