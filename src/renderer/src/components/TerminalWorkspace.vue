@@ -22,7 +22,7 @@ import {
   Pin20Regular,
   Settings20Regular
 } from '@vicons/fluent'
-import { SquareTerminal } from '@lucide/vue'
+import { PanelLeft, PanelTop, SquareTerminal, X } from '@lucide/vue'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
 import SettingsView from './SettingsView.vue'
 import ShortcutHelpPopover from './ShortcutHelpPopover.vue'
@@ -492,6 +492,10 @@ function switchPane(): void {
 
 async function updateTabBarMode(value: TabBarMode): Promise<void> {
   tabBarMode.value = await window.api.settings.setTabBarMode(value)
+}
+
+function toggleTabBarMode(): void {
+  void updateTabBarMode(tabBarMode.value === 'horizontal' ? 'vertical' : 'horizontal')
 }
 
 async function updateWindowControlsStyle(value: WindowControlsStyle): Promise<void> {
@@ -1164,6 +1168,26 @@ onBeforeUnmount(() => {
           @click="toggleMaximizeWindow"
         />
       </div>
+      <NTooltip>
+        <template #trigger>
+          <NButton
+            class="tab-bar-mode-toggle"
+            size="small"
+            secondary
+            circle
+            :aria-label="tabBarMode === 'horizontal' ? '切换到垂直标签栏' : '切换到水平标签栏'"
+            @click="toggleTabBarMode"
+          >
+            <template #icon>
+              <NIcon>
+                <PanelLeft v-if="tabBarMode === 'horizontal'" />
+                <PanelTop v-else />
+              </NIcon>
+            </template>
+          </NButton>
+        </template>
+        {{ tabBarMode === 'horizontal' ? '切换到垂直标签栏' : '切换到水平标签栏' }}
+      </NTooltip>
       <NTabs
         v-show="tabBarMode === 'horizontal'"
         v-model:value="activeTabId"
@@ -1343,10 +1367,10 @@ onBeforeUnmount(() => {
           @drop="dropTab($event, tab.id)"
           @dragend="finishTabDrag"
         >
-          <NIcon v-if="tab.type === 'settings'" :size="16" class="workspace-tab-item-icon">
+          <NIcon v-if="tab.type === 'settings'" :size="14" class="workspace-tab-item-icon">
             <Settings20Regular />
           </NIcon>
-          <NIcon v-else :size="16" class="workspace-tab-item-icon">
+          <NIcon v-else :size="14" class="workspace-tab-item-icon">
             <SquareTerminal />
           </NIcon>
           <span class="workspace-tab-item-title">{{ tab.title }}</span>
@@ -1356,7 +1380,7 @@ onBeforeUnmount(() => {
             aria-label="关闭 Tab"
             @click.stop="closeTab(tab.id)"
           >
-            ×
+            <X :size="14" />
           </span>
         </button>
       </aside>
@@ -1497,8 +1521,8 @@ onBeforeUnmount(() => {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   opacity: 0.7;
   line-height: 1;
 }

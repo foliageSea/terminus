@@ -37,7 +37,7 @@ button {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr) auto;
+  grid-template-columns: 82px auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   height: 46px;
@@ -47,28 +47,33 @@ button {
 }
 
 .workspace-header.window-controls-windows {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 8px;
   padding: 0 0 0 12px;
 }
 
 .workspace-header.window-controls-windows .window-controls {
-  grid-column: 3;
+  grid-column: 4;
 }
 
 .workspace-header.window-controls-windows .n-tabs,
 .workspace-header.window-controls-windows .workspace-title-spacer {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.workspace-header.window-controls-windows .header-actions {
   grid-column: 2;
   grid-row: 1;
 }
 
+.workspace-header.window-controls-windows .header-actions {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.workspace-header.window-controls-windows .tab-bar-mode-toggle {
+  grid-column: 1;
+  grid-row: 1;
+}
+
 .workspace-header.window-controls-mac {
-  grid-template-columns: 82px minmax(0, 1fr) auto;
+  grid-template-columns: 82px auto minmax(0, 1fr) auto;
   padding: 0 12px;
 }
 
@@ -257,6 +262,8 @@ button {
 .workspace-header .n-tabs-tab *,
 .new-tab-button,
 .new-tab-button *,
+.tab-bar-mode-toggle,
+.tab-bar-mode-toggle *,
 .header-actions-toggle,
 .header-actions-toggle *,
 .settings-button,
@@ -341,11 +348,13 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace-header .n-tabs-tab {
+  .workspace-header .n-tabs-tab,
+  .workspace-tab-item {
     transition: none;
   }
 
-  .workspace-header .n-tabs-tab.n-tabs-tab--active::after {
+  .workspace-header .n-tabs-tab.n-tabs-tab--active::after,
+  .workspace-tab-item.active::after {
     animation: none;
   }
 
@@ -404,7 +413,7 @@ button {
   display: flex;
   flex: 0 0 var(--vertical-tab-sidebar-width, 172px);
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   width: var(--vertical-tab-sidebar-width, 172px);
   height: 100%;
   min-width: 140px;
@@ -413,7 +422,7 @@ button {
   overflow-x: hidden;
   overflow-y: auto;
   border-right: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(2, 6, 23, 0.16);
+  background: transparent;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   scrollbar-width: thin;
 }
@@ -473,11 +482,11 @@ button {
   gap: 6px;
   width: calc(100% - 8px);
   min-height: 34px;
-  padding: 7px 8px 7px 10px;
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  padding: 0 8px;
+  border: 1px solid transparent;
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(226, 232, 240, 0.78);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.52);
   cursor: pointer;
   text-align: left;
   transition:
@@ -490,29 +499,27 @@ button {
 }
 
 .workspace-tab-item:hover {
-  border-color: rgba(148, 163, 184, 0.22);
-  background: rgba(255, 255, 255, 0.065);
-  color: rgba(248, 250, 252, 0.92);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .workspace-tab-item.active {
-  border-color: color-mix(in srgb, var(--terminal-active-color) 62%, rgba(148, 163, 184, 0.2));
-  background: color-mix(in srgb, var(--terminal-active-color) 13%, rgba(255, 255, 255, 0.045));
+  background: transparent;
   color: rgba(255, 255, 255, 0.96);
-  box-shadow:
-    inset 3px 0 0 var(--terminal-active-color),
-    0 0 22px color-mix(in srgb, var(--terminal-active-color) 13%, transparent);
+  transform: translateY(-1px);
 }
 
 .workspace-tab-item.active::after {
   position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: -1px;
-  width: 2px;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 2px;
   border-radius: 999px;
   background: var(--terminal-active-color);
   box-shadow: 0 0 10px color-mix(in srgb, var(--terminal-active-color) 55%, transparent);
+  transform-origin: center;
+  animation: active-tab-indicator 220ms ease-out;
   content: '';
 }
 
@@ -530,9 +537,8 @@ button {
   place-items: center;
   width: 18px;
   height: 18px;
-  border-radius: 0;
+  border-radius: 2px;
   color: rgba(226, 232, 240, 0.48);
-  font-size: 16px;
   line-height: 1;
   transition:
     background 140ms ease,
@@ -540,7 +546,7 @@ button {
 }
 
 .workspace-tab-close:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.88);
 }
 
