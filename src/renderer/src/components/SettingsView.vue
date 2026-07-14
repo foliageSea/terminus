@@ -285,6 +285,7 @@ onBeforeUnmount(() => {
           <h3 class="settings-section-title">字体设置</h3>
           <NFormItem label="字体" path="fontFamily">
             <NInput
+              class="settings-compact-control"
               :value="terminalSettings.fontFamily"
               placeholder="Cascadia Mono, Consolas, monospace"
               clearable
@@ -351,7 +352,7 @@ onBeforeUnmount(() => {
           </NFormItem>
           <NFormItem label="背景遮罩" path="backgroundOpacity">
             <div
-              class="settings-range-control"
+              class="settings-range-control settings-compact-control"
               @wheel="
                 handleSliderWheel(
                   $event,
@@ -374,7 +375,7 @@ onBeforeUnmount(() => {
           </NFormItem>
           <NFormItem label="背景模糊" path="backgroundBlur">
             <div
-              class="settings-range-control"
+              class="settings-range-control settings-compact-control"
               @wheel="
                 handleSliderWheel(
                   $event,
@@ -568,6 +569,11 @@ onBeforeUnmount(() => {
 
 .font-size-input :deep(input) {
   text-align: center;
+}
+
+.settings-compact-control {
+  width: 100%;
+  max-width: 280px;
 }
 
 .settings-background-control {
