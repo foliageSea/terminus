@@ -14,7 +14,14 @@ import {
   useThemeVars
 } from 'naive-ui'
 import type { InputInst } from 'naive-ui'
-import { Add20Regular, Pin20Filled, Pin20Regular, Settings20Regular } from '@vicons/fluent'
+import {
+  Add20Regular,
+  ChevronLeft20Regular,
+  ChevronRight20Regular,
+  Pin20Filled,
+  Pin20Regular,
+  Settings20Regular
+} from '@vicons/fluent'
 import { SquareTerminal } from '@lucide/vue'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
 import SettingsView from './SettingsView.vue'
@@ -81,7 +88,8 @@ const defaultTerminalSettings: TerminalSettings = {
 const defaultPathFavoritesSettings: PathFavoritesSettings = {
   items: []
 }
-const defaultShortcutSettingsValue: ShortcutSettings = cloneShortcutSettings(defaultShortcutSettings)
+const defaultShortcutSettingsValue: ShortcutSettings =
+  cloneShortcutSettings(defaultShortcutSettings)
 const defaultVerticalTabBarWidth = 172
 const minVerticalTabBarWidth = 140
 const maxVerticalTabBarWidth = 320
@@ -157,6 +165,7 @@ const tabBarMode = ref<TabBarMode>('horizontal')
 const windowControlsStyle = ref<WindowControlsStyle>('system')
 const platform = ref('win32')
 const windowMaximized = ref(false)
+const headerActionsCollapsed = ref(true)
 const windowAppearanceSettings = reactive<WindowAppearanceSettings>({
   ...defaultWindowAppearanceSettings
 })
@@ -1004,7 +1013,6 @@ onMounted(async () => {
 
   const savedWindowBoundsSettings = await window.api.settings.getWindowBounds()
   Object.assign(windowBoundsSettings, savedWindowBoundsSettings)
-
 })
 
 onBeforeUnmount(() => {
@@ -1094,50 +1102,78 @@ onBeforeUnmount(() => {
         <NTooltip>
           <template #trigger>
             <NButton
-              class="always-on-top-button"
+              class="header-actions-toggle"
               size="small"
               secondary
               circle
-              :type="windowAppearanceSettings.alwaysOnTop ? 'primary' : 'default'"
-              :aria-label="windowAppearanceSettings.alwaysOnTop ? '取消窗口置顶' : '窗口置顶'"
-              :aria-pressed="windowAppearanceSettings.alwaysOnTop"
-              @click="toggleWindowAlwaysOnTop"
+              :aria-label="headerActionsCollapsed ? '展开操作按钮' : '收起操作按钮'"
+              :aria-expanded="!headerActionsCollapsed"
+              @click="headerActionsCollapsed = !headerActionsCollapsed"
             >
               <template #icon>
                 <NIcon>
-                  <Pin20Filled v-if="windowAppearanceSettings.alwaysOnTop" />
-                  <Pin20Regular v-else />
+                  <ChevronLeft20Regular v-if="headerActionsCollapsed" />
+                  <ChevronRight20Regular v-else />
                 </NIcon>
               </template>
             </NButton>
           </template>
-          {{ windowAppearanceSettings.alwaysOnTop ? '取消置顶' : '窗口置顶' }}
+          {{ headerActionsCollapsed ? '展开操作按钮' : '收起操作按钮' }}
         </NTooltip>
-        <PathFavoritesPopover
-          v-model:search="pathFavoriteSearch"
-          :favorites="pathFavorites.items"
-          :filtered-favorites="filteredPathFavorites"
-          :can-favorite-active-path="canFavoriteActivePath"
-          :dragging-favorite-id="draggingPathFavoriteId"
-          :drag-over-favorite-id="dragOverPathFavoriteId"
-          :drag-over-favorite-side="dragOverPathFavoriteSide"
-          :theme-style="workspaceThemeStyle"
-          @add-current="addCurrentPathFavorite"
-          @open="openPathFavorite"
-          @remove="removePathFavorite"
-          @dragstart="startPathFavoriteDrag"
-          @dragover="handlePathFavoriteDragOver"
-          @dragend="finishPathFavoriteDrag"
-          @drop="dropPathFavorite"
-        />
-        <NButton class="settings-button" size="small" secondary circle @click="openSettingsTab">
-          <template #icon>
-            <NIcon>
-              <Settings20Regular />
-            </NIcon>
-          </template>
-        </NButton>
-        <ShortcutHelpPopover :shortcuts="shortcuts" />
+        <div
+          class="header-action-group"
+          :class="{ collapsed: headerActionsCollapsed }"
+          :aria-hidden="headerActionsCollapsed"
+          :inert="headerActionsCollapsed"
+        >
+          <NTooltip>
+            <template #trigger>
+              <NButton
+                class="always-on-top-button"
+                size="small"
+                secondary
+                circle
+                :type="windowAppearanceSettings.alwaysOnTop ? 'primary' : 'default'"
+                :aria-label="windowAppearanceSettings.alwaysOnTop ? '取消窗口置顶' : '窗口置顶'"
+                :aria-pressed="windowAppearanceSettings.alwaysOnTop"
+                @click="toggleWindowAlwaysOnTop"
+              >
+                <template #icon>
+                  <NIcon>
+                    <Pin20Filled v-if="windowAppearanceSettings.alwaysOnTop" />
+                    <Pin20Regular v-else />
+                  </NIcon>
+                </template>
+              </NButton>
+            </template>
+            {{ windowAppearanceSettings.alwaysOnTop ? '取消置顶' : '窗口置顶' }}
+          </NTooltip>
+          <PathFavoritesPopover
+            v-model:search="pathFavoriteSearch"
+            :favorites="pathFavorites.items"
+            :filtered-favorites="filteredPathFavorites"
+            :can-favorite-active-path="canFavoriteActivePath"
+            :dragging-favorite-id="draggingPathFavoriteId"
+            :drag-over-favorite-id="dragOverPathFavoriteId"
+            :drag-over-favorite-side="dragOverPathFavoriteSide"
+            :theme-style="workspaceThemeStyle"
+            @add-current="addCurrentPathFavorite"
+            @open="openPathFavorite"
+            @remove="removePathFavorite"
+            @dragstart="startPathFavoriteDrag"
+            @dragover="handlePathFavoriteDragOver"
+            @dragend="finishPathFavoriteDrag"
+            @drop="dropPathFavorite"
+          />
+          <NButton class="settings-button" size="small" secondary circle @click="openSettingsTab">
+            <template #icon>
+              <NIcon>
+                <Settings20Regular />
+              </NIcon>
+            </template>
+          </NButton>
+          <ShortcutHelpPopover :shortcuts="shortcuts" />
+        </div>
       </div>
     </NLayoutHeader>
 
@@ -1288,7 +1324,9 @@ onBeforeUnmount(() => {
             @update-background-opacity="updateBackgroundOpacity"
             @update-background-blur="updateBackgroundBlur"
             @update-shortcuts="Object.assign(shortcuts, $event)"
-            @reset-shortcuts="Object.assign(shortcuts, cloneShortcutSettings(defaultShortcutSettingsValue))"
+            @reset-shortcuts="
+              Object.assign(shortcuts, cloneShortcutSettings(defaultShortcutSettingsValue))
+            "
             @update-shortcut-recording="shortcutRecording = $event"
           />
         </div>
@@ -1388,6 +1426,25 @@ onBeforeUnmount(() => {
 
 .always-on-top-button {
   flex: none;
+}
+
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 136px;
+  overflow: visible;
+  opacity: 1;
+  transition:
+    max-width 180ms ease,
+    opacity 120ms ease;
+}
+
+.header-action-group.collapsed {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .path-favorites-button {
