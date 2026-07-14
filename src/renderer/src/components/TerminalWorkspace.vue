@@ -964,7 +964,12 @@ function closeTab(tabId: string): void {
   const tab = tabs.value.find((item) => item.id === tabId)
   if (!tab) return
 
-  if (tabs.value.length > 1) {
+  if (tab.type === 'settings') {
+    performCloseTab(tabId)
+    return
+  }
+
+  if (isTerminalTab(tab) && collectTabPaneIds(tab).length > 1) {
     requestCloseConfirmation('关闭 Tab', `确定要关闭 Tab“${tab.title}”吗？`, () =>
       performCloseTab(tabId)
     )
