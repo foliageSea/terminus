@@ -177,6 +177,10 @@ const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
 const renameDialogVisible = ref(false)
 const renameInputRef = ref<InputInst>()
+const closeConfirmationVisible = ref(false)
+const closeConfirmationTitle = ref('')
+const closeConfirmationContent = ref('')
+const pendingCloseAction = ref<(() => void) | undefined>()
 const draggingTabId = ref<string | undefined>()
 const dragOverTabId = ref<string | undefined>()
 const dragOverTabSide = ref<'before' | 'after'>('before')
@@ -825,6 +829,25 @@ function cancelRenameTab(): void {
   editingTabId.value = undefined
 }
 
+function requestCloseConfirmation(title: string, content: string, action: () => void): void {
+  closeConfirmationTitle.value = title
+  closeConfirmationContent.value = content
+  pendingCloseAction.value = action
+  closeConfirmationVisible.value = true
+}
+
+function confirmClose(): void {
+  const action = pendingCloseAction.value
+  closeConfirmationVisible.value = false
+  pendingCloseAction.value = undefined
+  action?.()
+}
+
+function cancelClose(): void {
+  closeConfirmationVisible.value = false
+  pendingCloseAction.value = undefined
+}
+
 function minimizeWindow(): void {
   window.api.window.minimize()
 }
@@ -843,6 +866,13 @@ async function toggleWindowAlwaysOnTop(): Promise<void> {
 }
 
 function closeWindow(): void {
+  if (tabs.value.length > 1) {
+    requestCloseConfirmation('关闭窗口', '当前窗口存在多个 Tab，确定要关闭整个窗口吗？', () =>
+      window.api.window.close()
+    )
+    return
+  }
+
   window.api.window.close()
 }
 
@@ -912,7 +942,7 @@ function updatePrimaryColor(color: string): void {
   emit('updatePrimaryColor', color)
 }
 
-function closeTab(tabId: string): void {
+function performCloseTab(tabId: string): void {
   const tab = tabs.value.find((item) => item.id === tabId)
   if (!tab) return
 
@@ -928,6 +958,20 @@ function closeTab(tabId: string): void {
   if (activeTabId.value === tabId) {
     activeTabId.value = tabs.value[Math.max(0, index - 1)].id
   }
+}
+
+function closeTab(tabId: string): void {
+  const tab = tabs.value.find((item) => item.id === tabId)
+  if (!tab) return
+
+  if (tabs.value.length > 1) {
+    requestCloseConfirmation('关闭 Tab', `确定要关闭 Tab“${tab.title}”吗？`, () =>
+      performCloseTab(tabId)
+    )
+    return
+  }
+
+  performCloseTab(tabId)
 }
 
 function handleSplit(paneId: string, side: PaneSide): void {
@@ -946,15 +990,20 @@ function handleClosePane(paneId: string): void {
     return
   }
 
-  const nextRoot = closePane(tab.root, paneId)
-  if (!nextRoot) return
+  requestCloseConfirmation('关闭分屏', '当前 Tab 存在分屏，确定要关闭当前分屏吗？', () => {
+    const currentTab = tabs.value.find((item) => item.id === tab.id)
+    if (!currentTab || !isTerminalTab(currentTab)) return
 
-  window.api.terminal.kill(paneId)
-  tab.root = nextRoot
-  tab.layoutVersion += 1
-  if (!findPane(tab.root, tab.activePaneId)) {
-    activateTabPane(tab, firstPaneId(tab.root))
-  }
+    const nextRoot = closePane(currentTab.root, paneId)
+    if (!nextRoot) return
+
+    window.api.terminal.kill(paneId)
+    currentTab.root = nextRoot
+    currentTab.layoutVersion += 1
+    if (!findPane(currentTab.root, currentTab.activePaneId)) {
+      activateTabPane(currentTab, firstPaneId(currentTab.root))
+    }
+  })
 }
 
 function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): void {
@@ -1243,6 +1292,19 @@ onBeforeUnmount(() => {
         @keydown.enter.prevent="finishRenameTab"
         @keydown.esc.prevent="cancelRenameTab"
       />
+    </NModal>
+
+    <NModal
+      v-model:show="closeConfirmationVisible"
+      preset="dialog"
+      :title="closeConfirmationTitle"
+      positive-text="关闭"
+      negative-text="取消"
+      @positive-click="confirmClose"
+      @negative-click="cancelClose"
+      @close="cancelClose"
+    >
+      {{ closeConfirmationContent }}
     </NModal>
 
     <div class="workspace-main" :class="`tab-bar-${tabBarMode}`" :style="workspaceMainStyle">
