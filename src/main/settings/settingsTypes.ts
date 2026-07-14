@@ -39,6 +39,11 @@ export interface WindowBoundsSettings {
   isMaximized: boolean
 }
 
+export interface TabSessionSettings {
+  paths: string[]
+  activeIndex: number
+}
+
 export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
@@ -50,6 +55,7 @@ export interface AppSettings {
   windowAlwaysOnTop: boolean
   verticalTabBarWidth: number
   windowBounds: WindowBoundsSettings
+  tabSession: TabSessionSettings
 }
 
 export const defaultTerminalSettings: TerminalSettings = {
@@ -88,4 +94,8 @@ export const defaultWindowBoundsSettings: WindowBoundsSettings = {
   width: 900,
   height: 670,
   isMaximized: false
+}
+export const defaultTabSessionSettings: TabSessionSettings = {
+  paths: [],
+  activeIndex: 0
 }

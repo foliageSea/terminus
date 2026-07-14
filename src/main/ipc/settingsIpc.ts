@@ -5,6 +5,7 @@ import type {
   PathFavoritesSettings,
   ShortcutSettings,
   TabBarMode,
+  TabSessionSettings,
   TerminalSettings,
   ThemeSettings,
   WindowBoundsSettings,
@@ -14,6 +15,7 @@ import {
   readPathFavoritesSettings,
   readShortcutSettings,
   readTabBarMode,
+  readTabSessionSettings,
   readTerminalSettings,
   readThemeSettings,
   readWindowBoundsSettings,
@@ -24,6 +26,7 @@ import {
   writePathFavoritesSettings,
   writeShortcutSettings,
   writeTabBarMode,
+  writeTabSessionSettings,
   writeTerminalSettings,
   writeThemeSettings,
   writeWindowBoundsSettings,
@@ -100,6 +103,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:set-zoom-factor', (_, factor: number) => writeZoomFactor(factor))
   ipcMain.handle('settings:get-tab-bar-mode', () => readTabBarMode())
   ipcMain.handle('settings:set-tab-bar-mode', (_, mode: TabBarMode) => writeTabBarMode(mode))
+  ipcMain.handle('settings:get-tab-session', () => readTabSessionSettings())
+  ipcMain.handle('settings:set-tab-session', (_, settings: TabSessionSettings) =>
+    writeTabSessionSettings(settings)
+  )
   ipcMain.handle('settings:get-window-controls-style', () => readWindowControlsStyle())
   ipcMain.handle('settings:set-window-controls-style', (_, style: WindowControlsStyle) =>
     writeWindowControlsStyle(style)

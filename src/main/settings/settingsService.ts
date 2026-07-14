@@ -7,6 +7,7 @@ import {
   PathFavoritesSettings,
   ShortcutSettings,
   TabBarMode,
+  TabSessionSettings,
   TerminalSettings,
   ThemeSettings,
   WindowBoundsSettings,
@@ -14,6 +15,7 @@ import {
   defaultPathFavoritesSettings,
   defaultShortcutSettingsValue,
   defaultTabBarMode,
+  defaultTabSessionSettings,
   defaultTerminalSettings,
   defaultThemeSettings,
   defaultVerticalTabBarWidth,
@@ -36,6 +38,7 @@ import {
 } from '../../shared/shortcuts'
 
 const maxPathFavorites = 50
+const maxTabSessionPaths = 50
 
 function normalizeFontSize(value: unknown): number {
   const fontSize = Number(value)
@@ -218,6 +221,25 @@ function normalizeWindowBoundsSettings(value: unknown): WindowBoundsSettings {
   }
 }
 
+function normalizeTabSessionSettings(value: unknown): TabSessionSettings {
+  const settings = value && typeof value === 'object' ? (value as Partial<TabSessionSettings>) : {}
+  const paths = Array.isArray(settings.paths)
+    ? settings.paths
+        .filter((path): path is string => typeof path === 'string')
+        .slice(0, maxTabSessionPaths)
+        .map((path) => path.trim())
+    : defaultTabSessionSettings.paths
+  const activeIndex = Number(settings.activeIndex)
+
+  return {
+    paths,
+    activeIndex:
+      paths.length && Number.isFinite(activeIndex)
+        ? Math.min(paths.length - 1, Math.max(0, Math.round(activeIndex)))
+        : defaultTabSessionSettings.activeIndex
+  }
+}
+
 function normalizeAppSettings(value: unknown): AppSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
   const legacyTerminalSettings =
@@ -233,7 +255,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
     windowControlsStyle: normalizeWindowControlsStyle(settings.windowControlsStyle),
     windowAlwaysOnTop: normalizeWindowAlwaysOnTop(settings.windowAlwaysOnTop),
     verticalTabBarWidth: normalizeVerticalTabBarWidth(settings.verticalTabBarWidth),
-    windowBounds: normalizeWindowBoundsSettings(settings.windowBounds)
+    windowBounds: normalizeWindowBoundsSettings(settings.windowBounds),
+    tabSession: normalizeTabSessionSettings(settings.tabSession)
   }
 }
 
@@ -350,4 +373,12 @@ export function writeWindowBoundsSettings(settings: WindowBoundsSettings): Windo
       }
 
   return writeAppSettings({ ...readAppSettings(), windowBounds: nextWindowBounds }).windowBounds
+}
+
+export function readTabSessionSettings(): TabSessionSettings {
+  return readAppSettings().tabSession
+}
+
+export function writeTabSessionSettings(settings: TabSessionSettings): TabSessionSettings {
+  return writeAppSettings({ ...readAppSettings(), tabSession: settings }).tabSession
 }

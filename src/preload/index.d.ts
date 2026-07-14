@@ -71,6 +71,11 @@ export interface WindowBoundsSettings {
   isMaximized: boolean
 }
 
+export interface TabSessionSettings {
+  paths: string[]
+  activeIndex: number
+}
+
 export interface SettingsApi {
   getTerminal: () => Promise<TerminalSettings>
   setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
@@ -86,6 +91,8 @@ export interface SettingsApi {
   setZoomFactor: (factor: number) => Promise<number>
   getTabBarMode: () => Promise<TabBarMode>
   setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
+  getTabSession: () => Promise<TabSessionSettings>
+  setTabSession: (settings: TabSessionSettings) => Promise<TabSessionSettings>
   getWindowControlsStyle: () => Promise<WindowControlsStyle>
   setWindowControlsStyle: (style: WindowControlsStyle) => Promise<WindowControlsStyle>
   getWindowAlwaysOnTop: () => Promise<boolean>

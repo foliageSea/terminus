@@ -38,6 +38,7 @@ import type {
   ShortcutSettings,
   Tab,
   TabBarMode,
+  TabSessionSettings,
   TerminalSettings,
   TerminalTab,
   WindowAppearanceSettings,
@@ -161,6 +162,9 @@ function getFileNameFromPath(path: string): string {
 
 const tabs = ref<Tab[]>([createTab()])
 const activeTabId = ref(tabs.value[0].id)
+const lastActiveTerminalTabId = ref(activeTabId.value)
+const mountedTerminalTabIds = reactive(new Set<string>())
+const tabSessionLoaded = ref(false)
 const tabBarMode = ref<TabBarMode>('horizontal')
 const windowControlsStyle = ref<WindowControlsStyle>('system')
 const platform = ref('win32')
@@ -226,6 +230,15 @@ const activePane = computed(() => {
   return findPaneLeaf(tab.root, tab.activePaneId)
 })
 const activePaneCwd = computed(() => activePane.value?.cwd?.trim() || '')
+const tabSession = computed<TabSessionSettings>(() => {
+  const terminalTabs = tabs.value.filter(isTerminalTab)
+  const activeIndex = terminalTabs.findIndex((tab) => tab.id === lastActiveTerminalTabId.value)
+
+  return {
+    paths: terminalTabs.map((tab) => findPaneLeaf(tab.root, tab.activePaneId)?.cwd?.trim() || ''),
+    activeIndex: activeIndex < 0 ? 0 : activeIndex
+  }
+})
 const canFavoriteActivePath = computed(
   () =>
     Boolean(activePaneCwd.value) &&
@@ -339,6 +352,21 @@ function openTab(cwd?: string): void {
   const tab = createTab(cwd)
   tabs.value.push(tab)
   activeTabId.value = tab.id
+}
+
+function restoreTabSession(session: TabSessionSettings): void {
+  const restoredTabs = session.paths.map((path) => createTab(path || undefined))
+  if (restoredTabs.length) tabs.value = restoredTabs
+
+  const terminalTabs = tabs.value.filter(isTerminalTab)
+  const activeTab = terminalTabs[session.activeIndex] ?? terminalTabs[0]
+  if (activeTab) {
+    activeTabId.value = activeTab.id
+    lastActiveTerminalTabId.value = activeTab.id
+    mountedTerminalTabIds.add(activeTab.id)
+  }
+
+  tabSessionLoaded.value = true
 }
 
 function addTab(): void {
@@ -895,6 +923,7 @@ function closeTab(tabId: string): void {
 
   const index = tabs.value.findIndex((t) => t.id === tabId)
   tabs.value = tabs.value.filter((t) => t.id !== tabId)
+  mountedTerminalTabIds.delete(tabId)
 
   if (activeTabId.value === tabId) {
     activeTabId.value = tabs.value[Math.max(0, index - 1)].id
@@ -946,6 +975,24 @@ function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): 
   tab.layoutVersion += 1
   setLayoutAnimation(undefined, sourceNodeId)
 }
+
+watch(activeTabId, (tabId) => {
+  if (!tabSessionLoaded.value) return
+  const tab = tabs.value.find((item) => item.id === tabId)
+  if (!tab || !isTerminalTab(tab)) return
+
+  lastActiveTerminalTabId.value = tab.id
+  mountedTerminalTabIds.add(tab.id)
+})
+
+watch(
+  tabSession,
+  async (session) => {
+    if (!tabSessionLoaded.value) return
+    await window.api.settings.setTabSession(session)
+  },
+  { deep: true }
+)
 
 watch(
   terminalSettings,
@@ -1013,6 +1060,8 @@ onMounted(async () => {
 
   const savedWindowBoundsSettings = await window.api.settings.getWindowBounds()
   Object.assign(windowBoundsSettings, savedWindowBoundsSettings)
+
+  restoreTabSession(await window.api.settings.getTabSession())
 })
 
 onBeforeUnmount(() => {
@@ -1261,7 +1310,7 @@ onBeforeUnmount(() => {
           :key="tab.id"
           class="tab-terminal-view"
         >
-          <template v-if="isTerminalTab(tab)">
+          <template v-if="isTerminalTab(tab) && mountedTerminalTabIds.has(tab.id)">
             <SplitNode
               :node="tab.root"
               :active-pane-id="tab.activePaneId"

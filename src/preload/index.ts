@@ -52,6 +52,9 @@ const api = {
     getTabBarMode: () => ipcRenderer.invoke('settings:get-tab-bar-mode'),
     setTabBarMode: (mode: 'horizontal' | 'vertical') =>
       ipcRenderer.invoke('settings:set-tab-bar-mode', mode),
+    getTabSession: () => ipcRenderer.invoke('settings:get-tab-session'),
+    setTabSession: (settings: { paths: string[]; activeIndex: number }) =>
+      ipcRenderer.invoke('settings:set-tab-session', settings),
     getWindowControlsStyle: () => ipcRenderer.invoke('settings:get-window-controls-style'),
     setWindowControlsStyle: (style: 'system' | 'mac' | 'windows') =>
       ipcRenderer.invoke('settings:set-window-controls-style', style),

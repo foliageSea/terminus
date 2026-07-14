@@ -92,4 +92,9 @@ export interface WindowAppearanceSettings {
   alwaysOnTop: boolean
 }
 
+export interface TabSessionSettings {
+  paths: string[]
+  activeIndex: number
+}
+
 export type { ShortcutBinding, ShortcutSettings }
