@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import type { HTMLAttributes } from 'vue'
+import type { ComponentPublicInstance, HTMLAttributes } from 'vue'
 import {
   NButton,
   NIcon,
@@ -178,6 +178,7 @@ const editingTitle = ref('')
 const renameDialogVisible = ref(false)
 const renameInputRef = ref<InputInst>()
 const closeConfirmationVisible = ref(false)
+const closeConfirmationButtonRef = ref<ComponentPublicInstance>()
 const closeConfirmationTitle = ref('')
 const closeConfirmationContent = ref('')
 const pendingCloseAction = ref<(() => void) | undefined>()
@@ -838,6 +839,11 @@ function requestCloseConfirmation(title: string, content: string, action: () => 
   closeConfirmationContent.value = content
   pendingCloseAction.value = action
   closeConfirmationVisible.value = true
+
+  void nextTick(() => {
+    const closeButton = closeConfirmationButtonRef.value?.$el
+    if (closeButton instanceof HTMLElement) closeButton.focus()
+  })
 }
 
 function confirmClose(): void {
@@ -1326,14 +1332,17 @@ onBeforeUnmount(() => {
     <NModal
       v-model:show="closeConfirmationVisible"
       preset="dialog"
+      :auto-focus="false"
       :title="closeConfirmationTitle"
-      positive-text="关闭"
-      negative-text="取消"
-      @positive-click="confirmClose"
-      @negative-click="cancelClose"
       @close="cancelClose"
     >
       {{ closeConfirmationContent }}
+      <template #action>
+        <NButton @click="cancelClose">取消</NButton>
+        <NButton ref="closeConfirmationButtonRef" type="primary" @click="confirmClose">
+          关闭
+        </NButton>
+      </template>
     </NModal>
 
     <div class="workspace-main" :class="`tab-bar-${tabBarMode}`" :style="workspaceMainStyle">
