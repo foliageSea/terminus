@@ -834,7 +834,7 @@ function cancelRenameTab(): void {
   editingTabId.value = undefined
 }
 
-function requestCloseConfirmation(title: string, content: string, action: () => void): void {
+function requestCloseConfirmation(title: string, action: () => void, content = ''): void {
   closeConfirmationTitle.value = title
   closeConfirmationContent.value = content
   pendingCloseAction.value = action
@@ -877,8 +877,10 @@ async function toggleWindowAlwaysOnTop(): Promise<void> {
 
 function closeWindow(): void {
   if (tabs.value.length > 1) {
-    requestCloseConfirmation('关闭窗口', '当前窗口存在多个 Tab，确定要关闭整个窗口吗？', () =>
-      window.api.window.close()
+    requestCloseConfirmation(
+      '关闭窗口',
+      () => window.api.window.close(),
+      '当前窗口存在多个 Tab，确定要关闭整个窗口吗？'
     )
     return
   }
@@ -980,9 +982,7 @@ function closeTab(tabId: string): void {
   }
 
   if (isTerminalTab(tab) && collectTabPaneIds(tab).length > 1) {
-    requestCloseConfirmation('关闭 Tab', `确定要关闭 Tab“${tab.title}”吗？`, () =>
-      performCloseTab(tabId)
-    )
+    requestCloseConfirmation('询问', () => performCloseTab(tabId), '是否关闭标签')
     return
   }
 
@@ -1005,7 +1005,7 @@ function handleClosePane(paneId: string): void {
     return
   }
 
-  requestCloseConfirmation('关闭分屏', '当前 Tab 存在分屏，确定要关闭当前分屏吗？', () => {
+  requestCloseConfirmation('询问', () => {
     const currentTab = tabs.value.find((item) => item.id === tab.id)
     if (!currentTab || !isTerminalTab(currentTab)) return
 
@@ -1018,7 +1018,7 @@ function handleClosePane(paneId: string): void {
     if (!findPane(currentTab.root, currentTab.activePaneId)) {
       activateTabPane(currentTab, firstPaneId(currentTab.root))
     }
-  })
+  }, '是否关闭分屏')
 }
 
 function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): void {
@@ -1336,7 +1336,7 @@ onBeforeUnmount(() => {
       :title="closeConfirmationTitle"
       @close="cancelClose"
     >
-      {{ closeConfirmationContent }}
+      <template v-if="closeConfirmationContent">{{ closeConfirmationContent }}</template>
       <template #action>
         <NButton @click="cancelClose">取消</NButton>
         <NButton ref="closeConfirmationButtonRef" type="primary" @click="confirmClose">
