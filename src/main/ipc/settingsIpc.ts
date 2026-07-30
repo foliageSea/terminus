@@ -23,6 +23,7 @@ import {
   readWindowControlsStyle,
   readZoomFactor,
   readVerticalTabBarWidth,
+  readInheritTabCwd,
   writePathFavoritesSettings,
   writeShortcutSettings,
   writeTabBarMode,
@@ -33,7 +34,8 @@ import {
   writeWindowAlwaysOnTop,
   writeWindowControlsStyle,
   writeVerticalTabBarWidth,
-  writeZoomFactor
+  writeZoomFactor,
+  writeInheritTabCwd
 } from '../settings/settingsService'
 import { writeOpencodeSystemTheme } from '../opencode/systemTheme'
 
@@ -106,6 +108,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-tab-session', () => readTabSessionSettings())
   ipcMain.handle('settings:set-tab-session', (_, settings: TabSessionSettings) =>
     writeTabSessionSettings(settings)
+  )
+  ipcMain.handle('settings:get-inherit-tab-cwd', () => readInheritTabCwd())
+  ipcMain.handle('settings:set-inherit-tab-cwd', (_, inheritTabCwd: boolean) =>
+    writeInheritTabCwd(inheritTabCwd)
   )
   ipcMain.handle('settings:get-window-controls-style', () => readWindowControlsStyle())
   ipcMain.handle('settings:set-window-controls-style', (_, style: WindowControlsStyle) =>

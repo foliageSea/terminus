@@ -23,6 +23,7 @@ import {
   defaultWindowControlsStyle,
   defaultWindowBoundsSettings,
   defaultZoomFactor,
+  defaultInheritTabCwd,
   maxVerticalTabBarWidth,
   maxZoomFactor,
   minVerticalTabBarWidth,
@@ -240,6 +241,10 @@ function normalizeTabSessionSettings(value: unknown): TabSessionSettings {
   }
 }
 
+function normalizeInheritTabCwd(value: unknown): boolean {
+  return typeof value === 'boolean' ? value : defaultInheritTabCwd
+}
+
 function normalizeAppSettings(value: unknown): AppSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
   const legacyTerminalSettings =
@@ -256,7 +261,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
     windowAlwaysOnTop: normalizeWindowAlwaysOnTop(settings.windowAlwaysOnTop),
     verticalTabBarWidth: normalizeVerticalTabBarWidth(settings.verticalTabBarWidth),
     windowBounds: normalizeWindowBoundsSettings(settings.windowBounds),
-    tabSession: normalizeTabSessionSettings(settings.tabSession)
+    tabSession: normalizeTabSessionSettings(settings.tabSession),
+    inheritTabCwd: normalizeInheritTabCwd(settings.inheritTabCwd)
   }
 }
 
@@ -381,4 +387,12 @@ export function readTabSessionSettings(): TabSessionSettings {
 
 export function writeTabSessionSettings(settings: TabSessionSettings): TabSessionSettings {
   return writeAppSettings({ ...readAppSettings(), tabSession: settings }).tabSession
+}
+
+export function readInheritTabCwd(): boolean {
+  return readAppSettings().inheritTabCwd
+}
+
+export function writeInheritTabCwd(inheritTabCwd: boolean): boolean {
+  return writeAppSettings({ ...readAppSettings(), inheritTabCwd }).inheritTabCwd
 }

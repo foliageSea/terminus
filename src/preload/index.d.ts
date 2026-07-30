@@ -93,6 +93,8 @@ export interface SettingsApi {
   setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
   getTabSession: () => Promise<TabSessionSettings>
   setTabSession: (settings: TabSessionSettings) => Promise<TabSessionSettings>
+  getInheritTabCwd: () => Promise<boolean>
+  setInheritTabCwd: (inheritTabCwd: boolean) => Promise<boolean>
   getWindowControlsStyle: () => Promise<WindowControlsStyle>
   setWindowControlsStyle: (style: WindowControlsStyle) => Promise<WindowControlsStyle>
   getWindowAlwaysOnTop: () => Promise<boolean>

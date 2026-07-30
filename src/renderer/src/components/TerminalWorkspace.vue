@@ -166,6 +166,7 @@ const lastActiveTerminalTabId = ref(activeTabId.value)
 const mountedTerminalTabIds = reactive(new Set<string>())
 const tabSessionLoaded = ref(false)
 const tabBarMode = ref<TabBarMode>('horizontal')
+const inheritTabCwd = ref(true)
 const windowControlsStyle = ref<WindowControlsStyle>('system')
 const platform = ref('win32')
 const windowMaximized = ref(false)
@@ -359,6 +360,17 @@ function openTab(cwd?: string): void {
   activeTabId.value = tab.id
 }
 
+function getNewTabCwd(): string {
+  if (isTerminalTab(activeTab.value)) return activePaneCwd.value
+
+  const lastTerminalTab = tabs.value.find(
+    (tab) => tab.id === lastActiveTerminalTabId.value && isTerminalTab(tab)
+  )
+  if (!lastTerminalTab || !isTerminalTab(lastTerminalTab)) return ''
+
+  return findPaneLeaf(lastTerminalTab.root, lastTerminalTab.activePaneId)?.cwd?.trim() || ''
+}
+
 function restoreTabSession(session: TabSessionSettings): void {
   const restoredTabs = session.paths.map((path) => createTab(path || undefined))
   if (restoredTabs.length) tabs.value = restoredTabs
@@ -375,7 +387,7 @@ function restoreTabSession(session: TabSessionSettings): void {
 }
 
 function addTab(): void {
-  openTab()
+  openTab(inheritTabCwd.value ? getNewTabCwd() || undefined : undefined)
 }
 
 function createFavoriteName(path: string): string {
@@ -493,6 +505,10 @@ function switchPane(): void {
 
 async function updateTabBarMode(value: TabBarMode): Promise<void> {
   tabBarMode.value = await window.api.settings.setTabBarMode(value)
+}
+
+async function updateInheritTabCwd(value: boolean): Promise<void> {
+  inheritTabCwd.value = await window.api.settings.setInheritTabCwd(value)
 }
 
 function toggleTabBarMode(): void {
@@ -1101,6 +1117,7 @@ onMounted(async () => {
   })
 
   tabBarMode.value = await window.api.settings.getTabBarMode()
+  inheritTabCwd.value = await window.api.settings.getInheritTabCwd()
   windowControlsStyle.value = await window.api.settings.getWindowControlsStyle()
   platform.value = await window.api.window.getPlatform()
   await refreshWindowMaximized()
@@ -1451,6 +1468,7 @@ onBeforeUnmount(() => {
             :active-section="tab.activeSection"
             :primary-color="props.primaryColor"
             :tab-bar-mode="tabBarMode"
+            :inherit-tab-cwd="inheritTabCwd"
             :window-controls-style="windowControlsStyle"
             :window-always-on-top="windowAppearanceSettings.alwaysOnTop"
             :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
@@ -1460,6 +1478,7 @@ onBeforeUnmount(() => {
             @update-active-section="tab.activeSection = $event"
             @update-primary-color="updatePrimaryColor"
             @update-tab-bar-mode="updateTabBarMode"
+            @update-inherit-tab-cwd="updateInheritTabCwd"
             @update-window-controls-style="updateWindowControlsStyle"
             @update-window-always-on-top="updateWindowAlwaysOnTop"
             @update-remember-window-bounds="updateRememberWindowBounds"

@@ -55,6 +55,9 @@ const api = {
     getTabSession: () => ipcRenderer.invoke('settings:get-tab-session'),
     setTabSession: (settings: { paths: string[]; activeIndex: number }) =>
       ipcRenderer.invoke('settings:set-tab-session', settings),
+    getInheritTabCwd: () => ipcRenderer.invoke('settings:get-inherit-tab-cwd'),
+    setInheritTabCwd: (inheritTabCwd: boolean) =>
+      ipcRenderer.invoke('settings:set-inherit-tab-cwd', inheritTabCwd),
     getWindowControlsStyle: () => ipcRenderer.invoke('settings:get-window-controls-style'),
     setWindowControlsStyle: (style: 'system' | 'mac' | 'windows') =>
       ipcRenderer.invoke('settings:set-window-controls-style', style),

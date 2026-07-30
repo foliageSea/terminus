@@ -46,6 +46,7 @@ const props = defineProps<{
   activeSection: SettingsSection
   primaryColor: string
   tabBarMode: 'horizontal' | 'vertical'
+  inheritTabCwd: boolean
   windowControlsStyle: WindowControlsStyle
   windowAlwaysOnTop: boolean
   rememberWindowBounds: boolean
@@ -58,6 +59,7 @@ const emit = defineEmits<{
   updateActiveSection: [section: SettingsSection]
   updatePrimaryColor: [color: string]
   updateTabBarMode: [value: 'horizontal' | 'vertical']
+  updateInheritTabCwd: [value: boolean]
   updateWindowControlsStyle: [value: WindowControlsStyle]
   updateWindowAlwaysOnTop: [value: boolean]
   updateRememberWindowBounds: [value: boolean]
@@ -247,6 +249,14 @@ onBeforeUnmount(() => {
               />
               <span class="settings-switch-label">
                 {{ tabBarMode === 'vertical' ? '垂直标签栏' : '顶部标签栏' }}
+              </span>
+            </div>
+          </NFormItem>
+          <NFormItem label="新建标签路径" path="inheritTabCwd">
+            <div class="settings-switch-row">
+              <NSwitch :value="inheritTabCwd" @update:value="emit('updateInheritTabCwd', $event)" />
+              <span class="settings-switch-label">
+                {{ inheritTabCwd ? '继承当前标签路径' : '使用默认终端路径' }}
               </span>
             </div>
           </NFormItem>
