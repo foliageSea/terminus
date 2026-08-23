@@ -73,7 +73,7 @@ button {
 }
 
 .workspace-header.window-controls-mac {
-  grid-template-columns: 82px auto minmax(0, 1fr) auto;
+  grid-template-columns: 62px auto minmax(0, 1fr) auto;
   padding: 0 12px;
 }
 
