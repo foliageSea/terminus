@@ -20,7 +20,6 @@ import {
   Pin20Regular,
   Settings20Regular
 } from '@vicons/fluent'
-import { PanelLeft, PanelTop, SquareTerminal, X } from '@lucide/vue'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
 import SettingsView from './SettingsView.vue'
 import ShortcutHelpPopover from './ShortcutHelpPopover.vue'
@@ -35,7 +34,6 @@ import type {
   SettingsTab,
   ShortcutSettings,
   Tab,
-  TabBarMode,
   TabSessionSettings,
   TerminalSettings,
   TerminalTab,
@@ -89,9 +87,6 @@ const defaultPathFavoritesSettings: PathFavoritesSettings = {
 }
 const defaultShortcutSettingsValue: ShortcutSettings =
   cloneShortcutSettings(defaultShortcutSettings)
-const defaultVerticalTabBarWidth = 172
-const minVerticalTabBarWidth = 140
-const maxVerticalTabBarWidth = 320
 const defaultWindowBoundsSettings: WindowBoundsSettings = {
   rememberWindowBounds: true,
   width: 900,
@@ -163,7 +158,6 @@ const activeTabId = ref(tabs.value[0].id)
 const lastActiveTerminalTabId = ref(activeTabId.value)
 const mountedTerminalTabIds = reactive(new Set<string>())
 const tabSessionLoaded = ref(false)
-const tabBarMode = ref<TabBarMode>('horizontal')
 const inheritTabCwd = ref(true)
 const windowControlsStyle = ref<WindowControlsStyle>('system')
 const platform = ref('win32')
@@ -198,11 +192,8 @@ const shortcuts = reactive<ShortcutSettings>(cloneShortcutSettings(defaultShortc
 const shortcutsLoaded = ref(false)
 const shortcutRecording = ref(false)
 const windowBoundsSettings = reactive<WindowBoundsSettings>({ ...defaultWindowBoundsSettings })
-const verticalTabBarWidth = ref(defaultVerticalTabBarWidth)
-const sidebarResizeActive = ref(false)
 const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
-let removeSidebarResizeListeners: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
 let fontSizeWheelDelta = 0
 let fontSizeWheelResetTimer: number | undefined
@@ -272,13 +263,6 @@ const workspaceHeaderClass = computed(() => [
   `window-controls-${resolvedWindowControlsStyle.value}`,
   { 'window-maximized': windowMaximized.value }
 ])
-const workspaceMainStyle = computed(() => ({
-  '--vertical-tab-sidebar-width': `${verticalTabBarWidth.value}px`
-}))
-const workspaceTabSidebarStyle = computed(() => ({
-  width: `${verticalTabBarWidth.value}px`,
-  flexBasis: `${verticalTabBarWidth.value}px`
-}))
 const workspaceBackgroundStyle = computed(() => {
   if (!terminalSettings.backgroundImageEnabled) return undefined
   if (!terminalBackgroundUrl.value) return undefined
@@ -307,10 +291,6 @@ const terminalBackgroundName = computed(() =>
 function toHexAlpha(opacity: number): string {
   const alpha = Math.min(255, Math.max(0, Math.round((opacity / 100) * 255)))
   return alpha.toString(16).padStart(2, '0')
-}
-
-function clampVerticalTabBarWidth(value: number): number {
-  return Math.min(maxVerticalTabBarWidth, Math.max(minVerticalTabBarWidth, Math.round(value)))
 }
 
 function splitPane(node: PaneNode, paneId: string, side: PaneSide): string | undefined {
@@ -500,16 +480,8 @@ function switchPane(): void {
   activateTabPane(tab, paneIds[nextIndex])
 }
 
-async function updateTabBarMode(value: TabBarMode): Promise<void> {
-  tabBarMode.value = await window.api.settings.setTabBarMode(value)
-}
-
 async function updateInheritTabCwd(value: boolean): Promise<void> {
   inheritTabCwd.value = await window.api.settings.setInheritTabCwd(value)
-}
-
-function toggleTabBarMode(): void {
-  void updateTabBarMode(tabBarMode.value === 'horizontal' ? 'vertical' : 'horizontal')
 }
 
 async function updateWindowControlsStyle(value: WindowControlsStyle): Promise<void> {
@@ -528,56 +500,6 @@ async function updateRememberWindowBounds(value: boolean): Promise<void> {
       rememberWindowBounds: value
     })
   )
-}
-
-function setVerticalTabBarWidth(value: number): number {
-  const nextWidth = clampVerticalTabBarWidth(value)
-  verticalTabBarWidth.value = nextWidth
-  return nextWidth
-}
-
-function cleanupSidebarResize(): void {
-  removeSidebarResizeListeners?.()
-  removeSidebarResizeListeners = undefined
-  sidebarResizeActive.value = false
-}
-
-function startVerticalTabBarResize(event: PointerEvent): void {
-  if (tabBarMode.value !== 'vertical') return
-
-  const workspaceMain = (event.currentTarget as HTMLElement).parentElement
-  if (!workspaceMain) return
-
-  const rect = workspaceMain.getBoundingClientRect()
-
-  event.preventDefault()
-  cleanupSidebarResize()
-  sidebarResizeActive.value = true
-  setVerticalTabBarWidth(event.clientX - rect.left)
-
-  const onMove = (moveEvent: PointerEvent): void => {
-    setVerticalTabBarWidth(moveEvent.clientX - rect.left)
-  }
-
-  const onUp = (): void => {
-    cleanupSidebarResize()
-    void window.api.settings
-      .setVerticalTabBarWidth(verticalTabBarWidth.value)
-      .then((width) => setVerticalTabBarWidth(width))
-  }
-
-  const onCancel = (): void => {
-    cleanupSidebarResize()
-  }
-
-  window.addEventListener('pointermove', onMove)
-  window.addEventListener('pointerup', onUp, { once: true })
-  window.addEventListener('pointercancel', onCancel, { once: true })
-  removeSidebarResizeListeners = () => {
-    window.removeEventListener('pointermove', onMove)
-    window.removeEventListener('pointerup', onUp)
-    window.removeEventListener('pointercancel', onCancel)
-  }
 }
 
 function handleGlobalKeydown(event: KeyboardEvent): void {
@@ -710,14 +632,7 @@ function handleTabDragOver(event: DragEvent, tabId: string): void {
   event.preventDefault()
   const tabRect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   dragOverTabId.value = tabId
-  dragOverTabSide.value =
-    tabBarMode.value === 'vertical'
-      ? event.clientY < tabRect.top + tabRect.height / 2
-        ? 'before'
-        : 'after'
-      : event.clientX < tabRect.left + tabRect.width / 2
-        ? 'before'
-        : 'after'
+  dragOverTabSide.value = event.clientX < tabRect.left + tabRect.width / 2 ? 'before' : 'after'
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 
@@ -777,17 +692,6 @@ function dropTabAtEnd(event: DragEvent): void {
   event.preventDefault()
 
   moveTab(sourceTabId)
-}
-
-function clearTabDragOver(tabId: string): void {
-  if (dragOverTabId.value === tabId) dragOverTabId.value = undefined
-}
-
-function handleTabAuxClick(event: MouseEvent, tabId: string): void {
-  if (event.button !== 1) return
-  event.preventDefault()
-  event.stopPropagation()
-  closeTab(tabId)
 }
 
 function createTabProps(tab: Tab): HTMLAttributes {
@@ -1113,15 +1017,11 @@ onMounted(async () => {
     })
   })
 
-  tabBarMode.value = await window.api.settings.getTabBarMode()
   inheritTabCwd.value = await window.api.settings.getInheritTabCwd()
   windowControlsStyle.value = await window.api.settings.getWindowControlsStyle()
   platform.value = await window.api.window.getPlatform()
   await refreshWindowMaximized()
   windowAppearanceSettings.alwaysOnTop = await window.api.window.isAlwaysOnTop()
-  verticalTabBarWidth.value = clampVerticalTabBarWidth(
-    await window.api.settings.getVerticalTabBarWidth()
-  )
 
   const savedSettings = await window.api.settings.getTerminal()
   Object.assign(terminalSettings, savedSettings)
@@ -1145,7 +1045,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (layoutAnimationTimer) window.clearTimeout(layoutAnimationTimer)
   if (fontSizeWheelResetTimer) window.clearTimeout(fontSizeWheelResetTimer)
-  cleanupSidebarResize()
   window.removeEventListener('keydown', handleGlobalKeydown, true)
   window.removeEventListener('wheel', handleGlobalWheel, true)
   window.removeEventListener('resize', refreshWindowMaximized)
@@ -1168,133 +1067,122 @@ onBeforeUnmount(() => {
       :style="workspaceHeaderStyle"
       bordered
     >
-      <div class="window-controls" aria-label="窗口控制">
-        <button
-          class="window-control close"
-          type="button"
-          aria-label="关闭窗口"
-          @click="closeWindow"
-        />
-        <button
-          class="window-control minimize"
-          type="button"
-          aria-label="最小化窗口"
-          @click="minimizeWindow"
-        />
-        <button
-          class="window-control maximize"
-          type="button"
-          aria-label="最大化或还原窗口"
-          @click="toggleMaximizeWindow"
-        />
-      </div>
-      <NTooltip>
-        <template #trigger>
-          <NButton
-            class="tab-bar-mode-toggle"
-            size="small"
-            secondary
-            circle
-            :aria-label="tabBarMode === 'horizontal' ? '切换到垂直标签栏' : '切换到水平标签栏'"
-            @click="toggleTabBarMode"
-          >
-            <template #icon>
-              <NIcon>
-                <PanelLeft v-if="tabBarMode === 'horizontal'" />
-                <PanelTop v-else />
-              </NIcon>
-            </template>
-          </NButton>
-        </template>
-        {{ tabBarMode === 'horizontal' ? '切换到垂直标签栏' : '切换到水平标签栏' }}
-      </NTooltip>
-      <NTabs
-        v-show="tabBarMode === 'horizontal'"
-        v-model:value="activeTabId"
-        type="card"
-        size="small"
-        closable
-        @close="closeTab"
-        @dragover="handleTabListDragOver"
-        @drop="dropTabAtEnd"
-      >
-        <NTabPane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab-props="createTabProps(tab)">
-          <template #tab>
+      <div class="workspace-titlebar">
+        <div class="window-controls" aria-label="窗口控制">
+          <button
+            class="window-control close"
+            type="button"
+            aria-label="关闭窗口"
+            @click="closeWindow"
+          />
+          <button
+            class="window-control minimize"
+            type="button"
+            aria-label="最小化窗口"
+            @click="minimizeWindow"
+          />
+          <button
+            class="window-control maximize"
+            type="button"
+            aria-label="最大化或还原窗口"
+            @click="toggleMaximizeWindow"
+          />
+        </div>
+        <div class="workspace-titlebar-drag-region" />
+        <div class="header-actions">
+          <div class="header-action-group">
             <NTooltip>
               <template #trigger>
-                <span class="tab-content">
-                  <NIcon v-if="tab.type === 'settings'" :size="14" class="tab-icon">
-                    <Settings20Regular />
-                  </NIcon>
-                  <NIcon v-else :size="14" class="tab-icon">
-                    <SquareTerminal style="margin-top: -2px" />
-                  </NIcon>
-                  <span class="tab-title">{{ tab.title }}</span>
-                </span>
+                <NButton
+                  class="always-on-top-button"
+                  size="small"
+                  secondary
+                  circle
+                  :type="windowAppearanceSettings.alwaysOnTop ? 'primary' : 'default'"
+                  :aria-label="windowAppearanceSettings.alwaysOnTop ? '取消窗口置顶' : '窗口置顶'"
+                  :aria-pressed="windowAppearanceSettings.alwaysOnTop"
+                  @click="toggleWindowAlwaysOnTop"
+                >
+                  <template #icon>
+                    <NIcon>
+                      <Pin20Filled v-if="windowAppearanceSettings.alwaysOnTop" />
+                      <Pin20Regular v-else />
+                    </NIcon>
+                  </template>
+                </NButton>
               </template>
-              {{ tab.title }}
+              {{ windowAppearanceSettings.alwaysOnTop ? '取消置顶' : '窗口置顶' }}
             </NTooltip>
-          </template>
-        </NTabPane>
-      </NTabs>
-      <div v-show="tabBarMode === 'vertical'" class="workspace-title-spacer" />
-      <div class="header-actions">
-        <NButton class="new-tab-button" size="small" secondary circle @click="addTab">
+            <PathFavoritesPopover
+              v-model:search="pathFavoriteSearch"
+              :favorites="pathFavorites.items"
+              :filtered-favorites="filteredPathFavorites"
+              :can-favorite-active-path="canFavoriteActivePath"
+              :dragging-favorite-id="draggingPathFavoriteId"
+              :drag-over-favorite-id="dragOverPathFavoriteId"
+              :drag-over-favorite-side="dragOverPathFavoriteSide"
+              :theme-style="workspaceThemeStyle"
+              @add-current="addCurrentPathFavorite"
+              @open="openPathFavorite"
+              @remove="removePathFavorite"
+              @dragstart="startPathFavoriteDrag"
+              @dragover="handlePathFavoriteDragOver"
+              @dragend="finishPathFavoriteDrag"
+              @drop="dropPathFavorite"
+            />
+            <NButton class="settings-button" size="small" secondary circle @click="openSettingsTab">
+              <template #icon>
+                <NIcon>
+                  <Settings20Regular />
+                </NIcon>
+              </template>
+            </NButton>
+            <ShortcutHelpPopover :shortcuts="shortcuts" />
+          </div>
+        </div>
+      </div>
+      <div class="horizontal-tab-bar">
+        <NTabs
+          v-model:value="activeTabId"
+          type="card"
+          size="small"
+          closable
+          @close="closeTab"
+          @dragover="handleTabListDragOver"
+          @drop="dropTabAtEnd"
+        >
+          <NTabPane
+            v-for="tab in tabs"
+            :key="tab.id"
+            :name="tab.id"
+            :tab-props="createTabProps(tab)"
+          >
+            <template #tab>
+              <NTooltip>
+                <template #trigger>
+                  <span class="tab-content">
+                    <span class="tab-title">{{ tab.title }}</span>
+                  </span>
+                </template>
+                {{ tab.title }}
+              </NTooltip>
+            </template>
+          </NTabPane>
+        </NTabs>
+        <NButton
+          class="new-tab-button horizontal-new-tab-button"
+          size="small"
+          secondary
+          circle
+          aria-label="新建标签"
+          @click="addTab"
+        >
           <template #icon>
             <NIcon>
               <Add20Regular />
             </NIcon>
           </template>
         </NButton>
-        <div class="header-action-group">
-          <NTooltip>
-            <template #trigger>
-              <NButton
-                class="always-on-top-button"
-                size="small"
-                secondary
-                circle
-                :type="windowAppearanceSettings.alwaysOnTop ? 'primary' : 'default'"
-                :aria-label="windowAppearanceSettings.alwaysOnTop ? '取消窗口置顶' : '窗口置顶'"
-                :aria-pressed="windowAppearanceSettings.alwaysOnTop"
-                @click="toggleWindowAlwaysOnTop"
-              >
-                <template #icon>
-                  <NIcon>
-                    <Pin20Filled v-if="windowAppearanceSettings.alwaysOnTop" />
-                    <Pin20Regular v-else />
-                  </NIcon>
-                </template>
-              </NButton>
-            </template>
-            {{ windowAppearanceSettings.alwaysOnTop ? '取消置顶' : '窗口置顶' }}
-          </NTooltip>
-          <PathFavoritesPopover
-            v-model:search="pathFavoriteSearch"
-            :favorites="pathFavorites.items"
-            :filtered-favorites="filteredPathFavorites"
-            :can-favorite-active-path="canFavoriteActivePath"
-            :dragging-favorite-id="draggingPathFavoriteId"
-            :drag-over-favorite-id="dragOverPathFavoriteId"
-            :drag-over-favorite-side="dragOverPathFavoriteSide"
-            :theme-style="workspaceThemeStyle"
-            @add-current="addCurrentPathFavorite"
-            @open="openPathFavorite"
-            @remove="removePathFavorite"
-            @dragstart="startPathFavoriteDrag"
-            @dragover="handlePathFavoriteDragOver"
-            @dragend="finishPathFavoriteDrag"
-            @drop="dropPathFavorite"
-          />
-          <NButton class="settings-button" size="small" secondary circle @click="openSettingsTab">
-            <template #icon>
-              <NIcon>
-                <Settings20Regular />
-              </NIcon>
-            </template>
-          </NButton>
-          <ShortcutHelpPopover :shortcuts="shortcuts" />
-        </div>
       </div>
     </NLayoutHeader>
 
@@ -1333,64 +1221,7 @@ onBeforeUnmount(() => {
       </template>
     </NModal>
 
-    <div class="workspace-main" :class="`tab-bar-${tabBarMode}`" :style="workspaceMainStyle">
-      <aside
-        v-show="tabBarMode === 'vertical'"
-        class="workspace-tab-sidebar"
-        :style="workspaceTabSidebarStyle"
-        aria-label="垂直标签栏"
-        @dragover="handleTabListDragOver"
-        @drop="dropTabAtEnd"
-      >
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          class="workspace-tab-item"
-          :class="{
-            active: tab.id === activeTabId,
-            'terminal-tab-dragging': draggingTabId === tab.id,
-            'terminal-tab-drag-before': dragOverTabId === tab.id && dragOverTabSide === 'before',
-            'terminal-tab-drag-after': dragOverTabId === tab.id && dragOverTabSide === 'after'
-          }"
-          type="button"
-          draggable="true"
-          :title="tab.title"
-          @click="activeTabId = tab.id"
-          @dblclick.stop="startRenameTab(tab)"
-          @auxclick="handleTabAuxClick($event, tab.id)"
-          @dragstart="startTabDrag($event, tab.id)"
-          @dragover="handleTabDragOver($event, tab.id)"
-          @dragleave="clearTabDragOver(tab.id)"
-          @drop="dropTab($event, tab.id)"
-          @dragend="finishTabDrag"
-        >
-          <NIcon v-if="tab.type === 'settings'" :size="14" class="workspace-tab-item-icon">
-            <Settings20Regular />
-          </NIcon>
-          <NIcon v-else :size="14" class="workspace-tab-item-icon">
-            <SquareTerminal />
-          </NIcon>
-          <span class="workspace-tab-item-title">{{ tab.title }}</span>
-          <span
-            v-if="tabs.length > 1"
-            class="workspace-tab-close"
-            aria-label="关闭 Tab"
-            @click.stop="closeTab(tab.id)"
-          >
-            <X :size="14" />
-          </span>
-        </button>
-      </aside>
-      <div
-        v-show="tabBarMode === 'vertical'"
-        class="workspace-tab-sidebar-resizer"
-        :class="{ active: sidebarResizeActive }"
-        role="separator"
-        aria-label="调整垂直标签栏宽度"
-        aria-orientation="vertical"
-        @pointerdown="startVerticalTabBarResize"
-      />
-
+    <div class="workspace-main">
       <main class="workspace-body">
         <div
           v-for="tab in tabs"
@@ -1438,7 +1269,6 @@ onBeforeUnmount(() => {
             :active="tab.id === activeTabId"
             :active-section="tab.activeSection"
             :primary-color="props.primaryColor"
-            :tab-bar-mode="tabBarMode"
             :inherit-tab-cwd="inheritTabCwd"
             :window-controls-style="windowControlsStyle"
             :window-always-on-top="windowAppearanceSettings.alwaysOnTop"
@@ -1448,7 +1278,6 @@ onBeforeUnmount(() => {
             :shortcuts="shortcuts"
             @update-active-section="tab.activeSection = $event"
             @update-primary-color="updatePrimaryColor"
-            @update-tab-bar-mode="updateTabBarMode"
             @update-inherit-tab-cwd="updateInheritTabCwd"
             @update-window-controls-style="updateWindowControlsStyle"
             @update-window-always-on-top="updateWindowAlwaysOnTop"
@@ -1483,26 +1312,11 @@ onBeforeUnmount(() => {
 .tab-content {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   width: 100%;
   height: 100%;
   min-width: 0;
   padding: 0 8px;
-}
-
-.tab-icon {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  opacity: 0.7;
-  line-height: 1;
-}
-
-.tab-icon :deep(svg) {
-  display: block;
 }
 
 .tab-title {
@@ -1511,23 +1325,9 @@ onBeforeUnmount(() => {
   overflow: hidden;
   font-size: 12px;
   font-weight: 400;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.workspace-tab-item-icon {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  opacity: 0.7;
-  line-height: 1;
-}
-
-.workspace-tab-item-icon :deep(svg) {
-  display: block;
 }
 
 :deep(.terminal-tab-dragging) {

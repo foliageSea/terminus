@@ -6,7 +6,6 @@ import {
   PathFavorite,
   PathFavoritesSettings,
   ShortcutSettings,
-  TabBarMode,
   TabSessionSettings,
   TerminalSettings,
   ThemeSettings,
@@ -14,19 +13,15 @@ import {
   WindowControlsStyle,
   defaultPathFavoritesSettings,
   defaultShortcutSettingsValue,
-  defaultTabBarMode,
   defaultTabSessionSettings,
   defaultTerminalSettings,
   defaultThemeSettings,
-  defaultVerticalTabBarWidth,
   defaultWindowAlwaysOnTop,
   defaultWindowControlsStyle,
   defaultWindowBoundsSettings,
   defaultZoomFactor,
   defaultInheritTabCwd,
-  maxVerticalTabBarWidth,
   maxZoomFactor,
-  minVerticalTabBarWidth,
   minZoomFactor
 } from './settingsTypes'
 import {
@@ -167,10 +162,6 @@ function normalizeZoomFactor(value: unknown): number {
   return Math.min(maxZoomFactor, Math.max(minZoomFactor, Math.round(factor * 100) / 100))
 }
 
-function normalizeTabBarMode(value: unknown): TabBarMode {
-  return value === 'vertical' || value === 'horizontal' ? value : defaultTabBarMode
-}
-
 function normalizeWindowControlsStyle(value: unknown): WindowControlsStyle {
   return value === 'system' || value === 'mac' || value === 'windows'
     ? value
@@ -179,12 +170,6 @@ function normalizeWindowControlsStyle(value: unknown): WindowControlsStyle {
 
 function normalizeWindowAlwaysOnTop(value: unknown): boolean {
   return typeof value === 'boolean' ? value : defaultWindowAlwaysOnTop
-}
-
-function normalizeVerticalTabBarWidth(value: unknown): number {
-  const width = Number(value)
-  if (!Number.isFinite(width)) return defaultVerticalTabBarWidth
-  return Math.min(maxVerticalTabBarWidth, Math.max(minVerticalTabBarWidth, Math.round(width)))
 }
 
 function normalizeWindowDimension(value: unknown, fallback: number): number {
@@ -256,10 +241,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
     pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
     shortcuts: normalizeShortcutSettings(settings.shortcuts),
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
-    tabBarMode: normalizeTabBarMode(settings.tabBarMode),
     windowControlsStyle: normalizeWindowControlsStyle(settings.windowControlsStyle),
     windowAlwaysOnTop: normalizeWindowAlwaysOnTop(settings.windowAlwaysOnTop),
-    verticalTabBarWidth: normalizeVerticalTabBarWidth(settings.verticalTabBarWidth),
     windowBounds: normalizeWindowBoundsSettings(settings.windowBounds),
     tabSession: normalizeTabSessionSettings(settings.tabSession),
     inheritTabCwd: normalizeInheritTabCwd(settings.inheritTabCwd)
@@ -333,14 +316,6 @@ export function writeZoomFactor(factor: number): number {
   return nextSettings.zoomFactor ?? defaultZoomFactor
 }
 
-export function readTabBarMode(): TabBarMode {
-  return readAppSettings().tabBarMode
-}
-
-export function writeTabBarMode(mode: TabBarMode): TabBarMode {
-  return writeAppSettings({ ...readAppSettings(), tabBarMode: mode }).tabBarMode
-}
-
 export function readWindowControlsStyle(): WindowControlsStyle {
   return readAppSettings().windowControlsStyle
 }
@@ -355,14 +330,6 @@ export function readWindowAlwaysOnTop(): boolean {
 
 export function writeWindowAlwaysOnTop(alwaysOnTop: boolean): boolean {
   return writeAppSettings({ ...readAppSettings(), windowAlwaysOnTop: alwaysOnTop }).windowAlwaysOnTop
-}
-
-export function readVerticalTabBarWidth(): number {
-  return readAppSettings().verticalTabBarWidth
-}
-
-export function writeVerticalTabBarWidth(width: number): number {
-  return writeAppSettings({ ...readAppSettings(), verticalTabBarWidth: width }).verticalTabBarWidth
 }
 
 export function readWindowBoundsSettings(): WindowBoundsSettings {

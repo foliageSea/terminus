@@ -58,8 +58,6 @@ export interface PathFavoritesSettings {
   items: PathFavorite[]
 }
 
-export type TabBarMode = 'horizontal' | 'vertical'
-
 export type WindowControlsStyle = 'system' | 'mac' | 'windows'
 
 export interface WindowBoundsSettings {
@@ -89,8 +87,6 @@ export interface SettingsApi {
   setShortcuts: (settings: ShortcutSettings) => Promise<ShortcutSettings>
   getZoomFactor: () => Promise<number>
   setZoomFactor: (factor: number) => Promise<number>
-  getTabBarMode: () => Promise<TabBarMode>
-  setTabBarMode: (mode: TabBarMode) => Promise<TabBarMode>
   getTabSession: () => Promise<TabSessionSettings>
   setTabSession: (settings: TabSessionSettings) => Promise<TabSessionSettings>
   getInheritTabCwd: () => Promise<boolean>
@@ -99,8 +95,6 @@ export interface SettingsApi {
   setWindowControlsStyle: (style: WindowControlsStyle) => Promise<WindowControlsStyle>
   getWindowAlwaysOnTop: () => Promise<boolean>
   setWindowAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>
-  getVerticalTabBarWidth: () => Promise<number>
-  setVerticalTabBarWidth: (width: number) => Promise<number>
   getWindowBounds: () => Promise<WindowBoundsSettings>
   setWindowBounds: (settings: WindowBoundsSettings) => Promise<WindowBoundsSettings>
 }

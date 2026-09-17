@@ -26,8 +26,6 @@ export interface PathFavoritesSettings {
   items: PathFavorite[]
 }
 
-export type TabBarMode = 'horizontal' | 'vertical'
-
 export type WindowControlsStyle = 'system' | 'mac' | 'windows'
 
 export interface WindowBoundsSettings {
@@ -50,10 +48,8 @@ export interface AppSettings {
   pathFavorites: PathFavoritesSettings
   shortcuts: ShortcutSettings
   zoomFactor?: number
-  tabBarMode: TabBarMode
   windowControlsStyle: WindowControlsStyle
   windowAlwaysOnTop: boolean
-  verticalTabBarWidth: number
   windowBounds: WindowBoundsSettings
   tabSession: TabSessionSettings
   inheritTabCwd: boolean
@@ -84,12 +80,8 @@ export const defaultZoomFactor = 1.0
 export const minZoomFactor = 0.5
 export const maxZoomFactor = 3.0
 export const zoomStep = 0.1
-export const defaultTabBarMode: TabBarMode = 'horizontal'
 export const defaultWindowControlsStyle: WindowControlsStyle = 'system'
 export const defaultWindowAlwaysOnTop = false
-export const defaultVerticalTabBarWidth = 172
-export const minVerticalTabBarWidth = 140
-export const maxVerticalTabBarWidth = 320
 export const defaultWindowBoundsSettings: WindowBoundsSettings = {
   rememberWindowBounds: true,
   width: 900,

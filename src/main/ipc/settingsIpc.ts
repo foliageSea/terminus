@@ -4,7 +4,6 @@ import { existsSync, readFileSync, statSync } from 'fs'
 import type {
   PathFavoritesSettings,
   ShortcutSettings,
-  TabBarMode,
   TabSessionSettings,
   TerminalSettings,
   ThemeSettings,
@@ -14,7 +13,6 @@ import type {
 import {
   readPathFavoritesSettings,
   readShortcutSettings,
-  readTabBarMode,
   readTabSessionSettings,
   readTerminalSettings,
   readThemeSettings,
@@ -22,18 +20,15 @@ import {
   readWindowAlwaysOnTop,
   readWindowControlsStyle,
   readZoomFactor,
-  readVerticalTabBarWidth,
   readInheritTabCwd,
   writePathFavoritesSettings,
   writeShortcutSettings,
-  writeTabBarMode,
   writeTabSessionSettings,
   writeTerminalSettings,
   writeThemeSettings,
   writeWindowBoundsSettings,
   writeWindowAlwaysOnTop,
   writeWindowControlsStyle,
-  writeVerticalTabBarWidth,
   writeZoomFactor,
   writeInheritTabCwd
 } from '../settings/settingsService'
@@ -103,8 +98,6 @@ export function registerSettingsIpc(): void {
   )
   ipcMain.handle('settings:get-zoom-factor', () => readZoomFactor())
   ipcMain.handle('settings:set-zoom-factor', (_, factor: number) => writeZoomFactor(factor))
-  ipcMain.handle('settings:get-tab-bar-mode', () => readTabBarMode())
-  ipcMain.handle('settings:set-tab-bar-mode', (_, mode: TabBarMode) => writeTabBarMode(mode))
   ipcMain.handle('settings:get-tab-session', () => readTabSessionSettings())
   ipcMain.handle('settings:set-tab-session', (_, settings: TabSessionSettings) =>
     writeTabSessionSettings(settings)
@@ -120,10 +113,6 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-window-always-on-top', () => readWindowAlwaysOnTop())
   ipcMain.handle('settings:set-window-always-on-top', (_, alwaysOnTop: boolean) =>
     writeWindowAlwaysOnTop(alwaysOnTop)
-  )
-  ipcMain.handle('settings:get-vertical-tab-bar-width', () => readVerticalTabBarWidth())
-  ipcMain.handle('settings:set-vertical-tab-bar-width', (_, width: number) =>
-    writeVerticalTabBarWidth(width)
   )
   ipcMain.handle('settings:get-window-bounds', () => readWindowBoundsSettings())
   ipcMain.handle('settings:set-window-bounds', (_, settings: WindowBoundsSettings) =>

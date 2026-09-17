@@ -49,9 +49,6 @@ const api = {
     setShortcuts: (settings: ShortcutSettings) => ipcRenderer.invoke('settings:set-shortcuts', settings),
     getZoomFactor: () => ipcRenderer.invoke('settings:get-zoom-factor'),
     setZoomFactor: (factor: number) => ipcRenderer.invoke('settings:set-zoom-factor', factor),
-    getTabBarMode: () => ipcRenderer.invoke('settings:get-tab-bar-mode'),
-    setTabBarMode: (mode: 'horizontal' | 'vertical') =>
-      ipcRenderer.invoke('settings:set-tab-bar-mode', mode),
     getTabSession: () => ipcRenderer.invoke('settings:get-tab-session'),
     setTabSession: (settings: { paths: string[]; activeIndex: number }) =>
       ipcRenderer.invoke('settings:set-tab-session', settings),
@@ -64,9 +61,6 @@ const api = {
     getWindowAlwaysOnTop: () => ipcRenderer.invoke('settings:get-window-always-on-top'),
     setWindowAlwaysOnTop: (alwaysOnTop: boolean) =>
       ipcRenderer.invoke('settings:set-window-always-on-top', alwaysOnTop),
-    getVerticalTabBarWidth: () => ipcRenderer.invoke('settings:get-vertical-tab-bar-width'),
-    setVerticalTabBarWidth: (width: number) =>
-      ipcRenderer.invoke('settings:set-vertical-tab-bar-width', width),
     getWindowBounds: () => ipcRenderer.invoke('settings:get-window-bounds'),
     setWindowBounds: (settings: {
       rememberWindowBounds: boolean
