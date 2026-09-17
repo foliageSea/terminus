@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { NButton, NIcon, NInput, NPopover } from 'naive-ui'
-import {
-  Delete20Regular,
-  FolderOpenVertical20Regular,
-  ReOrderDotsVertical20Regular,
-  Search20Regular
-} from '@vicons/fluent'
+import { FolderOpen, GripVertical, Search, Trash2 } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { PathFavorite } from '../types/terminal'
 
 defineProps<{
@@ -32,47 +29,45 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <NPopover trigger="click" placement="bottom-end">
-    <template #trigger>
-      <NButton class="path-favorites-button" size="small" secondary circle>
-        <template #icon>
-          <NIcon>
-            <FolderOpenVertical20Regular />
-          </NIcon>
-        </template>
-      </NButton>
-    </template>
+  <Popover>
+    <PopoverTrigger as-child>
+      <Button class="path-favorites-button" variant="ghost" size="icon" aria-label="路径收藏">
+        <FolderOpen :size="16" aria-hidden="true" />
+      </Button>
+    </PopoverTrigger>
 
-    <div class="path-favorites-popover" :style="themeStyle" aria-label="路径收藏">
+    <PopoverContent
+      class="path-favorites-popover"
+      :style="themeStyle"
+      side="bottom"
+      align="end"
+      aria-label="路径收藏"
+    >
       <div class="path-favorites-header">
         <div>
           <div class="path-favorites-title">路径收藏</div>
           <div class="path-favorites-subtitle">点击打开，拖拽排序</div>
         </div>
-        <NButton
-          size="tiny"
-          secondary
+        <Button
+          size="sm"
+          variant="secondary"
           :disabled="!canFavoriteActivePath"
           @click="emit('addCurrent')"
         >
           收藏当前
-        </NButton>
+        </Button>
       </div>
 
-      <NInput
-        :value="search"
-        class="path-favorites-search"
-        size="small"
-        clearable
-        placeholder="搜索名称或路径"
-        @update:value="emit('update:search', $event)"
-      >
-        <template #prefix>
-          <NIcon>
-            <Search20Regular />
-          </NIcon>
-        </template>
-      </NInput>
+      <div class="path-favorites-search-wrap">
+        <Search :size="15" aria-hidden="true" />
+        <Input
+          :model-value="search"
+          class="path-favorites-search"
+          size="small"
+          placeholder="搜索名称或路径"
+          @update:model-value="emit('update:search', String($event))"
+        />
+      </div>
 
       <div v-if="filteredFavorites.length" class="path-favorites-list">
         <div
@@ -104,21 +99,20 @@ const emit = defineEmits<{
               @dragstart="emit('dragstart', $event, favorite.id)"
               @dragend="emit('dragend')"
             >
-              <NIcon>
-                <ReOrderDotsVertical20Regular />
-              </NIcon>
+              <GripVertical :size="16" aria-hidden="true" />
             </span>
             <span class="path-favorite-text">
               <span class="path-favorite-name">{{ favorite.name }}</span>
               <span class="path-favorite-path">{{ favorite.path }}</span>
             </span>
-            <NButton size="tiny" quaternary type="error" @click.stop="emit('remove', favorite.id)">
-              <template #icon>
-                <NIcon>
-                  <Delete20Regular />
-                </NIcon>
-              </template>
-            </NButton>
+            <Button
+              size="icon"
+              variant="destructive"
+              aria-label="删除收藏"
+              @click.stop="emit('remove', favorite.id)"
+            >
+              <Trash2 :size="15" aria-hidden="true" />
+            </Button>
           </button>
           <span
             v-if="dragOverFavoriteId === favorite.id && dragOverFavoriteSide === 'after'"
@@ -130,11 +124,11 @@ const emit = defineEmits<{
       <div v-else class="path-favorites-empty">
         {{ favorites.length ? '未找到匹配路径' : '暂无收藏路径' }}
       </div>
-    </div>
-  </NPopover>
+    </PopoverContent>
+  </Popover>
 </template>
 
-<style scoped>
+<style>
 .path-favorites-button {
   margin-left: 0;
 }
@@ -143,7 +137,12 @@ const emit = defineEmits<{
   display: grid;
   gap: 10px;
   width: 340px;
-  padding: 4px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(20, 20, 20, 0.96);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(16px);
 }
 
 .path-favorites-header {
@@ -164,12 +163,11 @@ const emit = defineEmits<{
   font-size: 12px;
 }
 
-.path-favorites-search {
-  --n-border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  --n-border-hover: 1px solid rgba(255, 255, 255, 0.18) !important;
-  --n-border-focus: 1px solid var(--terminal-active-color) !important;
-  --n-color: rgba(255, 255, 255, 0.05) !important;
-  --n-color-focus: rgba(255, 255, 255, 0.07) !important;
+.path-favorites-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.52);
 }
 
 .path-favorites-list {

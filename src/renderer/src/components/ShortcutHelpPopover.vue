@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { NButton, NIcon, NPopover } from 'naive-ui'
-import { QuestionCircle20Regular } from '@vicons/fluent'
+import { CircleHelp } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   formatShortcutBindingTokens,
   shortcutActionDefinitions,
@@ -20,40 +21,41 @@ const shortcutGroups = Object.entries(shortcutGroupLabels).map(([id, label]) => 
 </script>
 
 <template>
-  <NPopover trigger="click" placement="bottom-end">
-    <template #trigger>
-      <NButton class="shortcut-help-button" size="small" secondary circle>
-        <template #icon>
-          <NIcon>
-            <QuestionCircle20Regular />
-          </NIcon>
-        </template>
-      </NButton>
-    </template>
+  <Popover>
+    <PopoverTrigger as-child>
+      <Button class="shortcut-help-button" variant="ghost" size="icon" aria-label="快捷键帮助">
+        <CircleHelp :size="16" aria-hidden="true" />
+      </Button>
+    </PopoverTrigger>
 
-    <div class="shortcut-popover" aria-label="快捷键列表">
+    <PopoverContent class="shortcut-popover" side="bottom" align="end" aria-label="快捷键列表">
       <template v-for="group in shortcutGroups" :key="group.id">
         <div class="shortcut-section-title">{{ group.label }}</div>
         <div v-for="action in group.actions" :key="action.id" class="shortcut-row">
           <span>{{ action.label }}</span>
-          <kbd v-for="token in formatShortcutBindingTokens(props.shortcuts[action.id])" :key="token">
+          <kbd
+            v-for="token in formatShortcutBindingTokens(props.shortcuts[action.id])"
+            :key="token"
+          >
             {{ token }}
           </kbd>
         </div>
       </template>
-      <div class="shortcut-note">
-        复制支持 `Alt + C`，粘贴支持当前设置以及终端常见的 `Alt + V` / `Ctrl + V`
-      </div>
-    </div>
-  </NPopover>
+    </PopoverContent>
+  </Popover>
 </template>
 
-<style scoped>
+<style>
 .shortcut-popover {
   display: grid;
   gap: 8px;
   width: 280px;
-  padding: 4px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(20, 20, 20, 0.96);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(16px);
 }
 
 .shortcut-section-title {
@@ -81,12 +83,5 @@ const shortcutGroups = Object.entries(shortcutGroupLabels).map(([id, label]) => 
   font-size: 11px;
   line-height: 18px;
   text-align: center;
-}
-
-.shortcut-note {
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.46);
-  font-size: 11px;
-  line-height: 1.5;
 }
 </style>

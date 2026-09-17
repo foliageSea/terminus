@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import type { ComponentPublicInstance, HTMLAttributes } from 'vue'
+import { Pin, Plus, Settings } from '@lucide/vue'
 import {
-  NButton,
-  NIcon,
-  NInput,
-  NLayout,
-  NLayoutHeader,
-  NModal,
-  NTabPane,
-  NTooltip,
-  NTabs,
-  useThemeVars
-} from 'naive-ui'
-import type { InputInst } from 'naive-ui'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import {
-  Add20Regular,
-  Pin20Filled,
-  Pin20Regular,
-  Settings20Regular
-} from '@vicons/fluent'
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
 import SettingsView from './SettingsView.vue'
 import ShortcutHelpPopover from './ShortcutHelpPopover.vue'
@@ -168,9 +169,8 @@ const windowAppearanceSettings = reactive<WindowAppearanceSettings>({
 const editingTabId = ref<string | undefined>()
 const editingTitle = ref('')
 const renameDialogVisible = ref(false)
-const renameInputRef = ref<InputInst>()
+const renameInputRef = ref<HTMLInputElement>()
 const closeConfirmationVisible = ref(false)
-const closeConfirmationButtonRef = ref<ComponentPublicInstance>()
 const closeConfirmationTitle = ref('')
 const closeConfirmationContent = ref('')
 const pendingCloseAction = ref<(() => void) | undefined>()
@@ -192,7 +192,6 @@ const shortcuts = reactive<ShortcutSettings>(cloneShortcutSettings(defaultShortc
 const shortcutsLoaded = ref(false)
 const shortcutRecording = ref(false)
 const windowBoundsSettings = reactive<WindowBoundsSettings>({ ...defaultWindowBoundsSettings })
-const themeVars = useThemeVars()
 let removeCwdListener: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
 let fontSizeWheelDelta = 0
@@ -249,8 +248,8 @@ const filteredPathFavorites = computed(() => {
   })
 })
 const workspaceThemeStyle = computed(() => ({
-  '--terminal-active-color': themeVars.value.primaryColor,
-  '--terminal-active-color-hover': themeVars.value.primaryColorHover
+  '--terminal-active-color': props.primaryColor,
+  '--terminal-active-color-hover': props.primaryColor
 }))
 const workspaceHeaderStyle = computed(() => ({
   backdropFilter: `blur(${terminalSettings.backgroundBlur}px)`
@@ -694,35 +693,6 @@ function dropTabAtEnd(event: DragEvent): void {
   moveTab(sourceTabId)
 }
 
-function createTabProps(tab: Tab): HTMLAttributes {
-  return {
-    class: {
-      'terminal-tab-dragging': draggingTabId.value === tab.id,
-      'terminal-tab-drag-before':
-        dragOverTabId.value === tab.id && dragOverTabSide.value === 'before',
-      'terminal-tab-drag-after': dragOverTabId.value === tab.id && dragOverTabSide.value === 'after'
-    },
-    draggable: 'true',
-    onDblclick: (event) => {
-      event.stopPropagation()
-      startRenameTab(tab)
-    },
-    onAuxclick: (event) => {
-      if (event.button !== 1) return
-      event.preventDefault()
-      event.stopPropagation()
-      closeTab(tab.id)
-    },
-    onDragstart: (event) => startTabDrag(event, tab.id),
-    onDragover: (event) => handleTabDragOver(event, tab.id),
-    onDragleave: () => {
-      if (dragOverTabId.value === tab.id) dragOverTabId.value = undefined
-    },
-    onDrop: (event) => dropTab(event, tab.id),
-    onDragend: finishTabDrag
-  }
-}
-
 async function startRenameTab(tab: Tab): Promise<void> {
   editingTabId.value = tab.id
   editingTitle.value = tab.title
@@ -756,11 +726,6 @@ function requestCloseConfirmation(title: string, action: () => void, content = '
   closeConfirmationContent.value = content
   pendingCloseAction.value = action
   closeConfirmationVisible.value = true
-
-  void nextTick(() => {
-    const closeButton = closeConfirmationButtonRef.value?.$el
-    if (closeButton instanceof HTMLElement) closeButton.focus()
-  })
 }
 
 function confirmClose(): void {
@@ -922,20 +887,24 @@ function handleClosePane(paneId: string): void {
     return
   }
 
-  requestCloseConfirmation('询问', () => {
-    const currentTab = tabs.value.find((item) => item.id === tab.id)
-    if (!currentTab || !isTerminalTab(currentTab)) return
+  requestCloseConfirmation(
+    '询问',
+    () => {
+      const currentTab = tabs.value.find((item) => item.id === tab.id)
+      if (!currentTab || !isTerminalTab(currentTab)) return
 
-    const nextRoot = closePane(currentTab.root, paneId)
-    if (!nextRoot) return
+      const nextRoot = closePane(currentTab.root, paneId)
+      if (!nextRoot) return
 
-    window.api.terminal.kill(paneId)
-    currentTab.root = nextRoot
-    currentTab.layoutVersion += 1
-    if (!findPane(currentTab.root, currentTab.activePaneId)) {
-      activateTabPane(currentTab, firstPaneId(currentTab.root))
-    }
-  }, '是否关闭分屏')
+      window.api.terminal.kill(paneId)
+      currentTab.root = nextRoot
+      currentTab.layoutVersion += 1
+      if (!findPane(currentTab.root, currentTab.activePaneId)) {
+        activateTabPane(currentTab, firstPaneId(currentTab.root))
+      }
+    },
+    '是否关闭分屏'
+  )
 }
 
 function handleDropPane({ sourceNodeId, targetPaneId, side }: PaneDropPayload): void {
@@ -1053,7 +1022,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <NLayout class="workspace" :style="workspaceThemeStyle" embedded>
+  <div class="workspace" :style="workspaceThemeStyle">
     <div
       v-if="workspaceBackgroundStyle"
       class="workspace-background"
@@ -1061,7 +1030,7 @@ onBeforeUnmount(() => {
     />
     <div class="workspace-background-mask" :style="workspaceBackgroundMaskStyle" />
 
-    <NLayoutHeader
+    <header
       class="workspace-header"
       :class="workspaceHeaderClass"
       :style="workspaceHeaderStyle"
@@ -1091,28 +1060,20 @@ onBeforeUnmount(() => {
         <div class="workspace-titlebar-drag-region" />
         <div class="header-actions">
           <div class="header-action-group">
-            <NTooltip>
-              <template #trigger>
-                <NButton
-                  class="always-on-top-button"
-                  size="small"
-                  secondary
-                  circle
-                  :type="windowAppearanceSettings.alwaysOnTop ? 'primary' : 'default'"
-                  :aria-label="windowAppearanceSettings.alwaysOnTop ? '取消窗口置顶' : '窗口置顶'"
-                  :aria-pressed="windowAppearanceSettings.alwaysOnTop"
-                  @click="toggleWindowAlwaysOnTop"
-                >
-                  <template #icon>
-                    <NIcon>
-                      <Pin20Filled v-if="windowAppearanceSettings.alwaysOnTop" />
-                      <Pin20Regular v-else />
-                    </NIcon>
-                  </template>
-                </NButton>
-              </template>
-              {{ windowAppearanceSettings.alwaysOnTop ? '取消置顶' : '窗口置顶' }}
-            </NTooltip>
+            <Button
+              class="always-on-top-button"
+              size="icon"
+              :variant="windowAppearanceSettings.alwaysOnTop ? 'default' : 'ghost'"
+              :aria-label="windowAppearanceSettings.alwaysOnTop ? '取消窗口置顶' : '窗口置顶'"
+              :aria-pressed="windowAppearanceSettings.alwaysOnTop"
+              @click="toggleWindowAlwaysOnTop"
+            >
+              <Pin
+                :size="16"
+                :fill="windowAppearanceSettings.alwaysOnTop ? 'currentColor' : 'none'"
+                aria-hidden="true"
+              />
+            </Button>
             <PathFavoritesPopover
               v-model:search="pathFavoriteSearch"
               :favorites="pathFavorites.items"
@@ -1130,96 +1091,99 @@ onBeforeUnmount(() => {
               @dragend="finishPathFavoriteDrag"
               @drop="dropPathFavorite"
             />
-            <NButton class="settings-button" size="small" secondary circle @click="openSettingsTab">
-              <template #icon>
-                <NIcon>
-                  <Settings20Regular />
-                </NIcon>
-              </template>
-            </NButton>
+            <Button
+              class="settings-button"
+              variant="ghost"
+              size="icon"
+              aria-label="设置"
+              @click="openSettingsTab"
+              ><Settings :size="16" aria-hidden="true"
+            /></Button>
             <ShortcutHelpPopover :shortcuts="shortcuts" />
           </div>
         </div>
       </div>
       <div class="horizontal-tab-bar">
-        <NTabs
-          v-model:value="activeTabId"
-          type="card"
-          size="small"
-          closable
-          @close="closeTab"
-          @dragover="handleTabListDragOver"
-          @drop="dropTabAtEnd"
-        >
-          <NTabPane
+        <div class="terminal-tabs" @dragover="handleTabListDragOver" @drop="dropTabAtEnd">
+          <button
             v-for="tab in tabs"
             :key="tab.id"
-            :name="tab.id"
-            :tab-props="createTabProps(tab)"
+            :class="[
+              'terminal-tab',
+              {
+                active: tab.id === activeTabId,
+                'terminal-tab-dragging': draggingTabId === tab.id,
+                'terminal-tab-drag-before':
+                  dragOverTabId === tab.id && dragOverTabSide === 'before',
+                'terminal-tab-drag-after': dragOverTabId === tab.id && dragOverTabSide === 'after'
+              }
+            ]"
+            type="button"
+            draggable="true"
+            :title="tab.title"
+            @click="activeTabId = tab.id"
+            @dblclick.stop="startRenameTab(tab)"
+            @auxclick="($event) => $event.button === 1 && closeTab(tab.id)"
+            @dragstart="startTabDrag($event, tab.id)"
+            @dragover="handleTabDragOver($event, tab.id)"
+            @dragleave="dragOverTabId === tab.id && (dragOverTabId = undefined)"
+            @drop="dropTab($event, tab.id)"
+            @dragend="finishTabDrag"
           >
-            <template #tab>
-              <NTooltip>
-                <template #trigger>
-                  <span class="tab-content">
-                    <span class="tab-title">{{ tab.title }}</span>
-                  </span>
-                </template>
-                {{ tab.title }}
-              </NTooltip>
-            </template>
-          </NTabPane>
-        </NTabs>
-        <NButton
+            <span class="tab-content"
+              ><span class="tab-title">{{ tab.title }}</span></span
+            >
+            <span class="terminal-tab-close" @click.stop="closeTab(tab.id)">x</span>
+          </button>
+        </div>
+        <Button
           class="new-tab-button horizontal-new-tab-button"
-          size="small"
-          secondary
-          circle
+          size="icon"
+          variant="secondary"
           aria-label="新建标签"
           @click="addTab"
         >
-          <template #icon>
-            <NIcon>
-              <Add20Regular />
-            </NIcon>
-          </template>
-        </NButton>
+          <Plus :size="16" aria-hidden="true" />
+        </Button>
       </div>
-    </NLayoutHeader>
+    </header>
 
-    <NModal
-      v-model:show="renameDialogVisible"
-      preset="dialog"
-      title="修改 Tab 名称"
-      positive-text="保存"
-      negative-text="取消"
-      @positive-click="finishRenameTab"
-      @negative-click="cancelRenameTab"
-      @close="cancelRenameTab"
-    >
-      <NInput
-        ref="renameInputRef"
-        v-model:value="editingTitle"
-        placeholder="请输入 Tab 名称"
-        @keydown.enter.prevent="finishRenameTab"
-        @keydown.esc.prevent="cancelRenameTab"
-      />
-    </NModal>
-
-    <NModal
-      v-model:show="closeConfirmationVisible"
-      preset="dialog"
-      :auto-focus="false"
-      :title="closeConfirmationTitle"
-      @close="cancelClose"
-    >
-      <template v-if="closeConfirmationContent">{{ closeConfirmationContent }}</template>
-      <template #action>
-        <NButton @click="cancelClose">取消</NButton>
-        <NButton ref="closeConfirmationButtonRef" type="primary" @click="confirmClose">
-          关闭
-        </NButton>
-      </template>
-    </NModal>
+    <Dialog :open="renameDialogVisible" @update:open="!$event && cancelRenameTab()">
+      <DialogContent>
+        <DialogHeader><DialogTitle>修改 Tab 名称</DialogTitle></DialogHeader>
+        <Input
+          ref="renameInputRef"
+          v-model="editingTitle"
+          placeholder="请输入 Tab 名称"
+          @keydown.enter.prevent="finishRenameTab"
+          @keydown.esc.prevent="cancelRenameTab"
+        />
+        <DialogFooter>
+          <DialogClose as-child
+            ><Button variant="secondary" @click="cancelRenameTab">取消</Button></DialogClose
+          >
+          <Button @click="finishRenameTab">保存</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <AlertDialog :open="closeConfirmationVisible" @update:open="!$event && cancelClose()">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{{ closeConfirmationTitle }}</AlertDialogTitle>
+          <AlertDialogDescription v-if="closeConfirmationContent">
+            {{ closeConfirmationContent }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel as-child>
+            <Button variant="secondary" @click="cancelClose">取消</Button>
+          </AlertDialogCancel>
+          <AlertDialogAction as-child>
+            <Button @click="confirmClose">关闭</Button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     <div class="workspace-main">
       <main class="workspace-body">
@@ -1300,7 +1264,7 @@ onBeforeUnmount(() => {
         </div>
       </main>
     </div>
-  </NLayout>
+  </div>
   <Transition name="tab-switch-overlay">
     <div v-if="tabSwitchOverlayVisible" class="tab-switch-overlay">
       {{ tabSwitchOverlayTitle }}
@@ -1400,14 +1364,6 @@ onBeforeUnmount(() => {
   margin-top: 2px;
   color: rgba(255, 255, 255, 0.5);
   font-size: 12px;
-}
-
-.path-favorites-search {
-  --n-border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  --n-border-hover: 1px solid rgba(255, 255, 255, 0.18) !important;
-  --n-border-focus: 1px solid var(--terminal-active-color) !important;
-  --n-color: rgba(255, 255, 255, 0.05) !important;
-  --n-color-focus: rgba(255, 255, 255, 0.07) !important;
 }
 
 .path-favorites-list {
@@ -1684,5 +1640,21 @@ onBeforeUnmount(() => {
   transition:
     opacity 150ms ease,
     transform 150ms ease;
+}
+
+.terminal-tab-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.terminal-tab-close:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 </style>

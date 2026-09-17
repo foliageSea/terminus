@@ -1,26 +1,33 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { Image, Keyboard, Monitor, Palette, RotateCcw, Type } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
+import { ColorField } from '@/components/ui/color-field'
 import {
-  NAlert,
-  NButton,
-  NColorPicker,
-  NForm,
-  NFormItem,
-  NIcon,
-  NInput,
-  NInputNumber,
-  NSelect,
-  NSlider,
-  NSwitch
-} from 'naive-ui'
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle
+} from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
-  PaintBrush20Regular,
-  TextFont20Regular,
-  Video20Regular,
-  Image20Regular,
-  Keyboard20Regular,
-  ArrowReset20Regular
-} from '@vicons/fluent'
+  NumberField,
+  NumberFieldContent,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+  NumberFieldInput
+} from '@/components/ui/number-field'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import type {
   SettingsSection,
   ShortcutSettings,
@@ -75,12 +82,12 @@ const emit = defineEmits<{
   updateShortcutRecording: [value: boolean]
 }>()
 
-const sections: { key: SettingsSection; label: string; icon: typeof PaintBrush20Regular }[] = [
-  { key: 'appearance', label: '外观', icon: PaintBrush20Regular },
-  { key: 'font', label: '字体', icon: TextFont20Regular },
-  { key: 'render', label: '渲染', icon: Video20Regular },
-  { key: 'background', label: '背景', icon: Image20Regular },
-  { key: 'shortcuts', label: '快捷键', icon: Keyboard20Regular }
+const sections: { key: SettingsSection; label: string; icon: typeof Palette }[] = [
+  { key: 'appearance', label: '外观', icon: Palette },
+  { key: 'font', label: '字体', icon: Type },
+  { key: 'render', label: '渲染', icon: Monitor },
+  { key: 'background', label: '背景', icon: Image },
+  { key: 'shortcuts', label: '快捷键', icon: Keyboard }
 ]
 
 const windowControlsStyleOptions: { label: string; value: WindowControlsStyle }[] = [
@@ -129,6 +136,19 @@ const shortcutGroups = Object.entries(shortcutGroupLabels).map(([id, label]) => 
   label,
   actions: shortcutActionDefinitions.filter((action) => action.group === id)
 }))
+const backgroundOpacity = computed({
+  get: () => [props.terminalSettings.backgroundOpacity],
+  set: ([value]) => emit('updateBackgroundOpacity', value)
+})
+const backgroundBlur = computed({
+  get: () => [props.terminalSettings.backgroundBlur],
+  set: ([value]) => emit('updateBackgroundBlur', value)
+})
+const windowControlsStyleLabel = computed(
+  () =>
+    windowControlsStyleOptions.find((option) => option.value === props.windowControlsStyle)
+      ?.label ?? '跟随系统'
+)
 
 function beginShortcutRecording(actionId: ShortcutActionId): void {
   recordingActionId.value = actionId
@@ -220,112 +240,120 @@ onBeforeUnmount(() => {
         :class="{ active: activeSection === section.key }"
         @click="changeSection(section.key)"
       >
-        <NIcon :size="18">
-          <component :is="section.icon" />
-        </NIcon>
+        <component :is="section.icon" :size="18" aria-hidden="true" />
         <span>{{ section.label }}</span>
       </button>
     </nav>
 
     <div class="settings-content">
-      <NForm label-placement="top" size="medium" class="settings-form">
+      <form class="settings-form" @submit.prevent>
         <template v-if="activeSection === 'appearance'">
           <h3 class="settings-section-title">外观设置</h3>
-          <NFormItem label="主题色" path="primaryColor" style="width: 120px">
-            <NColorPicker
-              :value="primaryColor"
-              :show-alpha="false"
-              :modes="['hex']"
-              @update:value="emit('updatePrimaryColor', $event)"
-            />
-          </NFormItem>
-          <NFormItem label="新建标签路径" path="inheritTabCwd">
-            <div class="settings-switch-row">
-              <NSwitch :value="inheritTabCwd" @update:value="emit('updateInheritTabCwd', $event)" />
-              <span class="settings-switch-label">
-                {{ inheritTabCwd ? '继承当前标签路径' : '使用默认终端路径' }}
-              </span>
-            </div>
-          </NFormItem>
-          <NFormItem label="窗口按钮风格" path="windowControlsStyle" style="width: 160px">
-            <NSelect
-              :value="windowControlsStyle"
-              :options="windowControlsStyleOptions"
-              @update:value="updateWindowControlsStyle"
-            />
-          </NFormItem>
-          <NFormItem label="窗口大小缓存" path="rememberWindowBounds">
-            <div class="settings-switch-row">
-              <NSwitch
-                :value="rememberWindowBounds"
-                @update:value="emit('updateRememberWindowBounds', $event)"
-              />
-              <span class="settings-switch-label">
-                {{ rememberWindowBounds ? '记住窗口大小和位置' : '关闭后恢复默认窗口大小' }}
-              </span>
-            </div>
-          </NFormItem>
-          <NFormItem label="窗口置顶" path="windowAlwaysOnTop">
-            <div class="settings-switch-row">
-              <NSwitch
-                :value="windowAlwaysOnTop"
-                @update:value="emit('updateWindowAlwaysOnTop', $event)"
-              />
-              <span class="settings-switch-label">
-                {{ windowAlwaysOnTop ? '始终显示在最前' : '允许其他窗口覆盖' }}
-              </span>
-            </div>
-          </NFormItem>
+          <Field class="settings-compact-control"
+            ><FieldLabel>主题色</FieldLabel
+            ><ColorField
+              :model-value="primaryColor"
+              @update:model-value="emit('updatePrimaryColor', $event)"
+          /></Field>
+          <Field orientation="horizontal"
+            ><FieldContent
+              ><FieldTitle>新建标签路径</FieldTitle
+              ><FieldDescription>{{
+                inheritTabCwd ? '继承当前标签路径' : '使用默认终端路径'
+              }}</FieldDescription></FieldContent
+            ><Switch
+              :model-value="inheritTabCwd"
+              @update:model-value="emit('updateInheritTabCwd', $event)"
+          /></Field>
+          <Field class="settings-compact-control"
+            ><FieldLabel>窗口按钮风格</FieldLabel
+            ><Select
+              :model-value="windowControlsStyle"
+              @update:model-value="updateWindowControlsStyle($event)"
+              ><SelectTrigger class="ui-select-trigger"
+                ><SelectValue>{{ windowControlsStyleLabel }}</SelectValue></SelectTrigger
+              ><SelectContent class="ui-select-content"
+                ><SelectItem
+                  v-for="option in windowControlsStyleOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  class="ui-select-item"
+                  >{{ option.label }}</SelectItem
+                ></SelectContent
+              ></Select
+            ></Field
+          >
+          <Field orientation="horizontal"
+            ><FieldContent
+              ><FieldTitle>窗口大小缓存</FieldTitle
+              ><FieldDescription>{{
+                rememberWindowBounds ? '记住窗口大小和位置' : '关闭后恢复默认窗口大小'
+              }}</FieldDescription></FieldContent
+            ><Switch
+              :model-value="rememberWindowBounds"
+              @update:model-value="emit('updateRememberWindowBounds', $event)"
+          /></Field>
+          <Field orientation="horizontal"
+            ><FieldContent
+              ><FieldTitle>窗口置顶</FieldTitle
+              ><FieldDescription>{{
+                windowAlwaysOnTop ? '始终显示在最前' : '允许其他窗口覆盖'
+              }}</FieldDescription></FieldContent
+            ><Switch
+              :model-value="windowAlwaysOnTop"
+              @update:model-value="emit('updateWindowAlwaysOnTop', $event)"
+          /></Field>
         </template>
 
         <template v-else-if="activeSection === 'font'">
           <h3 class="settings-section-title">字体设置</h3>
-          <NFormItem label="字体" path="fontFamily">
-            <NInput
+          <Field class="settings-compact-control"
+            ><FieldLabel>字体</FieldLabel
+            ><Input
               class="settings-compact-control"
-              :value="terminalSettings.fontFamily"
+              :model-value="terminalSettings.fontFamily"
               placeholder="Cascadia Mono, Consolas, monospace"
               clearable
-              @update:value="emit('updateFontFamily', $event)"
+              @update:model-value="emit('updateFontFamily', String($event))"
               @blur="emit('normalizeFontFamily')"
-            />
-          </NFormItem>
-          <NFormItem label="字号" path="fontSize">
-            <NInputNumber
-              class="font-size-input"
-              :value="terminalSettings.fontSize"
+          /></Field>
+          <Field class="settings-compact-control"
+            ><FieldLabel>字号</FieldLabel
+            ><NumberField
+              :model-value="terminalSettings.fontSize"
               :min="8"
               :max="32"
               :step="1"
-              button-placement="both"
-              @update:value="emit('updateFontSize', $event)"
-            />
-          </NFormItem>
+              @update:model-value="emit('updateFontSize', $event ?? null)"
+              ><NumberFieldContent
+                ><NumberFieldDecrement /><NumberFieldInput
+                  class="ui-number-field-input" /><NumberFieldIncrement /></NumberFieldContent></NumberField
+          ></Field>
         </template>
 
         <template v-else-if="activeSection === 'render'">
           <h3 class="settings-section-title">渲染设置</h3>
-          <NFormItem label="WebGL 渲染" path="webglEnabled">
-            <div class="settings-switch-row">
-              <NSwitch
-                :value="terminalSettings.webglEnabled"
-                @update:value="emit('updateWebglEnabled', $event)"
-              />
-              <span class="settings-switch-label">
-                {{ terminalSettings.webglEnabled ? '启用 GPU 加速渲染' : '关闭 GPU 加速渲染' }}
-              </span>
-            </div>
-          </NFormItem>
+          <Field orientation="horizontal"
+            ><FieldContent
+              ><FieldTitle>WebGL 渲染</FieldTitle
+              ><FieldDescription>{{
+                terminalSettings.webglEnabled ? '启用 GPU 加速渲染' : '关闭 GPU 加速渲染'
+              }}</FieldDescription></FieldContent
+            ><Switch
+              :model-value="terminalSettings.webglEnabled"
+              @update:model-value="emit('updateWebglEnabled', $event)"
+          /></Field>
         </template>
 
         <template v-else-if="activeSection === 'background'">
           <h3 class="settings-section-title">背景设置</h3>
-          <NFormItem label="背景图" path="backgroundImageEnabled">
+          <Field>
+            <FieldLabel>背景图</FieldLabel>
             <div class="settings-background-control">
               <div class="settings-background-switch-row">
-                <NSwitch
-                  :value="terminalSettings.backgroundImageEnabled"
-                  @update:value="emit('updateBackgroundImageEnabled', $event)"
+                <Switch
+                  :model-value="terminalSettings.backgroundImageEnabled"
+                  @update:model-value="emit('updateBackgroundImageEnabled', $event)"
                 />
                 <span
                   class="settings-background-name"
@@ -335,64 +363,54 @@ onBeforeUnmount(() => {
                 </span>
               </div>
               <div class="settings-background-actions">
-                <NButton size="small" secondary @click="emit('selectBackground')">选择图片</NButton>
-                <NButton
-                  size="small"
-                  quaternary
+                <Button size="sm" variant="secondary" @click="emit('selectBackground')"
+                  >选择图片</Button
+                >
+                <Button
+                  size="sm"
+                  variant="ghost"
                   :disabled="!terminalSettings.backgroundImagePath"
                   @click="emit('clearBackground')"
                 >
                   清除
-                </NButton>
+                </Button>
               </div>
             </div>
-          </NFormItem>
-          <NFormItem label="背景遮罩" path="backgroundOpacity">
+          </Field>
+          <Field>
+            <FieldLabel>背景遮罩</FieldLabel>
             <div
               class="settings-range-control settings-compact-control"
               @wheel="
-                handleSliderWheel(
-                  $event,
-                  terminalSettings.backgroundOpacity,
-                  0,
-                  100,
-                  (value) => emit('updateBackgroundOpacity', value)
+                handleSliderWheel($event, terminalSettings.backgroundOpacity, 0, 100, (value) =>
+                  emit('updateBackgroundOpacity', value)
                 )
               "
             >
-              <NSlider
-                :value="terminalSettings.backgroundOpacity"
+              <Slider
+                v-model="backgroundOpacity"
                 :min="0"
                 :max="100"
                 :step="1"
-                @update:value="emit('updateBackgroundOpacity', $event)"
+                aria-label="背景遮罩"
               />
               <span class="settings-range-value">{{ terminalSettings.backgroundOpacity }}%</span>
             </div>
-          </NFormItem>
-          <NFormItem label="背景模糊" path="backgroundBlur">
+          </Field>
+          <Field>
+            <FieldLabel>背景模糊</FieldLabel>
             <div
               class="settings-range-control settings-compact-control"
               @wheel="
-                handleSliderWheel(
-                  $event,
-                  terminalSettings.backgroundBlur,
-                  0,
-                  40,
-                  (value) => emit('updateBackgroundBlur', value)
+                handleSliderWheel($event, terminalSettings.backgroundBlur, 0, 40, (value) =>
+                  emit('updateBackgroundBlur', value)
                 )
               "
             >
-              <NSlider
-                :value="terminalSettings.backgroundBlur"
-                :min="0"
-                :max="40"
-                :step="1"
-                @update:value="emit('updateBackgroundBlur', $event)"
-              />
+              <Slider v-model="backgroundBlur" :min="0" :max="40" :step="1" aria-label="背景模糊" />
               <span class="settings-range-value">{{ terminalSettings.backgroundBlur }}px</span>
             </div>
-          </NFormItem>
+          </Field>
         </template>
 
         <template v-else-if="activeSection === 'shortcuts'">
@@ -403,33 +421,24 @@ onBeforeUnmount(() => {
                 点击“修改”后直接按下新的组合键，按 `Esc` 可取消录制。
               </p>
             </div>
-            <NButton quaternary @click="resetAllShortcuts">
-              <template #icon>
-                <NIcon>
-                  <ArrowReset20Regular />
-                </NIcon>
-              </template>
+            <Button variant="ghost" @click="resetAllShortcuts">
+              <RotateCcw :size="15" aria-hidden="true" />
               恢复默认
-            </NButton>
+            </Button>
           </div>
 
-          <NAlert
-            v-if="shortcutError"
-            class="shortcut-alert"
-            type="warning"
-            :show-icon="false"
+          <Alert v-if="shortcutError" class="shortcut-alert" variant="warning"
+            ><AlertDescription>{{ shortcutError }}</AlertDescription></Alert
           >
-            {{ shortcutError }}
-          </NAlert>
 
           <div class="shortcut-settings-groups">
-            <section v-for="group in shortcutGroups" :key="group.id" class="shortcut-settings-group">
+            <section
+              v-for="group in shortcutGroups"
+              :key="group.id"
+              class="shortcut-settings-group"
+            >
               <div class="shortcut-settings-group-title">{{ group.label }}</div>
-              <div
-                v-for="action in group.actions"
-                :key="action.id"
-                class="shortcut-settings-row"
-              >
+              <div v-for="action in group.actions" :key="action.id" class="shortcut-settings-row">
                 <div class="shortcut-settings-meta">
                   <div class="shortcut-settings-label">{{ action.label }}</div>
                 </div>
@@ -442,18 +451,12 @@ onBeforeUnmount(() => {
                 >
                   {{ formatShortcutValue(action.id) }}
                 </button>
-                <NButton
-                  quaternary
-                  size="small"
-                  @click="resetShortcut(action.id)"
-                >
-                  重置
-                </NButton>
+                <Button variant="ghost" size="sm" @click="resetShortcut(action.id)"> 重置 </Button>
               </div>
             </section>
           </div>
         </template>
-      </NForm>
+      </form>
     </div>
   </div>
 </template>
@@ -495,7 +498,11 @@ onBeforeUnmount(() => {
 }
 
 .settings-nav-item.active {
-  background: color-mix(in srgb, var(--terminal-active-color, #7c3aed) 15%, rgba(255, 255, 255, 0.06));
+  background: color-mix(
+    in srgb,
+    var(--terminal-active-color, #7c3aed) 15%,
+    rgba(255, 255, 255, 0.06)
+  );
   color: var(--terminal-active-color, #7c3aed);
 }
 
@@ -528,11 +535,13 @@ onBeforeUnmount(() => {
 }
 
 .settings-form {
+  display: grid;
+  gap: 22px;
   max-width: 720px;
 }
 
 .settings-section-title {
-  margin: 0 0 24px;
+  margin: 0 0 2px;
   color: rgba(255, 255, 255, 0.92);
   font-size: 18px;
   font-weight: 600;
@@ -547,7 +556,7 @@ onBeforeUnmount(() => {
 }
 
 .settings-section-desc {
-  margin: -14px 0 0;
+  margin: 4px 0 0;
   color: rgba(255, 255, 255, 0.5);
   font-size: 13px;
   line-height: 1.5;
@@ -675,7 +684,11 @@ onBeforeUnmount(() => {
 
 .shortcut-capture-button.recording {
   border-color: var(--terminal-active-color, #8d9dd5);
-  background: color-mix(in srgb, var(--terminal-active-color, #8d9dd5) 14%, rgba(255, 255, 255, 0.06));
+  background: color-mix(
+    in srgb,
+    var(--terminal-active-color, #8d9dd5) 14%,
+    rgba(255, 255, 255, 0.06)
+  );
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--terminal-active-color, #8d9dd5) 40%, transparent);
 }
 </style>

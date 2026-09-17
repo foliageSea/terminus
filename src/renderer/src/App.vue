@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { darkTheme, NConfigProvider, NGlobalStyle } from 'naive-ui'
+import { onMounted, ref, watch } from 'vue'
 import TerminalWorkspace from './components/TerminalWorkspace.vue'
 
 const defaultPrimaryColor = '#63e2b7'
 const primaryColor = ref(defaultPrimaryColor)
 
-const themeOverrides = computed(() => ({
-  common: {
-    primaryColor: primaryColor.value,
-    primaryColorHover: primaryColor.value,
-    primaryColorPressed: primaryColor.value,
-    primaryColorSuppl: primaryColor.value
-  }
-}))
+watch(
+  primaryColor,
+  (color) => {
+    document.documentElement.style.setProperty('--terminal-active-color', color)
+    document.documentElement.style.setProperty('--terminal-active-color-hover', color)
+  },
+  { immediate: true }
+)
 
 async function updatePrimaryColor(color: string): Promise<void> {
   primaryColor.value = color
@@ -26,8 +25,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <NConfigProvider :theme="darkTheme" :theme-overrides="themeOverrides">
-    <NGlobalStyle />
+  <div
+    :style="{
+      '--terminal-active-color': primaryColor,
+      '--terminal-active-color-hover': primaryColor
+    }"
+  >
     <TerminalWorkspace :primary-color="primaryColor" @update-primary-color="updatePrimaryColor" />
-  </NConfigProvider>
+  </div>
 </template>

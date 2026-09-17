@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { NButton, NIcon } from 'naive-ui'
-import {
-  ArrowClockwise20Regular,
-  Dismiss20Regular,
-  SplitHorizontal20Regular,
-  SplitVertical20Regular
-} from '@vicons/fluent'
+import { Columns2, RefreshCw, Rows2, X } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -164,10 +159,6 @@ function applyTerminalSettings(): void {
   terminal.options.theme = createTerminalTheme()
   syncWebglAddon()
   fit()
-}
-
-function currentRendererMode(): 'WEBGL' | 'CANVAS' {
-  return props.terminalSettings.webglEnabled ? 'WEBGL' : 'CANVAS'
 }
 
 function disableWebgl(): void {
@@ -391,49 +382,39 @@ onBeforeUnmount(() => {
         draggable="false"
         @dragstart.stop.prevent
       >
-        <span class="pane-renderer-badge" :title="`当前渲染模式：${currentRendererMode()}`">
-          {{ currentRendererMode() }}
-        </span>
-        <NButton v-if="!hideActions" size="tiny" quaternary title="向右分屏" @click.stop="splitTo('right')">
-          <template #icon>
-            <NIcon>
-              <SplitVertical20Regular />
-            </NIcon>
-          </template>
-        </NButton>
-        <NButton v-if="!hideActions" size="tiny" quaternary title="向下分屏" @click.stop="splitTo('bottom')">
-          <template #icon>
-            <NIcon>
-              <SplitHorizontal20Regular />
-            </NIcon>
-          </template>
-        </NButton>
-        <NButton
+        <Button
+          v-if="!hideActions"
+          size="icon"
+          variant="ghost"
+          title="向右分屏"
+          @click.stop="splitTo('right')"
+          ><Columns2 :size="13"
+        /></Button>
+        <Button
+          v-if="!hideActions"
+          size="icon"
+          variant="ghost"
+          title="向下分屏"
+          @click.stop="splitTo('bottom')"
+          ><Rows2 :size="13"
+        /></Button>
+        <Button
           v-if="!hideActions || showReloadAction"
-          size="tiny"
-          quaternary
+          size="icon"
+          variant="ghost"
           :disabled="reloading"
           @click.stop="reloadTerminal"
         >
-          <template #icon>
-            <NIcon>
-              <ArrowClockwise20Regular />
-            </NIcon>
-          </template>
-        </NButton>
-        <NButton
+          <RefreshCw :size="13" />
+        </Button>
+        <Button
           v-if="!hideActions"
-          size="tiny"
-          quaternary
-          type="error"
+          size="icon"
+          variant="destructive"
           @click.stop="emit('close', paneId)"
         >
-          <template #icon>
-            <NIcon>
-              <Dismiss20Regular />
-            </NIcon>
-          </template>
-        </NButton>
+          <X :size="13" />
+        </Button>
       </div>
     </div>
     <div ref="host" class="terminal-host" />
@@ -447,22 +428,13 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 
-.pane-renderer-badge {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
-  line-height: 1;
-  user-select: none;
+.pane-action-bar :deep(.ui-button),
+.pane-action-bar :deep(.ui-button *) {
+  cursor: pointer;
 }
 
-.pane-action-bar :deep(.n-button),
-.pane-action-bar :deep(.n-button *) {
-  cursor: pointer;
+.pane-action-bar :deep(.ui-button) {
+  width: 22px;
+  height: 22px;
 }
 </style>
