@@ -16,8 +16,6 @@ import {
 import type { InputInst } from 'naive-ui'
 import {
   Add20Regular,
-  ChevronLeft20Regular,
-  ChevronRight20Regular,
   Pin20Filled,
   Pin20Regular,
   Settings20Regular
@@ -170,7 +168,6 @@ const inheritTabCwd = ref(true)
 const windowControlsStyle = ref<WindowControlsStyle>('system')
 const platform = ref('win32')
 const windowMaximized = ref(false)
-const headerActionsCollapsed = ref(true)
 const windowAppearanceSettings = reactive<WindowAppearanceSettings>({
   ...defaultWindowAppearanceSettings
 })
@@ -1249,33 +1246,7 @@ onBeforeUnmount(() => {
             </NIcon>
           </template>
         </NButton>
-        <NTooltip>
-          <template #trigger>
-            <NButton
-              class="header-actions-toggle"
-              size="small"
-              secondary
-              circle
-              :aria-label="headerActionsCollapsed ? '展开操作按钮' : '收起操作按钮'"
-              :aria-expanded="!headerActionsCollapsed"
-              @click="headerActionsCollapsed = !headerActionsCollapsed"
-            >
-              <template #icon>
-                <NIcon>
-                  <ChevronLeft20Regular v-if="headerActionsCollapsed" />
-                  <ChevronRight20Regular v-else />
-                </NIcon>
-              </template>
-            </NButton>
-          </template>
-          {{ headerActionsCollapsed ? '展开操作按钮' : '收起操作按钮' }}
-        </NTooltip>
-        <div
-          class="header-action-group"
-          :class="{ collapsed: headerActionsCollapsed }"
-          :aria-hidden="headerActionsCollapsed"
-          :inert="headerActionsCollapsed"
-        >
+        <div class="header-action-group">
           <NTooltip>
             <template #trigger>
               <NButton
@@ -1600,19 +1571,6 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 136px;
-  overflow: visible;
-  opacity: 1;
-  transition:
-    max-width 180ms ease,
-    opacity 120ms ease;
-}
-
-.header-action-group.collapsed {
-  max-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .path-favorites-button {

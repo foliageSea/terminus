@@ -264,8 +264,6 @@ button {
 .new-tab-button *,
 .tab-bar-mode-toggle,
 .tab-bar-mode-toggle *,
-.header-actions-toggle,
-.header-actions-toggle *,
 .settings-button,
 .settings-button *,
 .shortcut-help-button,
@@ -513,7 +511,7 @@ button {
   position: absolute;
   right: 10px;
   bottom: 0;
-  left: 10px;
+  left: 9px;
   height: 2px;
   border-radius: 999px;
   background: var(--terminal-active-color);
