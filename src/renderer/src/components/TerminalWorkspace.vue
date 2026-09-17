@@ -1166,7 +1166,7 @@ onBeforeUnmount(() => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    <AlertDialog :open="closeConfirmationVisible" @update:open="!$event && cancelClose()">
+    <AlertDialog v-model:open="closeConfirmationVisible">
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ closeConfirmationTitle }}</AlertDialogTitle>
