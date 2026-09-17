@@ -278,6 +278,7 @@ onMounted(async () => {
   if (!host.value) return
 
   terminal = new Terminal({
+    allowTransparency: true,
     cursorBlink: true,
     cursorStyle: 'bar',
     fontFamily: props.terminalSettings.fontFamily,

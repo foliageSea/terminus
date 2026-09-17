@@ -28,7 +28,7 @@ export function resolveTerminalCwd(cwd: unknown): string {
 }
 
 export function powershellCwdPromptCommand(): string {
-  return '$function:__terminus_original_prompt = $function:prompt; function global:prompt { $esc = [char]27; $exitCode = if ($?) { 0 } elseif ($null -ne $global:LASTEXITCODE) { $global:LASTEXITCODE } else { 1 }; [Console]::Write("$esc]633;D;ExitCode=$exitCode$esc\\"); $cwd = (Get-Location).ProviderPath; if ($cwd) { [Console]::Write("$esc]633;P;Cwd=$cwd$esc\\") }; & $function:__terminus_original_prompt }'
+  return `$psReadLine = Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue; if ($psReadLine) { Set-PSReadLineOption -Colors @{ InlinePrediction = (([char]27).ToString() + '[38;5;238m') } }; $function:__terminus_original_prompt = $function:prompt; function global:prompt { $esc = [char]27; $exitCode = if ($?) { 0 } elseif ($null -ne $global:LASTEXITCODE) { $global:LASTEXITCODE } else { 1 }; [Console]::Write("$esc]633;D;ExitCode=$exitCode$esc\\"); $cwd = (Get-Location).ProviderPath; if ($cwd) { [Console]::Write("$esc]633;P;Cwd=$cwd$esc\\") }; & $function:__terminus_original_prompt }`
 }
 
 export function extractTerminalCwd(data: string): string | undefined {
