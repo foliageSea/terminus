@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(
@@ -14,10 +14,18 @@ const props = withDefaults(
 const classes = computed(() =>
   cn('ui-button', `ui-button-${props.variant}`, `ui-button-${props.size}`, props.class)
 )
+
+const buttonRef = ref<HTMLButtonElement>()
+
+function focus(): void {
+  buttonRef.value?.focus()
+}
+
+defineExpose({ focus })
 </script>
 
 <template>
-  <button :class="classes">
+  <button ref="buttonRef" :class="classes">
     <slot />
   </button>
 </template>

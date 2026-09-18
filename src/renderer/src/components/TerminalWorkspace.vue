@@ -170,6 +170,7 @@ const editingTitle = ref('')
 const renameDialogVisible = ref(false)
 const renameInputRef = ref<HTMLInputElement>()
 const closeConfirmationVisible = ref(false)
+const closeButtonRef = ref<{ focus: () => void }>()
 const closeConfirmationTitle = ref('')
 const closeConfirmationContent = ref('')
 const pendingCloseAction = ref<(() => void) | undefined>()
@@ -739,6 +740,11 @@ function cancelClose(): void {
   pendingCloseAction.value = undefined
 }
 
+function focusCloseButton(event: Event): void {
+  event.preventDefault()
+  window.setTimeout(() => closeButtonRef.value?.focus())
+}
+
 function minimizeWindow(): void {
   window.api.window.minimize()
 }
@@ -1166,7 +1172,7 @@ onBeforeUnmount(() => {
       </DialogContent>
     </Dialog>
     <AlertDialog v-model:open="closeConfirmationVisible">
-      <AlertDialogContent>
+      <AlertDialogContent @open-auto-focus="focusCloseButton">
         <AlertDialogHeader>
           <AlertDialogTitle>{{ closeConfirmationTitle }}</AlertDialogTitle>
           <AlertDialogDescription v-if="closeConfirmationContent">
@@ -1178,7 +1184,7 @@ onBeforeUnmount(() => {
             <Button variant="secondary" @click="cancelClose">取消</Button>
           </AlertDialogCancel>
           <AlertDialogAction as-child>
-            <Button @click="confirmClose">关闭</Button>
+            <Button ref="closeButtonRef" @click="confirmClose">关闭</Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
