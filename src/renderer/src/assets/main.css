@@ -256,7 +256,7 @@ button {
 .ui-color-trigger {
   min-width: 132px;
   justify-content: flex-start;
-  font-family: ui-monospace, monospace;
+  font-family: inherit;
 }
 .ui-color-preview {
   width: 18px;
