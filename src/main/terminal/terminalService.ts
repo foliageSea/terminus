@@ -1,4 +1,5 @@
 import { spawn, IPty } from 'node-pty'
+import type { Socket } from 'net'
 import {
   extractTerminalCommandComplete,
   extractTerminalCwd,
@@ -80,6 +81,9 @@ interface TerminalState {
   id: string
   ownerWebContentsId: number
   terminal: IPty
+  cols: number
+  rows: number
+  cwd: string
   pendingOutput: Buffer[]
   unackedOutputBytes: number
   outputPaused: boolean
@@ -89,6 +93,12 @@ interface TerminalState {
   onData: (payload: TerminalDataPayload) => void
   onCommandComplete: (payload: TerminalCommandCompletePayload) => void
   onExit: (payload: TerminalPayload) => void
+}
+
+interface WindowsPty extends IPty {
+  _agent?: {
+    inSocket?: Socket
+  }
 }
 
 interface CreateTerminalOptions {
@@ -188,6 +198,9 @@ export function createTerminal({
     id,
     ownerWebContentsId,
     terminal,
+    cols,
+    rows,
+    cwd: initialCwd,
     pendingOutput: [],
     unackedOutputBytes: 0,
     outputPaused: false,
@@ -197,6 +210,18 @@ export function createTerminal({
     onData,
     onCommandComplete,
     onExit
+  }
+
+  if (process.platform === 'win32') {
+    // node-pty does not handle errors from its ConPTY input pipe. A terminal query response
+    // written while a process is exiting can otherwise become an uncaught EAGAIN exception.
+    const windowsPty = terminal as WindowsPty
+    windowsPty._agent?.inSocket?.on('error', (error) => {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code !== 'EAGAIN' && code !== 'EPIPE') {
+        console.error(`[Terminus] Terminal ${id} input pipe error:`, error)
+      }
+    })
   }
 
   onCwd({ id, cwd: initialCwd })
@@ -213,7 +238,10 @@ export function createTerminal({
         state.commandCompleteReady = true
       }
     }
-    if (cwd) onCwd({ id, cwd })
+    if (cwd) {
+      state.cwd = cwd
+      onCwd({ id, cwd })
+    }
 
     state.pendingOutput.push(Buffer.from(data, 'utf8'))
     maybeSendTerminalOutput(state)
@@ -221,7 +249,27 @@ export function createTerminal({
 
   terminal.onExit(() => {
     flushTerminalOutput(state)
-    if (terminals.get(id) === state) terminals.delete(id)
+    if (terminals.get(id) === state) {
+      terminals.delete(id)
+      if (process.platform === 'win32') {
+        try {
+          createTerminal({
+            id,
+            ownerWebContentsId,
+            cols: state.cols,
+            rows: state.rows,
+            cwd: state.cwd,
+            onData,
+            onCwd,
+            onCommandComplete,
+            onExit
+          })
+          return
+        } catch (error) {
+          console.error(`[Terminus] Failed to restart terminal ${id}:`, error)
+        }
+      }
+    }
     onExit({ id })
   })
 
@@ -234,7 +282,12 @@ export function writeTerminal(id: string, data: string): void {
 
 export function resizeTerminal(id: string, cols: number, rows: number): void {
   if (cols > 0 && rows > 0) {
-    terminals.get(id)?.terminal.resize(cols, rows)
+    const state = terminals.get(id)
+    if (!state) return
+
+    state.cols = cols
+    state.rows = rows
+    state.terminal.resize(cols, rows)
   }
 }
 
