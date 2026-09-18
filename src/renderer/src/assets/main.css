@@ -387,11 +387,27 @@ button {
 }
 
 .workspace-titlebar {
+  position: relative;
   display: flex;
   flex: 0 0 32px;
   align-items: center;
   width: 100%;
   min-width: 0;
+}
+
+.workspace-app-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 40%;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .workspace-titlebar-drag-region {

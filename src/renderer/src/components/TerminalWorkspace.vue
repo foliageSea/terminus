@@ -23,7 +23,6 @@ import {
 import { Input } from '@/components/ui/input'
 import PathFavoritesPopover from './PathFavoritesPopover.vue'
 import SettingsView from './SettingsView.vue'
-import ShortcutHelpPopover from './ShortcutHelpPopover.vue'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
 import type {
@@ -1057,6 +1056,7 @@ onBeforeUnmount(() => {
             @click="toggleMaximizeWindow"
           />
         </div>
+        <div class="workspace-app-title">Terminus</div>
         <div class="workspace-titlebar-drag-region" />
         <div class="header-actions">
           <div class="header-action-group">
@@ -1099,7 +1099,6 @@ onBeforeUnmount(() => {
               @click="openSettingsTab"
               ><Settings :size="16" aria-hidden="true"
             /></Button>
-            <ShortcutHelpPopover :shortcuts="shortcuts" />
           </div>
         </div>
       </div>
