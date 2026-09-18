@@ -2,6 +2,7 @@ import { spawn, IPty } from 'node-pty'
 import {
   extractTerminalCommandComplete,
   extractTerminalCwd,
+  getIncompleteTerminalSequence,
   powershellCwdPromptCommand,
   resolveTerminalCwd
 } from './terminalCwd'
@@ -83,6 +84,7 @@ interface TerminalState {
   unackedOutputBytes: number
   outputPaused: boolean
   utf8Splitter: Utf8Splitter
+  pendingTerminalSequence: string
   commandCompleteReady: boolean
   onData: (payload: TerminalDataPayload) => void
   onCommandComplete: (payload: TerminalCommandCompletePayload) => void
@@ -177,7 +179,10 @@ export function createTerminal({
     cols,
     rows,
     cwd: initialCwd,
-    env: process.env
+    env:
+      process.platform === 'darwin'
+        ? { ...process.env, TERM_PROGRAM: 'Apple_Terminal' }
+        : process.env
   })
   const state: TerminalState = {
     id,
@@ -187,6 +192,7 @@ export function createTerminal({
     unackedOutputBytes: 0,
     outputPaused: false,
     utf8Splitter: new Utf8Splitter(),
+    pendingTerminalSequence: '',
     commandCompleteReady: process.platform !== 'win32',
     onData,
     onCommandComplete,
@@ -196,8 +202,10 @@ export function createTerminal({
   onCwd({ id, cwd: initialCwd })
 
   terminal.onData((data) => {
-    const exitCode = extractTerminalCommandComplete(data)
-    const cwd = extractTerminalCwd(data)
+    const terminalSequenceData = state.pendingTerminalSequence + data
+    const exitCode = extractTerminalCommandComplete(terminalSequenceData)
+    const cwd = extractTerminalCwd(terminalSequenceData)
+    state.pendingTerminalSequence = getIncompleteTerminalSequence(terminalSequenceData)
     if (exitCode !== undefined) {
       if (state.commandCompleteReady) {
         onCommandComplete({ id, exitCode })

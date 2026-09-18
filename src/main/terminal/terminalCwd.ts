@@ -4,9 +4,14 @@ import os from 'os'
 const escapeCharacter = String.fromCharCode(27)
 const bellCharacter = String.fromCharCode(7)
 const cwdQuickCheck = `${escapeCharacter}]633;P;Cwd=`
+const fileUrlCwdQuickCheck = `${escapeCharacter}]7;file://`
 const commandCompleteQuickCheck = `${escapeCharacter}]633;D;ExitCode=`
 const cwdPattern = new RegExp(
   `${escapeCharacter}\\]633;P;Cwd=([^${bellCharacter}${escapeCharacter}]*)(?:${bellCharacter}|${escapeCharacter}\\\\)`,
+  'g'
+)
+const fileUrlCwdPattern = new RegExp(
+  `${escapeCharacter}\\]7;(file://[^${bellCharacter}${escapeCharacter}]*)(?:${bellCharacter}|${escapeCharacter}\\\\)`,
   'g'
 )
 const commandCompletePattern = new RegExp(
@@ -32,16 +37,42 @@ export function powershellCwdPromptCommand(): string {
 }
 
 export function extractTerminalCwd(data: string): string | undefined {
-  if (!data.includes(cwdQuickCheck)) return undefined
-
   let cwd: string | undefined
   let match: RegExpExecArray | null
 
-  cwdPattern.lastIndex = 0
-  while ((match = cwdPattern.exec(data))) {
-    cwd = match[1]
+  if (data.includes(cwdQuickCheck)) {
+    cwdPattern.lastIndex = 0
+    while ((match = cwdPattern.exec(data))) {
+      cwd = match[1]
+    }
   }
+
+  if (data.includes(fileUrlCwdQuickCheck)) {
+    fileUrlCwdPattern.lastIndex = 0
+    while ((match = fileUrlCwdPattern.exec(data))) {
+      try {
+        cwd = decodeURIComponent(new URL(match[1]).pathname)
+      } catch {
+        // Ignore malformed shell integration sequences.
+      }
+    }
+  }
+
   return cwd
+}
+
+export function getIncompleteTerminalSequence(data: string): string {
+  const sequenceStart = data.lastIndexOf(`${escapeCharacter}]`)
+  if (sequenceStart < 0) return data.endsWith(escapeCharacter) ? escapeCharacter : ''
+
+  const bellEnd = data.indexOf(bellCharacter, sequenceStart + 2)
+  const stringEnd = data.indexOf(`${escapeCharacter}\\`, sequenceStart + 2)
+  if (bellEnd >= 0 || stringEnd >= 0) {
+    return data.endsWith(escapeCharacter) ? escapeCharacter : ''
+  }
+
+  const remainder = data.slice(sequenceStart)
+  return remainder.length <= 8192 ? remainder : ''
 }
 
 export function extractTerminalCommandComplete(data: string): number | undefined {
