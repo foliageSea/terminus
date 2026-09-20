@@ -329,7 +329,8 @@ export function readWindowAlwaysOnTop(): boolean {
 }
 
 export function writeWindowAlwaysOnTop(alwaysOnTop: boolean): boolean {
-  return writeAppSettings({ ...readAppSettings(), windowAlwaysOnTop: alwaysOnTop }).windowAlwaysOnTop
+  return writeAppSettings({ ...readAppSettings(), windowAlwaysOnTop: alwaysOnTop })
+    .windowAlwaysOnTop
 }
 
 export function readWindowBoundsSettings(): WindowBoundsSettings {

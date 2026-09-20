@@ -65,7 +65,10 @@ export function closePane(node: PaneNode, paneId: string): PaneNode | undefined 
   return node
 }
 
-export function removeNode(node: PaneNode, nodeId: string): { root?: PaneNode; removed?: PaneNode } {
+export function removeNode(
+  node: PaneNode,
+  nodeId: string
+): { root?: PaneNode; removed?: PaneNode } {
   if (node.id === nodeId) return { removed: node }
 
   if (node.type === 'pane') {

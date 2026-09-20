@@ -1,0 +1,11 @@
+# 统一使用 LF 行尾，避免 Windows 上 core.autocrlf=true 造成的 lint/prettier 噪声。
+* text=auto eol=lf
+
+# 二进制资源不做行尾转换。
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary

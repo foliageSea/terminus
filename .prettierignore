@@ -4,3 +4,5 @@ pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+# 由 skills-lock.json 校验的第三方 agent 技能内容，不做格式化以免破坏哈希。
+.agents

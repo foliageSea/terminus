@@ -125,13 +125,10 @@ export function cloneShortcutBinding(binding: ShortcutBinding): ShortcutBinding 
 }
 
 export function cloneShortcutSettings(settings: ShortcutSettings): ShortcutSettings {
-  return shortcutActionIds.reduce(
-    (result, actionId) => {
-      result[actionId] = cloneShortcutBinding(settings[actionId])
-      return result
-    },
-    {} as ShortcutSettings
-  )
+  return shortcutActionIds.reduce((result, actionId) => {
+    result[actionId] = cloneShortcutBinding(settings[actionId])
+    return result
+  }, {} as ShortcutSettings)
 }
 
 export function isModifierOnlyKey(key: string, code: string): boolean {
@@ -167,7 +164,8 @@ export function normalizeShortcutBinding(
   value: Partial<ShortcutBinding> | undefined,
   fallback: ShortcutBinding
 ): ShortcutBinding {
-  const code = typeof value?.code === 'string' && value.code.trim() ? value.code.trim() : fallback.code
+  const code =
+    typeof value?.code === 'string' && value.code.trim() ? value.code.trim() : fallback.code
   const key =
     typeof value?.key === 'string' && value.key.trim()
       ? value.key.trim()
