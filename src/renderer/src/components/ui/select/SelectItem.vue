@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Check } from '@lucide/vue'
-import { SelectItem as SelectItemPrimitive, SelectItemIndicator } from 'reka-ui'
+import { SelectItem as SelectItemPrimitive, SelectItemIndicator, SelectItemText } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<{ value: string; class?: string; disabled?: boolean }>()
@@ -13,6 +13,6 @@ const classes = computed(() => cn('ui-select-item', props.class))
     <SelectItemIndicator class="ui-select-item-indicator">
       <Check :size="14" aria-hidden="true" />
     </SelectItemIndicator>
-    <slot />
+    <SelectItemText><slot /></SelectItemText>
   </SelectItemPrimitive>
 </template>
