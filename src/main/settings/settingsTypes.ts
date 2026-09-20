@@ -1,6 +1,8 @@
 import type { ShortcutSettings } from '../../shared/shortcuts'
 export type { ShortcutSettings } from '../../shared/shortcuts'
 import { cloneShortcutSettings, defaultShortcutSettings } from '../../shared/shortcuts'
+import type { SshProfilesSettings } from '../../shared/ssh'
+export type { SshProfilesSettings } from '../../shared/ssh'
 
 export interface TerminalSettings {
   fontFamily: string
@@ -46,6 +48,7 @@ export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
   projects: ProjectsSettings
+  sshProfiles: SshProfilesSettings
   shortcuts: ShortcutSettings
   zoomFactor?: number
   windowControlsStyle: WindowControlsStyle
@@ -70,6 +73,10 @@ export const defaultThemeSettings: ThemeSettings = {
 }
 
 export const defaultProjectsSettings: ProjectsSettings = {
+  items: []
+}
+
+export const defaultSshProfilesSettings: SshProfilesSettings = {
   items: []
 }
 

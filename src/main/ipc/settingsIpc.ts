@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from 'fs'
 import type {
   ProjectsSettings,
   ShortcutSettings,
+  SshProfilesSettings,
   TabSessionSettings,
   TerminalSettings,
   ThemeSettings,
@@ -13,6 +14,7 @@ import type {
 import {
   readProjectsSettings,
   readShortcutSettings,
+  readSshProfilesSettings,
   readTabSessionSettings,
   readTerminalSettings,
   readThemeSettings,
@@ -23,6 +25,7 @@ import {
   readInheritTabCwd,
   writeProjectsSettings,
   writeShortcutSettings,
+  writeSshProfilesSettings,
   writeTabSessionSettings,
   writeTerminalSettings,
   writeThemeSettings,
@@ -98,6 +101,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-projects', () => readProjectsSettings())
   ipcMain.handle('settings:set-projects', (_, settings: ProjectsSettings) =>
     writeProjectsSettings(settings)
+  )
+  ipcMain.handle('settings:get-ssh-profiles', () => readSshProfilesSettings())
+  ipcMain.handle('settings:set-ssh-profiles', (_, settings: SshProfilesSettings) =>
+    writeSshProfilesSettings(settings)
   )
   ipcMain.handle('settings:get-shortcuts', () => readShortcutSettings())
   ipcMain.handle('settings:set-shortcuts', (_, settings: ShortcutSettings) =>

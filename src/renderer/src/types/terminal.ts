@@ -1,4 +1,5 @@
 import type { ShortcutBinding, ShortcutSettings } from '../../../shared/shortcuts'
+import type { SshConnectionProfile, SshFileEntry, SshProfilesSettings } from '../../../shared/ssh'
 
 export type SplitDirection = 'horizontal' | 'vertical'
 
@@ -8,7 +9,7 @@ export type PaneSide = 'left' | 'right' | 'top' | 'bottom'
 
 export type DropSide = PaneSide
 
-export type TabType = 'terminal' | 'settings'
+export type TabType = 'terminal' | 'ssh-terminal' | 'sftp' | 'settings'
 
 export type SettingsSection = 'appearance' | 'font' | 'render' | 'background' | 'shortcuts'
 
@@ -52,7 +53,27 @@ export interface SettingsTab {
   activeSection: SettingsSection
 }
 
-export type Tab = TerminalTab | SettingsTab
+export interface SshTerminalTab {
+  id: string
+  title: string
+  type: 'ssh-terminal'
+  profileId: string
+  connectionId: string
+  host: string
+  username: string
+}
+
+export interface SftpTab {
+  id: string
+  title: string
+  type: 'sftp'
+  profileId: string
+  connectionId: string
+  host: string
+  username: string
+}
+
+export type Tab = TerminalTab | SshTerminalTab | SftpTab | SettingsTab
 
 export interface TerminalSettings {
   fontFamily: string
@@ -77,6 +98,8 @@ export interface Project {
 export interface ProjectsSettings {
   items: Project[]
 }
+
+export type { SshConnectionProfile, SshFileEntry, SshProfilesSettings }
 
 export interface WindowBoundsSettings {
   rememberWindowBounds: boolean

@@ -5,6 +5,7 @@ import {
   AppSettings,
   Project,
   ProjectsSettings,
+  SshProfilesSettings,
   ShortcutSettings,
   TabSessionSettings,
   TerminalSettings,
@@ -12,6 +13,7 @@ import {
   WindowBoundsSettings,
   WindowControlsStyle,
   defaultProjectsSettings,
+  defaultSshProfilesSettings,
   defaultShortcutSettingsValue,
   defaultTabSessionSettings,
   defaultTerminalSettings,
@@ -24,6 +26,7 @@ import {
   maxZoomFactor,
   minZoomFactor
 } from './settingsTypes'
+import type { SshConnectionProfile } from '../../shared/ssh'
 import {
   cloneShortcutSettings,
   createShortcutSignature,
@@ -34,6 +37,7 @@ import {
 } from '../../shared/shortcuts'
 
 const maxProjects = 100
+const maxSshProfiles = 100
 const maxTabSessionPaths = 50
 
 function normalizeFontSize(value: unknown): number {
@@ -120,6 +124,41 @@ function normalizeProjectsSettings(value: unknown): ProjectsSettings {
     seenPaths.add(pathKey)
     normalizedItems.push({ id, name, path })
     if (normalizedItems.length >= maxProjects) break
+  }
+
+  return { items: normalizedItems }
+}
+
+function normalizeSshProfilesSettings(value: unknown): SshProfilesSettings {
+  const settings = value && typeof value === 'object' ? (value as Partial<SshProfilesSettings>) : {}
+  const items = Array.isArray(settings.items) ? settings.items : defaultSshProfilesSettings.items
+  const seenIds = new Set<string>()
+  const normalizedItems: SshConnectionProfile[] = []
+
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue
+
+    const profile = item as Partial<SshConnectionProfile>
+    const id = profile.id?.trim()
+    const name = profile.name?.trim()
+    const host = profile.host?.trim()
+    const username = profile.username?.trim()
+    const authType = profile.authType === 'privateKey' ? 'privateKey' : 'password'
+    const port = Number(profile.port)
+    if (!id || !name || !host || !username || seenIds.has(id)) continue
+
+    seenIds.add(id)
+    normalizedItems.push({
+      id,
+      name,
+      host,
+      port: Number.isInteger(port) && port > 0 && port <= 65535 ? port : 22,
+      username,
+      authType,
+      privateKeyPath: authType === 'privateKey' ? profile.privateKeyPath?.trim() || '' : '',
+      hostKeyFingerprint: profile.hostKeyFingerprint?.trim() || ''
+    })
+    if (normalizedItems.length >= maxSshProfiles) break
   }
 
   return { items: normalizedItems }
@@ -243,6 +282,7 @@ function normalizeAppSettings(value: unknown): AppSettings {
     terminal: normalizeTerminalSettings(settings.terminal ?? legacyTerminalSettings),
     theme: normalizeThemeSettings(settings.theme),
     projects: normalizeProjectsSettings(settings.projects),
+    sshProfiles: normalizeSshProfilesSettings(settings.sshProfiles),
     shortcuts: normalizeShortcutSettings(settings.shortcuts),
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
     windowControlsStyle: normalizeWindowControlsStyle(settings.windowControlsStyle),
@@ -300,6 +340,15 @@ export function readProjectsSettings(): ProjectsSettings {
 export function writeProjectsSettings(settings: ProjectsSettings): ProjectsSettings {
   const nextSettings = writeAppSettings({ ...readAppSettings(), projects: settings })
   return nextSettings.projects
+}
+
+export function readSshProfilesSettings(): SshProfilesSettings {
+  return readAppSettings().sshProfiles
+}
+
+export function writeSshProfilesSettings(settings: SshProfilesSettings): SshProfilesSettings {
+  const nextSettings = writeAppSettings({ ...readAppSettings(), sshProfiles: settings })
+  return nextSettings.sshProfiles
 }
 
 export function readZoomFactor(): number {

@@ -1,6 +1,7 @@
 import { clipboard, contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { ShortcutSettings } from '../shared/shortcuts'
+import type { SshConnectRequest, SshProfilesSettings } from '../shared/ssh'
 
 // Custom APIs for renderer
 const api = {
@@ -46,6 +47,9 @@ const api = {
     getProjects: () => ipcRenderer.invoke('settings:get-projects'),
     setProjects: (settings: { items: { id: string; name: string; path: string }[] }) =>
       ipcRenderer.invoke('settings:set-projects', settings),
+    getSshProfiles: () => ipcRenderer.invoke('settings:get-ssh-profiles'),
+    setSshProfiles: (settings: SshProfilesSettings) =>
+      ipcRenderer.invoke('settings:set-ssh-profiles', settings),
     getShortcuts: () => ipcRenderer.invoke('settings:get-shortcuts'),
     setShortcuts: (settings: ShortcutSettings) =>
       ipcRenderer.invoke('settings:set-shortcuts', settings),
@@ -72,6 +76,63 @@ const api = {
       y?: number
       isMaximized: boolean
     }) => ipcRenderer.invoke('settings:set-window-bounds', settings)
+  },
+  ssh: {
+    connect: (request: SshConnectRequest) => ipcRenderer.invoke('ssh:connect', request),
+    disconnect: (connectionId: string) => ipcRenderer.send('ssh:disconnect', connectionId),
+    selectPrivateKey: () => ipcRenderer.invoke('ssh:select-private-key'),
+    createShell: (id: string, connectionId: string, cols?: number, rows?: number) =>
+      ipcRenderer.invoke('ssh:shell:create', id, connectionId, cols, rows),
+    write: (id: string, data: string) => ipcRenderer.send('ssh:shell:input', id, data),
+    resize: (id: string, cols: number, rows: number) =>
+      ipcRenderer.send('ssh:shell:resize', id, cols, rows),
+    ackData: (id: string, byteLength: number) =>
+      ipcRenderer.send('ssh:shell:ack-data', id, byteLength),
+    kill: (id: string) => ipcRenderer.send('ssh:shell:kill', id),
+    onData: (callback: (payload: { id: string; data: string; byteLength: number }) => void) => {
+      const listener = (
+        _: Electron.IpcRendererEvent,
+        payload: { id: string; data: string; byteLength: number }
+      ): void => callback(payload)
+
+      ipcRenderer.on('ssh:shell:data', listener)
+      return () => ipcRenderer.removeListener('ssh:shell:data', listener)
+    },
+    onExit: (callback: (payload: { id: string; exitCode?: number }) => void) => {
+      const listener = (
+        _: Electron.IpcRendererEvent,
+        payload: { id: string; exitCode?: number }
+      ): void => callback(payload)
+
+      ipcRenderer.on('ssh:shell:exit', listener)
+      return () => ipcRenderer.removeListener('ssh:shell:exit', listener)
+    },
+    onError: (callback: (payload: { id: string; message: string }) => void) => {
+      const listener = (
+        _: Electron.IpcRendererEvent,
+        payload: { id: string; message: string }
+      ): void => callback(payload)
+
+      ipcRenderer.on('ssh:shell:error', listener)
+      return () => ipcRenderer.removeListener('ssh:shell:error', listener)
+    },
+    listDirectory: (connectionId: string, path: string) =>
+      ipcRenderer.invoke('sftp:list', connectionId, path),
+    createDirectory: (connectionId: string, path: string) =>
+      ipcRenderer.invoke('sftp:mkdir', connectionId, path),
+    rename: (connectionId: string, sourcePath: string, destinationPath: string) =>
+      ipcRenderer.invoke('sftp:rename', connectionId, sourcePath, destinationPath),
+    remove: (
+      connectionId: string,
+      path: string,
+      type: 'directory' | 'file' | 'symlink' | 'other'
+    ) => ipcRenderer.invoke('sftp:remove', connectionId, path, type),
+    selectUploadFiles: () => ipcRenderer.invoke('sftp:select-upload-files'),
+    selectDownloadDirectory: () => ipcRenderer.invoke('sftp:select-download-directory'),
+    upload: (connectionId: string, localPaths: string[], remoteDirectory: string) =>
+      ipcRenderer.invoke('sftp:upload', connectionId, localPaths, remoteDirectory),
+    download: (connectionId: string, remotePaths: string[], localDirectory: string) =>
+      ipcRenderer.invoke('sftp:download', connectionId, remotePaths, localDirectory)
   },
   terminal: {
     create: (id: string, cols?: number, rows?: number, cwd?: string) =>

@@ -3,9 +3,12 @@ import { computed, ref } from 'vue'
 import {
   FolderOpen,
   FolderPlus,
+  FolderTree,
+  Pencil,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Server,
   Settings,
   SquareTerminal,
   Trash2
@@ -20,10 +23,11 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import type { Project } from '../types/terminal'
+import type { Project, SshConnectionProfile } from '../types/terminal'
 
 const props = defineProps<{
   projects: Project[]
+  sshProfiles: SshConnectionProfile[]
   activeProjectId?: string
   collapsed: boolean
 }>()
@@ -35,6 +39,11 @@ const emit = defineEmits<{
   createProject: [name: string, path: string]
   openProject: [project: Project]
   requestDeleteProject: [project: Project]
+  createSshProfile: []
+  editSshProfile: [profile: SshConnectionProfile]
+  deleteSshProfile: [profile: SshConnectionProfile]
+  openSshTerminal: [profile: SshConnectionProfile]
+  openSftp: [profile: SshConnectionProfile]
 }>()
 
 const createDialogVisible = ref(false)
@@ -207,6 +216,68 @@ function createProject(): void {
         <FolderOpen :size="22" aria-hidden="true" />
         <span class="project-sidebar-empty-label">暂无项目</span>
         <small class="project-sidebar-empty-hint">添加常用目录，点击即可打开终端</small>
+      </div>
+    </section>
+
+    <section class="project-sidebar-section" aria-labelledby="ssh-section-title">
+      <div class="project-sidebar-section-header">
+        <span id="ssh-section-title" class="project-sidebar-section-title">SSH</span>
+        <button
+          class="project-sidebar-section-add"
+          type="button"
+          title="新建 SSH 连接"
+          aria-label="新建 SSH 连接"
+          @click="emit('createSshProfile')"
+        >
+          <Plus :size="15" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div v-if="sshProfiles.length" class="project-sidebar-list">
+        <div v-for="profile in sshProfiles" :key="profile.id" class="ssh-profile-row">
+          <button
+            class="ssh-profile-main"
+            type="button"
+            :title="
+              collapsed ? profile.name : `${profile.username}@${profile.host}:${profile.port}`
+            "
+            @click="emit('openSshTerminal', profile)"
+          >
+            <Server :size="16" aria-hidden="true" />
+            <span class="ssh-profile-label">{{ profile.name }}</span>
+          </button>
+          <div class="ssh-profile-actions">
+            <button
+              type="button"
+              title="打开 SFTP"
+              :aria-label="`打开 ${profile.name} 的 SFTP`"
+              @click.stop="emit('openSftp', profile)"
+            >
+              <FolderTree :size="14" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title="编辑连接"
+              :aria-label="`编辑 ${profile.name}`"
+              @click.stop="emit('editSshProfile', profile)"
+            >
+              <Pencil :size="13" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title="删除连接"
+              :aria-label="`删除 ${profile.name}`"
+              @click.stop="emit('deleteSshProfile', profile)"
+            >
+              <Trash2 :size="13" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="project-sidebar-empty ssh-empty">
+        <Server :size="22" aria-hidden="true" />
+        <span class="project-sidebar-empty-label">暂无 SSH 连接</span>
+        <small class="project-sidebar-empty-hint">保存主机配置，打开远程终端或 SFTP</small>
       </div>
     </section>
 
@@ -402,6 +473,7 @@ function createProject(): void {
 .project-sidebar-nav-label,
 .project-sidebar-section-title,
 .project-sidebar-project-label,
+.ssh-profile-label,
 .project-sidebar-footer-label {
   display: inline-block;
   max-width: 180px;
@@ -419,6 +491,7 @@ function createProject(): void {
 .project-sidebar.collapsed .project-sidebar-nav-label,
 .project-sidebar.collapsed .project-sidebar-section-title,
 .project-sidebar.collapsed .project-sidebar-project-label,
+.project-sidebar.collapsed .ssh-profile-label,
 .project-sidebar.collapsed .project-sidebar-footer-label {
   max-width: 0;
   opacity: 0;
@@ -614,6 +687,104 @@ function createProject(): void {
 .project-sidebar-delete:hover {
   background: rgba(239, 68, 68, 0.16);
   color: #fca5a5;
+}
+
+.ssh-profile-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background-color 150ms ease;
+}
+
+.ssh-profile-row:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.ssh-profile-main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 92px 0 9px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    gap 220ms ease,
+    padding 220ms ease,
+    color 140ms ease;
+}
+
+.ssh-profile-main:hover {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.ssh-profile-label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ssh-profile-actions {
+  position: absolute;
+  right: 4px;
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.ssh-profile-row:hover .ssh-profile-actions,
+.ssh-profile-actions:focus-within {
+  opacity: 1;
+}
+
+.ssh-profile-actions button {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.48);
+  cursor: pointer;
+}
+
+.ssh-profile-actions button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.ssh-profile-actions button:last-child:hover {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+
+.project-sidebar.collapsed .ssh-profile-main {
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+
+.project-sidebar.collapsed .ssh-profile-actions {
+  display: none;
+}
+
+.project-sidebar-section + .project-sidebar-section {
+  flex: 0 1 auto;
+  max-height: 42%;
 }
 
 .project-sidebar-empty {

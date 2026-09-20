@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { optimizer } from '@electron-toolkit/utils'
 import { killAllTerminals } from '../terminal/terminalService'
+import { disconnectAllSsh } from '../ssh/sshService'
 import { createWindow } from './createWindow'
 
 export function registerAppLifecycle(): void {
@@ -16,6 +17,7 @@ export function registerAppLifecycle(): void {
 export function registerWindowAllClosedHandler(): void {
   app.on('window-all-closed', () => {
     killAllTerminals()
+    disconnectAllSsh()
 
     if (process.platform !== 'darwin') {
       app.quit()

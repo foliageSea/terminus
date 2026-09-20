@@ -23,6 +23,9 @@ import {
 import { Input } from '@/components/ui/input'
 import ProjectSidebar from './ProjectSidebar.vue'
 import SettingsView from './SettingsView.vue'
+import SftpBrowser from './SftpBrowser.vue'
+import SshConnectionDialog from './SshConnectionDialog.vue'
+import SshTerminalPane from './SshTerminalPane.vue'
 import SplitNode from './SplitNode.vue'
 import TerminalPane from './TerminalPane.vue'
 import WindowControls from './WindowControls.vue'
@@ -32,8 +35,12 @@ import type {
   PaneNode,
   Project,
   ProjectsSettings,
+  SftpTab,
   SettingsTab,
   ShortcutSettings,
+  SshConnectionProfile,
+  SshProfilesSettings,
+  SshTerminalTab,
   Tab,
   TabSessionSettings,
   TerminalSettings,
@@ -84,6 +91,9 @@ const defaultTerminalSettings: TerminalSettings = {
   backgroundBlur: 0
 }
 const defaultProjectsSettings: ProjectsSettings = {
+  items: []
+}
+const defaultSshProfilesSettings: SshProfilesSettings = {
   items: []
 }
 const defaultShortcutSettingsValue: ShortcutSettings =
@@ -197,6 +207,12 @@ const terminalSettings = reactive<TerminalSettings>({ ...defaultTerminalSettings
 const terminalSettingsLoaded = ref(false)
 const projects = reactive<ProjectsSettings>({ ...defaultProjectsSettings })
 const projectsLoaded = ref(false)
+const sshProfiles = reactive<SshProfilesSettings>({ ...defaultSshProfilesSettings })
+const sshProfilesLoaded = ref(false)
+const sshConnectionDialogVisible = ref(false)
+const sshConnectionDialogMode = ref<'edit' | 'connect'>('edit')
+const sshConnectionProfile = ref<SshConnectionProfile>()
+const sshConnectionAction = ref<'terminal' | 'sftp'>('terminal')
 const shortcuts = reactive<ShortcutSettings>(cloneShortcutSettings(defaultShortcutSettingsValue))
 const shortcutsLoaded = ref(false)
 const shortcutRecording = ref(false)
@@ -212,6 +228,14 @@ const activeTab = computed(
 
 function isTerminalTab(tab: Tab): tab is TerminalTab {
   return tab.type === 'terminal'
+}
+
+function isSshTerminalTab(tab: Tab): tab is SshTerminalTab {
+  return tab.type === 'ssh-terminal'
+}
+
+function isSftpTab(tab: Tab): tab is SftpTab {
+  return tab.type === 'sftp'
 }
 
 function syncTerminalTabTitle(tab: TerminalTab): void {
@@ -387,6 +411,65 @@ function createProject(name: string, path: string): void {
     name: normalizedName,
     path: normalizedPath
   })
+}
+
+function upsertSshProfile(profile: SshConnectionProfile): void {
+  const index = sshProfiles.items.findIndex((item) => item.id === profile.id)
+  if (index >= 0) sshProfiles.items[index] = { ...profile }
+  else sshProfiles.items.unshift({ ...profile })
+}
+
+function openSshProfileEditor(profile?: SshConnectionProfile): void {
+  sshConnectionDialogMode.value = 'edit'
+  sshConnectionProfile.value = profile ? { ...profile } : undefined
+  sshConnectionDialogVisible.value = true
+}
+
+function openSshConnection(profile: SshConnectionProfile, action: 'terminal' | 'sftp'): void {
+  sshConnectionDialogMode.value = 'connect'
+  sshConnectionProfile.value = { ...profile }
+  sshConnectionAction.value = action
+  sshConnectionDialogVisible.value = true
+}
+
+function saveSshProfile(profile: SshConnectionProfile): void {
+  upsertSshProfile(profile)
+}
+
+function deleteSshProfile(profile: SshConnectionProfile): void {
+  if (!window.confirm(`确定删除 SSH 连接“${profile.name}”吗？`)) return
+  sshProfiles.items = sshProfiles.items.filter((item) => item.id !== profile.id)
+}
+
+function handleSshConnected(profile: SshConnectionProfile, connectionId: string): void {
+  upsertSshProfile(profile)
+
+  if (sshConnectionAction.value === 'sftp') {
+    const tab: SftpTab = {
+      id: createId('tab'),
+      title: `SFTP · ${profile.name}`,
+      type: 'sftp',
+      profileId: profile.id,
+      connectionId,
+      host: profile.host,
+      username: profile.username
+    }
+    tabs.value.push(tab)
+    activeTabId.value = tab.id
+    return
+  }
+
+  const tab: SshTerminalTab = {
+    id: createId('tab'),
+    title: profile.name,
+    type: 'ssh-terminal',
+    profileId: profile.id,
+    connectionId,
+    host: profile.host,
+    username: profile.username
+  }
+  tabs.value.push(tab)
+  activeTabId.value = tab.id
 }
 
 function openProject(project: Project): void {
@@ -830,6 +913,9 @@ function performCloseTab(tabId: string): void {
   if (isTerminalTab(tab)) {
     if (tabs.value.length === 1) return
     collectTabPaneIds(tab).forEach((paneId) => window.api.terminal.kill(paneId))
+  } else if (isSshTerminalTab(tab) || isSftpTab(tab)) {
+    if (tabs.value.length === 1) return
+    window.api.ssh.disconnect(tab.connectionId)
   }
 
   const index = tabs.value.findIndex((t) => t.id === tabId)
@@ -846,6 +932,11 @@ function closeTab(tabId: string): void {
   if (!tab) return
 
   if (tab.type === 'settings') {
+    performCloseTab(tabId)
+    return
+  }
+
+  if (isSshTerminalTab(tab) || isSftpTab(tab)) {
     performCloseTab(tabId)
     return
   }
@@ -952,6 +1043,17 @@ watch(
 )
 
 watch(
+  sshProfiles,
+  async () => {
+    if (!sshProfilesLoaded.value) return
+    await window.api.settings.setSshProfiles({
+      items: sshProfiles.items.map((profile) => ({ ...profile }))
+    })
+  },
+  { deep: true }
+)
+
+watch(
   shortcuts,
   async () => {
     if (!shortcutsLoaded.value) return
@@ -988,6 +1090,10 @@ onMounted(async () => {
   Object.assign(projects, savedProjects)
   projectsLoaded.value = true
 
+  const savedSshProfiles = await window.api.settings.getSshProfiles()
+  Object.assign(sshProfiles, savedSshProfiles)
+  sshProfilesLoaded.value = true
+
   const savedShortcuts = await window.api.settings.getShortcuts()
   Object.assign(shortcuts, savedShortcuts)
   shortcutsLoaded.value = true
@@ -1019,6 +1125,7 @@ onBeforeUnmount(() => {
 
     <ProjectSidebar
       :projects="projects.items"
+      :ssh-profiles="sshProfiles.items"
       :active-project-id="activeProjectId"
       :collapsed="sidebarCollapsed"
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
@@ -1027,6 +1134,11 @@ onBeforeUnmount(() => {
       @create-project="createProject"
       @open-project="openProject"
       @request-delete-project="requestDeleteProject"
+      @create-ssh-profile="openSshProfileEditor()"
+      @edit-ssh-profile="openSshProfileEditor($event)"
+      @delete-ssh-profile="deleteSshProfile"
+      @open-ssh-terminal="openSshConnection($event, 'terminal')"
+      @open-sftp="openSshConnection($event, 'sftp')"
     >
       <template #window-controls>
         <WindowControls
@@ -1180,6 +1292,15 @@ onBeforeUnmount(() => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <SshConnectionDialog
+        :open="sshConnectionDialogVisible"
+        :profile="sshConnectionProfile"
+        :mode="sshConnectionDialogMode"
+        @update:open="sshConnectionDialogVisible = $event"
+        @save="saveSshProfile"
+        @connected="handleSshConnected"
+      />
+
       <div class="workspace-main">
         <main class="workspace-body">
           <div
@@ -1223,6 +1344,23 @@ onBeforeUnmount(() => {
                 />
               </Teleport>
             </template>
+            <SshTerminalPane
+              v-else-if="isSshTerminalTab(tab)"
+              :pane-id="tab.id"
+              :connection-id="tab.connectionId"
+              :active="tab.id === activeTabId"
+              :terminal-settings="terminalSettings"
+              :shortcuts="shortcuts"
+              @close="closeTab(tab.id)"
+            />
+            <SftpBrowser
+              v-else-if="isSftpTab(tab)"
+              :connection-id="tab.connectionId"
+              :profile-name="tab.title.replace(/^SFTP · /, '')"
+              :host="tab.host"
+              :username="tab.username"
+              :active="tab.id === activeTabId"
+            />
             <SettingsView
               v-else-if="tab.type === 'settings'"
               :active="tab.id === activeTabId"

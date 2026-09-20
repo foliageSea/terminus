@@ -1,0 +1,547 @@
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import type { Component } from 'vue'
+import {
+  ArrowUp,
+  Download,
+  File,
+  Folder,
+  FolderPlus,
+  Home,
+  Link2,
+  Pencil,
+  RefreshCw,
+  Trash2,
+  Upload
+} from '@lucide/vue'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import type { SshFileEntry } from '../types/terminal'
+
+const props = defineProps<{
+  connectionId: string
+  profileName: string
+  host: string
+  username: string
+  active: boolean
+}>()
+
+const currentPath = ref('.')
+const entries = ref<SshFileEntry[]>([])
+const loading = ref(false)
+const transferring = ref(false)
+const errorMessage = ref('')
+const transferMessage = ref('')
+const selectedPaths = ref(new Set<string>())
+const editorVisible = ref(false)
+const editorMode = ref<'create' | 'rename'>('create')
+const editorValue = ref('')
+const editorTarget = ref<SshFileEntry | undefined>()
+let loadedOnce = false
+
+const breadcrumbs = computed(() => {
+  const parts = currentPath.value.split('/').filter(Boolean)
+  return [
+    { label: '/', path: '/' },
+    ...parts.map((part, index) => ({
+      label: part,
+      path: `/${parts.slice(0, index + 1).join('/')}`
+    }))
+  ]
+})
+const selectedEntries = computed(() =>
+  entries.value.filter((entry) => selectedPaths.value.has(entry.path))
+)
+const allSelected = computed(
+  () => entries.value.length > 0 && selectedEntries.value.length === entries.value.length
+)
+
+function formatSize(size: number): string {
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`
+  return `${(size / 1024 / 1024 / 1024).toFixed(1)} GB`
+}
+
+function formatDate(timestamp: number): string {
+  if (!timestamp) return '—'
+  return new Date(timestamp).toLocaleString()
+}
+
+function getEntryIcon(entry: SshFileEntry): Component {
+  if (entry.type === 'directory') return Folder
+  if (entry.type === 'symlink') return Link2
+  return File
+}
+
+async function loadDirectory(path = currentPath.value): Promise<void> {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const result = await window.api.ssh.listDirectory(props.connectionId, path)
+    currentPath.value = result.path
+    entries.value = result.entries
+    selectedPaths.value = new Set()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '无法读取远程目录'
+  } finally {
+    loading.value = false
+  }
+}
+
+function openEntry(entry: SshFileEntry): void {
+  if (entry.type === 'directory') void loadDirectory(entry.path)
+}
+
+function goUp(): void {
+  if (currentPath.value === '/') return
+  const parent = currentPath.value.replace(/\/[^/]+\/?$/, '') || '/'
+  void loadDirectory(parent)
+}
+
+function toggleSelection(entry: SshFileEntry): void {
+  const next = new Set(selectedPaths.value)
+  if (next.has(entry.path)) next.delete(entry.path)
+  else next.add(entry.path)
+  selectedPaths.value = next
+}
+
+function toggleAll(): void {
+  selectedPaths.value = allSelected.value
+    ? new Set()
+    : new Set(entries.value.map((entry) => entry.path))
+}
+
+function openCreateDirectory(): void {
+  editorMode.value = 'create'
+  editorValue.value = ''
+  editorTarget.value = undefined
+  editorVisible.value = true
+}
+
+function openRename(entry: SshFileEntry): void {
+  editorMode.value = 'rename'
+  editorValue.value = entry.name
+  editorTarget.value = entry
+  editorVisible.value = true
+}
+
+async function submitEditor(): Promise<void> {
+  const value = editorValue.value.trim()
+  if (!value) return
+
+  try {
+    if (editorMode.value === 'create') {
+      const path = currentPath.value === '/' ? `/${value}` : `${currentPath.value}/${value}`
+      await window.api.ssh.createDirectory(props.connectionId, path)
+    } else if (editorTarget.value) {
+      const parent = editorTarget.value.path.replace(/\/[^/]+$/, '') || '/'
+      const destination = parent === '/' ? `/${value}` : `${parent}/${value}`
+      await window.api.ssh.rename(props.connectionId, editorTarget.value.path, destination)
+    }
+    editorVisible.value = false
+    await loadDirectory()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '操作失败'
+  }
+}
+
+async function removeSelected(): Promise<void> {
+  const targets = selectedEntries.value
+  if (!targets.length) return
+  if (!window.confirm(`确定删除选中的 ${targets.length} 项吗？`)) return
+
+  try {
+    for (const entry of targets) {
+      await window.api.ssh.remove(props.connectionId, entry.path, entry.type)
+    }
+    await loadDirectory()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '删除失败'
+  }
+}
+
+async function uploadFiles(): Promise<void> {
+  const localPaths = await window.api.ssh.selectUploadFiles()
+  if (!localPaths.length) return
+
+  transferring.value = true
+  transferMessage.value = ''
+  try {
+    const results = await window.api.ssh.upload(props.connectionId, localPaths, currentPath.value)
+    const successCount = results.filter((result) => result.ok).length
+    transferMessage.value = `已上传 ${successCount}/${results.length} 个文件`
+    await loadDirectory()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '上传失败'
+  } finally {
+    transferring.value = false
+  }
+}
+
+async function downloadSelected(): Promise<void> {
+  const targets = selectedEntries.value.filter((entry) => entry.type !== 'directory')
+  if (!targets.length) return
+
+  const localDirectory = await window.api.ssh.selectDownloadDirectory()
+  if (!localDirectory) return
+
+  transferring.value = true
+  transferMessage.value = ''
+  try {
+    const results = await window.api.ssh.download(
+      props.connectionId,
+      targets.map((entry) => entry.path),
+      localDirectory
+    )
+    const successCount = results.filter((result) => result.ok).length
+    transferMessage.value = `已下载 ${successCount}/${results.length} 个文件`
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '下载失败'
+  } finally {
+    transferring.value = false
+  }
+}
+
+onMounted(() => void loadDirectory('.'))
+
+watch(
+  () => props.active,
+  (active) => {
+    if (!active || loadedOnce) return
+    loadedOnce = true
+    void loadDirectory('.')
+  }
+)
+</script>
+
+<template>
+  <section class="sftp-browser" :class="{ active }">
+    <header class="sftp-header">
+      <div class="sftp-server">
+        <strong>{{ profileName }}</strong>
+        <span>{{ username }}@{{ host }}</span>
+      </div>
+      <div class="sftp-toolbar">
+        <Button
+          size="icon"
+          variant="ghost"
+          title="刷新"
+          :disabled="loading"
+          @click="loadDirectory()"
+        >
+          <RefreshCw :size="15" />
+        </Button>
+        <Button size="icon" variant="ghost" title="新建目录" @click="openCreateDirectory">
+          <FolderPlus :size="15" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          title="上传文件"
+          :disabled="transferring"
+          @click="uploadFiles"
+        >
+          <Upload :size="15" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          title="下载选中文件"
+          :disabled="transferring || !selectedEntries.length"
+          @click="downloadSelected"
+        >
+          <Download :size="15" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          title="重命名"
+          :disabled="selectedEntries.length !== 1"
+          @click="selectedEntries[0] && openRename(selectedEntries[0])"
+        >
+          <Pencil :size="15" />
+        </Button>
+        <Button
+          size="icon"
+          variant="destructive"
+          title="删除选中项"
+          :disabled="!selectedEntries.length"
+          @click="removeSelected"
+        >
+          <Trash2 :size="15" />
+        </Button>
+      </div>
+    </header>
+
+    <div class="sftp-pathbar">
+      <Button size="icon" variant="ghost" title="返回上级" @click="goUp">
+        <ArrowUp :size="15" />
+      </Button>
+      <Button size="icon" variant="ghost" title="远程主目录" @click="loadDirectory('.')">
+        <Home :size="15" />
+      </Button>
+      <div class="sftp-breadcrumbs">
+        <button
+          v-for="crumb in breadcrumbs"
+          :key="crumb.path"
+          type="button"
+          class="sftp-crumb"
+          @click="loadDirectory(crumb.path)"
+        >
+          {{ crumb.label }}
+        </button>
+      </div>
+      <span v-if="transferMessage" class="sftp-transfer-message">{{ transferMessage }}</span>
+    </div>
+
+    <p v-if="errorMessage" class="sftp-error">{{ errorMessage }}</p>
+
+    <div class="sftp-table-wrap">
+      <table class="sftp-table">
+        <thead>
+          <tr>
+            <th class="sftp-checkbox-cell">
+              <input type="checkbox" :checked="allSelected" @change="toggleAll" />
+            </th>
+            <th>名称</th>
+            <th>大小</th>
+            <th>修改时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="loading">
+            <td colspan="4" class="sftp-empty">正在读取目录…</td>
+          </tr>
+          <tr v-else-if="!entries.length">
+            <td colspan="4" class="sftp-empty">空目录</td>
+          </tr>
+          <template v-else>
+            <tr
+              v-for="entry in entries"
+              :key="entry.path"
+              :class="{ selected: selectedPaths.has(entry.path) }"
+              @dblclick="openEntry(entry)"
+            >
+              <td class="sftp-checkbox-cell" @click.stop="toggleSelection(entry)">
+                <input type="checkbox" :checked="selectedPaths.has(entry.path)" />
+              </td>
+              <td>
+                <button class="sftp-entry" type="button" @click="openEntry(entry)">
+                  <component :is="getEntryIcon(entry)" :size="16" aria-hidden="true" />
+                  <span>{{ entry.name }}</span>
+                </button>
+              </td>
+              <td>{{ entry.type === 'directory' ? '—' : formatSize(entry.size) }}</td>
+              <td>{{ formatDate(entry.modifiedAt) }}</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <Dialog :open="editorVisible" @update:open="editorVisible = $event">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{{ editorMode === 'create' ? '新建远程目录' : '重命名' }}</DialogTitle>
+        </DialogHeader>
+        <Input
+          v-model="editorValue"
+          autofocus
+          :placeholder="editorMode === 'create' ? '目录名称' : '新名称'"
+          @keydown.enter.prevent="submitEditor"
+        />
+        <DialogFooter>
+          <DialogClose as-child>
+            <Button variant="secondary" @click="editorVisible = false">取消</Button>
+          </DialogClose>
+          <Button :disabled="!editorValue.trim()" @click="submitEditor">确定</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </section>
+</template>
+
+<style scoped>
+.sftp-browser {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.sftp-browser.active {
+  border-color: color-mix(in srgb, var(--terminal-active-color) 46%, transparent);
+}
+
+.sftp-header,
+.sftp-pathbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sftp-server {
+  display: grid;
+  gap: 2px;
+  min-width: 160px;
+}
+
+.sftp-server strong {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+}
+
+.sftp-server span {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+}
+
+.sftp-toolbar {
+  display: flex;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.sftp-pathbar {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.sftp-breadcrumbs {
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sftp-crumb {
+  flex: none;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.sftp-crumb:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.sftp-transfer-message {
+  margin-left: auto;
+  color: color-mix(in srgb, var(--terminal-active-color) 76%, white);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sftp-error {
+  margin: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(248, 113, 113, 0.2);
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.sftp-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.sftp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+.sftp-table th,
+.sftp-table td {
+  padding: 7px 10px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sftp-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(24, 24, 28, 0.96);
+  color: rgba(255, 255, 255, 0.48);
+  font-weight: 550;
+}
+
+.sftp-table th:nth-child(2) {
+  width: 54%;
+}
+
+.sftp-table th:nth-child(3) {
+  width: 14%;
+}
+
+.sftp-table th:nth-child(4) {
+  width: 24%;
+}
+
+.sftp-checkbox-cell {
+  width: 36px;
+  text-align: center !important;
+}
+
+.sftp-table tbody tr:hover,
+.sftp-table tbody tr.selected {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.sftp-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+  font: inherit;
+  text-align: left;
+}
+
+.sftp-entry span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sftp-empty {
+  height: 160px;
+  color: rgba(255, 255, 255, 0.38);
+  text-align: center !important;
+}
+</style>

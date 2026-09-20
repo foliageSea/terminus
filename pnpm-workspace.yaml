@@ -4,3 +4,5 @@ allowBuilds:
   esbuild: true
   node-pty: true
   vue-demi: true
+ignoredOptionalDependencies:
+  - cpu-features

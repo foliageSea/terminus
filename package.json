@@ -34,6 +34,7 @@
     "electron-updater": "^6.3.9",
     "node-pty": "^1.1.0",
     "reka-ui": "^2.10.4",
+    "ssh2": "^1.17.0",
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
@@ -42,6 +43,7 @@
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^22.19.1",
+    "@types/ssh2": "^1.15.6",
     "@vitejs/plugin-vue": "^6.0.2",
     "electron": "^39.2.6",
     "electron-builder": "^26.0.12",

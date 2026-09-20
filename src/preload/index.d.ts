@@ -1,5 +1,45 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { ShortcutSettings } from '../shared/shortcuts'
+import type {
+  SftpListResult,
+  SftpTransferResult,
+  SshConnectRequest,
+  SshConnectResult,
+  SshFileEntry,
+  SshProfilesSettings
+} from '../shared/ssh'
+
+export interface SshApi {
+  connect: (request: SshConnectRequest) => Promise<SshConnectResult>
+  disconnect: (connectionId: string) => void
+  selectPrivateKey: () => Promise<string | undefined>
+  createShell: (id: string, connectionId: string, cols?: number, rows?: number) => Promise<void>
+  write: (id: string, data: string) => void
+  resize: (id: string, cols: number, rows: number) => void
+  ackData: (id: string, byteLength: number) => void
+  kill: (id: string) => void
+  onData: (
+    callback: (payload: { id: string; data: string; byteLength: number }) => void
+  ) => () => void
+  onExit: (callback: (payload: { id: string; exitCode?: number }) => void) => () => void
+  onError: (callback: (payload: { id: string; message: string }) => void) => () => void
+  listDirectory: (connectionId: string, path: string) => Promise<SftpListResult>
+  createDirectory: (connectionId: string, path: string) => Promise<void>
+  rename: (connectionId: string, sourcePath: string, destinationPath: string) => Promise<void>
+  remove: (connectionId: string, path: string, type: SshFileEntry['type']) => Promise<void>
+  selectUploadFiles: () => Promise<string[]>
+  selectDownloadDirectory: () => Promise<string | undefined>
+  upload: (
+    connectionId: string,
+    localPaths: string[],
+    remoteDirectory: string
+  ) => Promise<SftpTransferResult[]>
+  download: (
+    connectionId: string,
+    remotePaths: string[],
+    localDirectory: string
+  ) => Promise<SftpTransferResult[]>
+}
 
 export interface TerminalApi {
   create: (id: string, cols?: number, rows?: number, cwd?: string) => Promise<void>
@@ -60,6 +100,8 @@ export interface ProjectsSettings {
   items: Project[]
 }
 
+export type { SshConnectionProfile, SshProfilesSettings } from '../shared/ssh'
+
 export type WindowControlsStyle = 'system' | 'mac' | 'windows'
 
 export interface WindowBoundsSettings {
@@ -86,6 +128,8 @@ export interface SettingsApi {
   selectProjectDirectory: () => Promise<string | undefined>
   getProjects: () => Promise<ProjectsSettings>
   setProjects: (settings: ProjectsSettings) => Promise<ProjectsSettings>
+  getSshProfiles: () => Promise<SshProfilesSettings>
+  setSshProfiles: (settings: SshProfilesSettings) => Promise<SshProfilesSettings>
   getShortcuts: () => Promise<ShortcutSettings>
   setShortcuts: (settings: ShortcutSettings) => Promise<ShortcutSettings>
   getZoomFactor: () => Promise<number>
@@ -106,6 +150,7 @@ export interface AppApi {
   window: WindowApi
   clipboard: ClipboardApi
   settings: SettingsApi
+  ssh: SshApi
   terminal: TerminalApi
 }
 
