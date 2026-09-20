@@ -25,6 +25,11 @@ button {
   font: inherit;
 }
 
+button:focus,
+button:focus-visible {
+  outline: none;
+}
+
 .ui-button {
   display: inline-flex;
   align-items: center;
