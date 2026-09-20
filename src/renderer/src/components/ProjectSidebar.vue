@@ -146,7 +146,6 @@ function createProject(): void {
     </div>
 
     <div class="project-sidebar-brand">
-      <SquareTerminal :size="18" aria-hidden="true" />
       <span class="project-sidebar-brand-label">Terminus</span>
     </div>
 
@@ -430,14 +429,12 @@ function createProject(): void {
   display: flex;
   flex: 0 0 34px;
   align-items: center;
-  gap: 8px;
   width: 100%;
   min-width: 0;
   padding: 0 8px;
   color: rgba(255, 255, 255, 0.94);
-  font-size: 14px;
-  font-weight: 720;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .project-sidebar-titlebar .ui-button {
