@@ -457,7 +457,7 @@ function createProject(): void {
 }
 
 .project-sidebar.collapsed .project-sidebar-brand {
-  gap: 0;
+  justify-content: center;
 }
 
 .project-sidebar.collapsed .project-sidebar-titlebar-actions {
@@ -713,6 +713,7 @@ function createProject(): void {
   display: flex;
   flex: 1 1 auto;
   align-items: center;
+  justify-content: flex-start;
   gap: 9px;
   min-width: 0;
   height: 36px;
