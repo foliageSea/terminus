@@ -299,17 +299,18 @@ watch(
         <Home :size="15" />
       </Button>
       <div class="sftp-breadcrumbs">
-        <Button
-          v-for="crumb in breadcrumbs"
-          :key="crumb.path"
-          type="button"
-          class="sftp-crumb"
-          variant="ghost"
-          size="sm"
-          @click="loadDirectory(crumb.path)"
-        >
-          {{ crumb.label }}
-        </Button>
+        <template v-for="(crumb, index) in breadcrumbs" :key="crumb.path">
+          <span v-if="index > 1" class="sftp-crumb-separator">/</span>
+          <Button
+            type="button"
+            class="sftp-crumb"
+            variant="ghost"
+            size="sm"
+            @click="loadDirectory(crumb.path)"
+          >
+            {{ crumb.label }}
+          </Button>
+        </template>
       </div>
       <span v-if="transferMessage" class="sftp-transfer-message">{{ transferMessage }}</span>
     </div>
@@ -441,9 +442,18 @@ watch(
 
 .sftp-breadcrumbs {
   display: flex;
+  align-items: center;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+.sftp-crumb-separator {
+  flex: none;
+  padding: 0 1px;
+  color: rgba(255, 255, 255, 0.32);
+  font-size: 12px;
+  user-select: none;
 }
 
 .sftp-crumb {
