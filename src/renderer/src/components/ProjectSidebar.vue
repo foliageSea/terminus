@@ -222,21 +222,24 @@ function createProject(): void {
     <section class="project-sidebar-section" aria-labelledby="ssh-section-title">
       <div class="project-sidebar-section-header">
         <span id="ssh-section-title" class="project-sidebar-section-title">SSH</span>
-        <button
+        <Button
           class="project-sidebar-section-add"
+          size="icon"
+          variant="ghost"
           type="button"
           title="新建 SSH 连接"
           aria-label="新建 SSH 连接"
           @click="emit('createSshProfile')"
         >
           <Plus :size="15" aria-hidden="true" />
-        </button>
+        </Button>
       </div>
 
       <div v-if="sshProfiles.length" class="project-sidebar-list">
         <div v-for="profile in sshProfiles" :key="profile.id" class="ssh-profile-row">
-          <button
+          <Button
             class="ssh-profile-main"
+            variant="ghost"
             type="button"
             :title="
               collapsed ? profile.name : `${profile.username}@${profile.host}:${profile.port}`
@@ -245,32 +248,38 @@ function createProject(): void {
           >
             <Server :size="16" aria-hidden="true" />
             <span class="ssh-profile-label">{{ profile.name }}</span>
-          </button>
+          </Button>
           <div class="ssh-profile-actions">
-            <button
+            <Button
               type="button"
+              size="icon"
+              variant="ghost"
               title="打开 SFTP"
               :aria-label="`打开 ${profile.name} 的 SFTP`"
               @click.stop="emit('openSftp', profile)"
             >
               <FolderTree :size="14" aria-hidden="true" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="icon"
+              variant="ghost"
               title="编辑连接"
               :aria-label="`编辑 ${profile.name}`"
               @click.stop="emit('editSshProfile', profile)"
             >
               <Pencil :size="13" aria-hidden="true" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="icon"
+              variant="destructive"
               title="删除连接"
               :aria-label="`删除 ${profile.name}`"
               @click.stop="emit('deleteSshProfile', profile)"
             >
               <Trash2 :size="13" aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

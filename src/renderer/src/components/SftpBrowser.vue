@@ -15,6 +15,7 @@ import {
   Upload
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogClose,
@@ -24,6 +25,14 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
 import type { SshFileEntry } from '../types/terminal'
 
 const props = defineProps<{
@@ -290,15 +299,17 @@ watch(
         <Home :size="15" />
       </Button>
       <div class="sftp-breadcrumbs">
-        <button
+        <Button
           v-for="crumb in breadcrumbs"
           :key="crumb.path"
           type="button"
           class="sftp-crumb"
+          variant="ghost"
+          size="sm"
           @click="loadDirectory(crumb.path)"
         >
           {{ crumb.label }}
-        </button>
+        </Button>
       </div>
       <span v-if="transferMessage" class="sftp-transfer-message">{{ transferMessage }}</span>
     </div>
@@ -306,46 +317,50 @@ watch(
     <p v-if="errorMessage" class="sftp-error">{{ errorMessage }}</p>
 
     <div class="sftp-table-wrap">
-      <table class="sftp-table">
-        <thead>
-          <tr>
-            <th class="sftp-checkbox-cell">
-              <input type="checkbox" :checked="allSelected" @change="toggleAll" />
-            </th>
-            <th>名称</th>
-            <th>大小</th>
-            <th>修改时间</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="4" class="sftp-empty">正在读取目录…</td>
-          </tr>
-          <tr v-else-if="!entries.length">
-            <td colspan="4" class="sftp-empty">空目录</td>
-          </tr>
+      <Table class="sftp-table">
+        <TableHeader>
+          <TableRow>
+            <TableHead class="sftp-checkbox-cell">
+              <Checkbox :model-value="allSelected" @update:model-value="toggleAll" />
+            </TableHead>
+            <TableHead>名称</TableHead>
+            <TableHead>大小</TableHead>
+            <TableHead>修改时间</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-if="loading">
+            <TableCell colspan="4" class="sftp-empty">正在读取目录…</TableCell>
+          </TableRow>
+          <TableRow v-else-if="!entries.length">
+            <TableCell colspan="4" class="sftp-empty">空目录</TableCell>
+          </TableRow>
           <template v-else>
-            <tr
+            <TableRow
               v-for="entry in entries"
               :key="entry.path"
-              :class="{ selected: selectedPaths.has(entry.path) }"
+              :class="selectedPaths.has(entry.path) ? 'selected' : ''"
               @dblclick="openEntry(entry)"
             >
-              <td class="sftp-checkbox-cell" @click.stop="toggleSelection(entry)">
-                <input type="checkbox" :checked="selectedPaths.has(entry.path)" />
-              </td>
-              <td>
-                <button class="sftp-entry" type="button" @click="openEntry(entry)">
+              <TableCell class="sftp-checkbox-cell" @click.stop="toggleSelection(entry)">
+                <Checkbox
+                  :model-value="selectedPaths.has(entry.path)"
+                  @update:model-value="toggleSelection(entry)"
+                  @click.stop
+                />
+              </TableCell>
+              <TableCell>
+                <Button class="sftp-entry" variant="ghost" type="button" @click="openEntry(entry)">
                   <component :is="getEntryIcon(entry)" :size="16" aria-hidden="true" />
                   <span>{{ entry.name }}</span>
-                </button>
-              </td>
-              <td>{{ entry.type === 'directory' ? '—' : formatSize(entry.size) }}</td>
-              <td>{{ formatDate(entry.modifiedAt) }}</td>
-            </tr>
+                </Button>
+              </TableCell>
+              <TableCell>{{ entry.type === 'directory' ? '—' : formatSize(entry.size) }}</TableCell>
+              <TableCell>{{ formatDate(entry.modifiedAt) }}</TableCell>
+            </TableRow>
           </template>
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
 
     <Dialog :open="editorVisible" @update:open="editorVisible = $event">

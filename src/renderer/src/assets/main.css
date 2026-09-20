@@ -320,13 +320,55 @@ button {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
 }
 .ui-select-item {
-  padding: 7px 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 7px 10px 7px 30px;
   border-radius: 5px;
   outline: none;
   cursor: pointer;
 }
+.ui-select-item-indicator {
+  position: absolute;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+}
+.ui-select-item[data-state='checked'] .ui-select-item-indicator {
+  opacity: 1;
+}
 .ui-select-item[data-highlighted] {
   background: rgba(255, 255, 255, 0.12);
+}
+.ui-checkbox {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 4px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: #07110e;
+  cursor: pointer;
+}
+.ui-checkbox[data-state='checked'] {
+  border-color: var(--terminal-active-color, #63e2b7);
+  background: var(--terminal-active-color, #63e2b7);
+}
+.ui-checkbox:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--terminal-active-color, #63e2b7) 22%, transparent);
+}
+.ui-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.ui-checkbox-indicator {
+  display: grid;
+  place-items: center;
 }
 .ui-number-field-content {
   display: grid;

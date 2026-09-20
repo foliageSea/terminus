@@ -10,7 +10,16 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import type { SshConnectionProfile } from '../types/terminal'
 
 const props = defineProps<{
@@ -171,10 +180,15 @@ async function trustAndConnect(): Promise<void> {
       </DialogHeader>
 
       <div class="ssh-form">
-        <label v-if="mode === 'edit'" class="ssh-field">
-          <span class="ssh-label">名称</span>
-          <Input v-model="form.name" autofocus placeholder="例如：生产服务器" />
-        </label>
+        <Field v-if="mode === 'edit'" class="ssh-field">
+          <FieldLabel for="ssh-profile-name" class="ssh-label">名称</FieldLabel>
+          <Input
+            id="ssh-profile-name"
+            v-model="form.name"
+            autofocus
+            placeholder="例如：生产服务器"
+          />
+        </Field>
 
         <div v-else class="ssh-target-summary">
           <Server :size="16" aria-hidden="true" />
@@ -183,57 +197,77 @@ async function trustAndConnect(): Promise<void> {
         </div>
 
         <div v-if="mode === 'edit'" class="ssh-field-row">
-          <label class="ssh-field ssh-field-grow">
-            <span class="ssh-label">主机</span>
-            <Input v-model="form.host" placeholder="hostname 或 IP" />
-          </label>
-          <label class="ssh-field ssh-field-port">
-            <span class="ssh-label">端口</span>
-            <Input v-model="form.port" type="number" min="1" max="65535" />
-          </label>
+          <Field class="ssh-field ssh-field-grow">
+            <FieldLabel for="ssh-profile-host" class="ssh-label">主机</FieldLabel>
+            <Input id="ssh-profile-host" v-model="form.host" placeholder="hostname 或 IP" />
+          </Field>
+          <Field class="ssh-field ssh-field-port">
+            <FieldLabel for="ssh-profile-port" class="ssh-label">端口</FieldLabel>
+            <Input id="ssh-profile-port" v-model="form.port" type="number" min="1" max="65535" />
+          </Field>
         </div>
 
-        <label v-if="mode === 'edit'" class="ssh-field">
-          <span class="ssh-label">用户名</span>
-          <Input v-model="form.username" placeholder="root" />
-        </label>
+        <Field v-if="mode === 'edit'" class="ssh-field">
+          <FieldLabel for="ssh-profile-username" class="ssh-label">用户名</FieldLabel>
+          <Input id="ssh-profile-username" v-model="form.username" placeholder="root" />
+        </Field>
 
-        <label v-if="mode === 'edit'" class="ssh-field">
-          <span class="ssh-label">认证方式</span>
-          <select v-model="form.authType" class="ssh-select">
-            <option value="password">密码</option>
-            <option value="privateKey">私钥</option>
-          </select>
-        </label>
+        <Field v-if="mode === 'edit'" class="ssh-field">
+          <FieldLabel for="ssh-profile-auth-type" class="ssh-label">认证方式</FieldLabel>
+          <Select v-model="form.authType">
+            <SelectTrigger id="ssh-profile-auth-type">
+              <SelectValue placeholder="选择认证方式" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="password">密码</SelectItem>
+                <SelectItem value="privateKey">私钥</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
 
-        <div v-if="mode === 'edit' && form.authType === 'privateKey'" class="ssh-field">
-          <span class="ssh-label">私钥文件</span>
-          <button class="ssh-key-picker" type="button" @click="selectPrivateKey">
+        <Field v-if="mode === 'edit' && form.authType === 'privateKey'" class="ssh-field">
+          <FieldLabel for="ssh-private-key-picker" class="ssh-label">私钥文件</FieldLabel>
+          <Button
+            id="ssh-private-key-picker"
+            variant="outline"
+            class="ssh-key-picker"
+            type="button"
+            @click="selectPrivateKey"
+          >
             <KeyRound :size="16" aria-hidden="true" />
             <span>{{ form.privateKeyPath || '选择 OpenSSH 私钥文件' }}</span>
-          </button>
-        </div>
+          </Button>
+        </Field>
 
-        <label v-if="mode === 'connect' && form.authType === 'password'" class="ssh-field">
-          <span class="ssh-label">密码</span>
+        <Field v-if="mode === 'connect' && form.authType === 'password'" class="ssh-field">
+          <FieldLabel for="ssh-password" class="ssh-label">密码</FieldLabel>
           <div class="ssh-secret-input">
             <LockKeyhole :size="15" aria-hidden="true" />
             <Input
+              id="ssh-password"
               v-model="password"
               type="password"
               autofocus
               placeholder="连接时输入，不会保存"
             />
           </div>
-        </label>
+        </Field>
 
-        <label v-if="mode === 'connect' && form.authType === 'privateKey'" class="ssh-field">
-          <span class="ssh-label">私钥口令（可选）</span>
+        <Field v-if="mode === 'connect' && form.authType === 'privateKey'" class="ssh-field">
+          <FieldLabel for="ssh-passphrase" class="ssh-label">私钥口令（可选）</FieldLabel>
           <div class="ssh-secret-input">
             <KeyRound :size="15" aria-hidden="true" />
-            <Input v-model="passphrase" type="password" autofocus placeholder="私钥未加密可留空" />
+            <Input
+              id="ssh-passphrase"
+              v-model="passphrase"
+              type="password"
+              autofocus
+              placeholder="私钥未加密可留空"
+            />
           </div>
-        </label>
+        </Field>
 
         <div v-if="form.hostKeyFingerprint" class="ssh-fingerprint">
           <ShieldCheck :size="14" aria-hidden="true" />
@@ -296,22 +330,6 @@ async function trustAndConnect(): Promise<void> {
   color: rgba(255, 255, 255, 0.78);
   font-size: 12px;
   font-weight: 650;
-}
-
-.ssh-select {
-  width: 100%;
-  height: 36px;
-  padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 6px;
-  outline: none;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.9);
-  font: inherit;
-}
-
-.ssh-select option {
-  background: #1c1c20;
 }
 
 .ssh-key-picker {
