@@ -451,6 +451,7 @@ function createProject(): void {
   color: rgba(255, 255, 255, 0.66);
   cursor: pointer;
   font: inherit;
+  font-size: 13px;
   text-align: left;
   transition:
     background-color 150ms ease,
