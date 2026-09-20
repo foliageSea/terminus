@@ -3,6 +3,7 @@ allowBuilds:
   electron-winstaller: true
   esbuild: true
   node-pty: true
+  ssh2: true
   vue-demi: true
 ignoredOptionalDependencies:
   - cpu-features
