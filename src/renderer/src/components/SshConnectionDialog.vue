@@ -170,6 +170,14 @@ async function trustAndConnect(): Promise<void> {
   trustHostKey.value = true
   await connect()
 }
+
+function submitConnect(): void {
+  if (pendingFingerprint.value) {
+    void trustAndConnect()
+    return
+  }
+  void connect()
+}
 </script>
 
 <template>
@@ -251,6 +259,7 @@ async function trustAndConnect(): Promise<void> {
               type="password"
               autofocus
               placeholder="连接时输入，不会保存"
+              @keydown.enter.prevent="submitConnect"
             />
           </div>
         </Field>
@@ -265,6 +274,7 @@ async function trustAndConnect(): Promise<void> {
               type="password"
               autofocus
               placeholder="私钥未加密可留空"
+              @keydown.enter.prevent="submitConnect"
             />
           </div>
         </Field>
