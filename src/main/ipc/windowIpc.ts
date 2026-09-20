@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, shell } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import {
   defaultZoomFactor,
   maxZoomFactor,
@@ -6,15 +6,7 @@ import {
   zoomStep
 } from '../settings/settingsTypes'
 import { writeWindowAlwaysOnTop, writeZoomFactor } from '../settings/settingsService'
-
-function isSafeExternalUrl(url: string): boolean {
-  try {
-    const parsedUrl = new URL(url)
-    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
+import { openExternalUrl } from '../shared/externalUrl'
 
 export function registerWindowIpc(): void {
   ipcMain.handle('window:get-platform', () => process.platform)
@@ -66,9 +58,7 @@ export function registerWindowIpc(): void {
   })
 
   ipcMain.on('window:open-external', (_event, url: string) => {
-    if (!isSafeExternalUrl(url)) return
-
-    shell.openExternal(url)
+    openExternalUrl(url)
   })
 
   ipcMain.handle('window:get-zoom-factor', (event) => {

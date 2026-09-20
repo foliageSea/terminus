@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, shell } from 'electron'
+import { BrowserWindow, screen } from 'electron'
 import type { Rectangle } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
@@ -10,6 +10,7 @@ import {
   writeWindowBoundsSettings
 } from '../settings/settingsService'
 import type { WindowBoundsSettings } from '../settings/settingsTypes'
+import { openExternalUrl } from '../shared/externalUrl'
 
 export function createWindow(): void {
   const windowBounds = readWindowBoundsSettings()
@@ -53,7 +54,8 @@ export function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    // window.open / target=_blank 必须与 window:open-external 使用同一套协议白名单。
+    openExternalUrl(details.url)
     return { action: 'deny' }
   })
 
