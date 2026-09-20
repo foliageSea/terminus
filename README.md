@@ -20,7 +20,6 @@
 - 快捷键设置：可视化修改全部快捷键，带冲突检测和恢复默认。
 - 命令完成通知：Windows 下窗口未聚焦时，命令执行结束会发送系统通知。
 - 复制粘贴：`Alt+C` 复制选中文本并显示提示，`Ctrl+V` 粘贴剪贴板内容。
-- opencode 主题同步：主题色变化时同步写入 opencode 的自定义主题文件。
 - 启动动画：应用启动时显示品牌化 splash 过渡。
 
 ## 技术栈
@@ -43,7 +42,6 @@ src/
   main/                Electron 主进程
     app/               窗口创建、生命周期和系统环境变量加载
     ipc/               settings、terminal、window IPC 注册
-    opencode/          向 opencode 同步自定义主题
     settings/          设置持久化和默认值
     shared/            主进程内部共用工具
     terminal/          node-pty 管理、cwd 追踪和输出背压

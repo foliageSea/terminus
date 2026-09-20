@@ -32,7 +32,6 @@ import {
   writeZoomFactor,
   writeInheritTabCwd
 } from '../settings/settingsService'
-import { writeOpencodeSystemTheme } from '../opencode/systemTheme'
 
 const imageMimeTypes = new Map([
   ['.gif', 'image/gif'],
@@ -83,11 +82,7 @@ export function registerSettingsIpc(): void {
     readImageDataUrl(filePath)
   )
   ipcMain.handle('settings:get-theme', () => readThemeSettings())
-  ipcMain.handle('settings:set-theme', (_, settings: ThemeSettings) => {
-    const theme = writeThemeSettings(settings)
-    writeOpencodeSystemTheme()
-    return theme
-  })
+  ipcMain.handle('settings:set-theme', (_, settings: ThemeSettings) => writeThemeSettings(settings))
   ipcMain.handle('settings:get-path-favorites', () => readPathFavoritesSettings())
   ipcMain.handle('settings:set-path-favorites', (_, settings: PathFavoritesSettings) =>
     writePathFavoritesSettings(settings)
