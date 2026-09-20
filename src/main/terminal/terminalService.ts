@@ -10,6 +10,10 @@ import {
 
 const maxOutputChunkBytes = 100 * 1024
 const maxUnackedOutputBytes = maxOutputChunkBytes * 5
+const maxTerminalRestartAttempts = 5
+const terminalRestartBaseDelayMs = 300
+const terminalRestartMaxDelayMs = 5_000
+const terminalRestartResetMs = 10_000
 
 class Utf8Splitter {
   private pending = Buffer.alloc(0)
@@ -43,13 +47,7 @@ class Utf8Splitter {
       if ((byte & 0x80) === 0) return 0
 
       const expectedContinuationBytes =
-        (byte & 0xe0) === 0xc0
-          ? 1
-          : (byte & 0xf0) === 0xe0
-            ? 2
-            : (byte & 0xf8) === 0xf0
-              ? 3
-              : 0
+        (byte & 0xe0) === 0xc0 ? 1 : (byte & 0xf0) === 0xe0 ? 2 : (byte & 0xf8) === 0xf0 ? 3 : 0
 
       return continuationBytes < expectedContinuationBytes ? continuationBytes + 1 : 0
     }
@@ -59,6 +57,29 @@ class Utf8Splitter {
 }
 
 const terminals = new Map<string, TerminalState>()
+const pendingTerminalRestarts = new Map<string, PendingTerminalRestart>()
+
+function cancelTerminalRestart(id: string): void {
+  const pending = pendingTerminalRestarts.get(id)
+  if (!pending) return
+
+  clearTimeout(pending.timer)
+  pendingTerminalRestarts.delete(id)
+}
+
+function cancelTerminalRestartsForOwner(ownerWebContentsId: number): void {
+  pendingTerminalRestarts.forEach((pending, id) => {
+    if (pending.ownerWebContentsId !== ownerWebContentsId) return
+
+    clearTimeout(pending.timer)
+    pendingTerminalRestarts.delete(id)
+  })
+}
+
+function cancelAllTerminalRestarts(): void {
+  pendingTerminalRestarts.forEach((pending) => clearTimeout(pending.timer))
+  pendingTerminalRestarts.clear()
+}
 
 interface TerminalPayload {
   id: string
@@ -90,7 +111,11 @@ interface TerminalState {
   utf8Splitter: Utf8Splitter
   pendingTerminalSequence: string
   commandCompleteReady: boolean
+  startedAt: number
+  restartAttempt: number
+  closed: boolean
   onData: (payload: TerminalDataPayload) => void
+  onCwd: (payload: TerminalCwdPayload) => void
   onCommandComplete: (payload: TerminalCommandCompletePayload) => void
   onExit: (payload: TerminalPayload) => void
 }
@@ -101,12 +126,18 @@ interface WindowsPty extends IPty {
   }
 }
 
+interface PendingTerminalRestart {
+  ownerWebContentsId: number
+  timer: NodeJS.Timeout
+}
+
 interface CreateTerminalOptions {
   id: string
   ownerWebContentsId: number
   cols?: number
   rows?: number
   cwd?: string
+  restartAttempt?: number
   onData: (payload: TerminalDataPayload) => void
   onCwd: (payload: TerminalCwdPayload) => void
   onCommandComplete: (payload: TerminalCommandCompletePayload) => void
@@ -155,7 +186,8 @@ function flushTerminalOutput(state: TerminalState): void {
   if (state.pendingOutput.length) {
     const output = state.utf8Splitter.write(Buffer.concat(state.pendingOutput))
     state.pendingOutput = []
-    if (output.length) state.onData({ id: state.id, data: output.toString('utf8'), byteLength: output.length })
+    if (output.length)
+      state.onData({ id: state.id, data: output.toString('utf8'), byteLength: output.length })
   }
 
   const remainder = state.utf8Splitter.flush()
@@ -164,18 +196,70 @@ function flushTerminalOutput(state: TerminalState): void {
   }
 }
 
+function scheduleTerminalRestart(state: TerminalState): boolean {
+  const livedLongEnough = Date.now() - state.startedAt >= terminalRestartResetMs
+  const restartAttempt = livedLongEnough ? 1 : state.restartAttempt + 1
+
+  if (restartAttempt > maxTerminalRestartAttempts) {
+    console.error(
+      `[Terminus] Terminal ${state.id} exited ${restartAttempt} times in a row; giving up restart.`
+    )
+    return false
+  }
+
+  const delay = Math.min(
+    terminalRestartBaseDelayMs * 2 ** (restartAttempt - 1),
+    terminalRestartMaxDelayMs
+  )
+  cancelTerminalRestart(state.id)
+  const restartTimer = setTimeout(() => {
+    pendingTerminalRestarts.delete(state.id)
+    // 面板可能已在等待期间被关闭，或已用同一个 id 重新创建，此时不能再拉起新进程。
+    if (state.closed || terminals.has(state.id)) return
+
+    try {
+      createTerminal({
+        id: state.id,
+        ownerWebContentsId: state.ownerWebContentsId,
+        cols: state.cols,
+        rows: state.rows,
+        cwd: state.cwd,
+        restartAttempt,
+        onData: state.onData,
+        onCwd: state.onCwd,
+        onCommandComplete: state.onCommandComplete,
+        onExit: state.onExit
+      })
+    } catch (error) {
+      console.error(`[Terminus] Failed to restart terminal ${state.id}:`, error)
+      state.onExit({ id: state.id })
+    }
+  }, delay)
+
+  restartTimer.unref()
+  pendingTerminalRestarts.set(state.id, {
+    ownerWebContentsId: state.ownerWebContentsId,
+    timer: restartTimer
+  })
+  return true
+}
+
 export function createTerminal({
   id,
   ownerWebContentsId,
   cols = 80,
   rows = 24,
   cwd,
+  restartAttempt = 0,
   onData,
   onCwd,
   onCommandComplete,
   onExit
 }: CreateTerminalOptions): void {
   if (terminals.has(id)) return
+
+  // 渲染进程可能用同一个 id 重建面板，此时旧的待重建任务必须让位。
+  cancelTerminalRestart(id)
 
   const initialCwd = resolveTerminalCwd(cwd)
   const shellPath =
@@ -207,7 +291,11 @@ export function createTerminal({
     utf8Splitter: new Utf8Splitter(),
     pendingTerminalSequence: '',
     commandCompleteReady: process.platform !== 'win32',
+    startedAt: Date.now(),
+    restartAttempt,
+    closed: false,
     onData,
+    onCwd,
     onCommandComplete,
     onExit
   }
@@ -251,24 +339,7 @@ export function createTerminal({
     flushTerminalOutput(state)
     if (terminals.get(id) === state) {
       terminals.delete(id)
-      if (process.platform === 'win32') {
-        try {
-          createTerminal({
-            id,
-            ownerWebContentsId,
-            cols: state.cols,
-            rows: state.rows,
-            cwd: state.cwd,
-            onData,
-            onCwd,
-            onCommandComplete,
-            onExit
-          })
-          return
-        } catch (error) {
-          console.error(`[Terminus] Failed to restart terminal ${id}:`, error)
-        }
-      }
+      if (process.platform === 'win32' && scheduleTerminalRestart(state)) return
     }
     onExit({ id })
   })
@@ -304,24 +375,34 @@ export function ackTerminalData(id: string, byteLength: number): void {
 }
 
 export function killTerminal(id: string): void {
+  // 待重建的 PTY 此刻并不在 terminals 里，必须先取消它的定时器，否则面板关闭后会被重新拉起。
+  cancelTerminalRestart(id)
+
   const state = terminals.get(id)
   if (!state) return
 
+  state.closed = true
   terminals.delete(state.id)
   state.terminal.kill()
 }
 
 export function killTerminalsForOwner(ownerWebContentsId: number): void {
+  cancelTerminalRestartsForOwner(ownerWebContentsId)
+
   terminals.forEach((state) => {
     if (state.ownerWebContentsId !== ownerWebContentsId) return
 
+    state.closed = true
     terminals.delete(state.id)
     state.terminal.kill()
   })
 }
 
 export function killAllTerminals(): void {
+  cancelAllTerminalRestarts()
+
   terminals.forEach((state) => {
+    state.closed = true
     terminals.delete(state.id)
     state.terminal.kill()
   })
