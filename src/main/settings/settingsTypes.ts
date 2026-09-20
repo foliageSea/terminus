@@ -16,14 +16,14 @@ export interface ThemeSettings {
   primaryColor: string
 }
 
-export interface PathFavorite {
+export interface Project {
   id: string
   name: string
   path: string
 }
 
-export interface PathFavoritesSettings {
-  items: PathFavorite[]
+export interface ProjectsSettings {
+  items: Project[]
 }
 
 export type WindowControlsStyle = 'system' | 'mac' | 'windows'
@@ -45,7 +45,7 @@ export interface TabSessionSettings {
 export interface AppSettings {
   terminal: TerminalSettings
   theme: ThemeSettings
-  pathFavorites: PathFavoritesSettings
+  projects: ProjectsSettings
   shortcuts: ShortcutSettings
   zoomFactor?: number
   windowControlsStyle: WindowControlsStyle
@@ -69,7 +69,7 @@ export const defaultThemeSettings: ThemeSettings = {
   primaryColor: '#8d9dd5'
 }
 
-export const defaultPathFavoritesSettings: PathFavoritesSettings = {
+export const defaultProjectsSettings: ProjectsSettings = {
   items: []
 }
 

@@ -39,6 +39,7 @@ export interface TerminalTab {
   title: string
   titleModified: boolean
   type: 'terminal'
+  projectId?: string
   root: PaneNode
   activePaneId: string
   layoutVersion: number
@@ -67,14 +68,14 @@ export interface ThemeSettings {
   primaryColor: string
 }
 
-export interface PathFavorite {
+export interface Project {
   id: string
   name: string
   path: string
 }
 
-export interface PathFavoritesSettings {
-  items: PathFavorite[]
+export interface ProjectsSettings {
+  items: Project[]
 }
 
 export interface WindowBoundsSettings {

@@ -2,7 +2,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { extname } from 'path'
 import { existsSync, readFileSync, statSync } from 'fs'
 import type {
-  PathFavoritesSettings,
+  ProjectsSettings,
   ShortcutSettings,
   TabSessionSettings,
   TerminalSettings,
@@ -11,7 +11,7 @@ import type {
   WindowControlsStyle
 } from '../settings/settingsTypes'
 import {
-  readPathFavoritesSettings,
+  readProjectsSettings,
   readShortcutSettings,
   readTabSessionSettings,
   readTerminalSettings,
@@ -21,7 +21,7 @@ import {
   readWindowControlsStyle,
   readZoomFactor,
   readInheritTabCwd,
-  writePathFavoritesSettings,
+  writeProjectsSettings,
   writeShortcutSettings,
   writeTabSessionSettings,
   writeTerminalSettings,
@@ -83,9 +83,21 @@ export function registerSettingsIpc(): void {
   )
   ipcMain.handle('settings:get-theme', () => readThemeSettings())
   ipcMain.handle('settings:set-theme', (_, settings: ThemeSettings) => writeThemeSettings(settings))
-  ipcMain.handle('settings:get-path-favorites', () => readPathFavoritesSettings())
-  ipcMain.handle('settings:set-path-favorites', (_, settings: PathFavoritesSettings) =>
-    writePathFavoritesSettings(settings)
+  ipcMain.handle('settings:select-project-directory', async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const options: Electron.OpenDialogOptions = {
+      title: '选择项目目录',
+      properties: ['openDirectory', 'createDirectory']
+    }
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options)
+
+    return result.canceled ? undefined : result.filePaths[0]
+  })
+  ipcMain.handle('settings:get-projects', () => readProjectsSettings())
+  ipcMain.handle('settings:set-projects', (_, settings: ProjectsSettings) =>
+    writeProjectsSettings(settings)
   )
   ipcMain.handle('settings:get-shortcuts', () => readShortcutSettings())
   ipcMain.handle('settings:set-shortcuts', (_, settings: ShortcutSettings) =>

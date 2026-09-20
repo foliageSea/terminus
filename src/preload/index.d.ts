@@ -50,14 +50,14 @@ export interface ThemeSettings {
   primaryColor: string
 }
 
-export interface PathFavorite {
+export interface Project {
   id: string
   name: string
   path: string
 }
 
-export interface PathFavoritesSettings {
-  items: PathFavorite[]
+export interface ProjectsSettings {
+  items: Project[]
 }
 
 export type WindowControlsStyle = 'system' | 'mac' | 'windows'
@@ -83,8 +83,9 @@ export interface SettingsApi {
   getTerminalBackgroundDataUrl: (path: string) => Promise<string>
   getTheme: () => Promise<ThemeSettings>
   setTheme: (settings: ThemeSettings) => Promise<ThemeSettings>
-  getPathFavorites: () => Promise<PathFavoritesSettings>
-  setPathFavorites: (settings: PathFavoritesSettings) => Promise<PathFavoritesSettings>
+  selectProjectDirectory: () => Promise<string | undefined>
+  getProjects: () => Promise<ProjectsSettings>
+  setProjects: (settings: ProjectsSettings) => Promise<ProjectsSettings>
   getShortcuts: () => Promise<ShortcutSettings>
   setShortcuts: (settings: ShortcutSettings) => Promise<ShortcutSettings>
   getZoomFactor: () => Promise<number>

@@ -42,9 +42,10 @@ const api = {
     getTheme: () => ipcRenderer.invoke('settings:get-theme'),
     setTheme: (settings: { primaryColor: string }) =>
       ipcRenderer.invoke('settings:set-theme', settings),
-    getPathFavorites: () => ipcRenderer.invoke('settings:get-path-favorites'),
-    setPathFavorites: (settings: { items: { id: string; name: string; path: string }[] }) =>
-      ipcRenderer.invoke('settings:set-path-favorites', settings),
+    selectProjectDirectory: () => ipcRenderer.invoke('settings:select-project-directory'),
+    getProjects: () => ipcRenderer.invoke('settings:get-projects'),
+    setProjects: (settings: { items: { id: string; name: string; path: string }[] }) =>
+      ipcRenderer.invoke('settings:set-projects', settings),
     getShortcuts: () => ipcRenderer.invoke('settings:get-shortcuts'),
     setShortcuts: (settings: ShortcutSettings) =>
       ipcRenderer.invoke('settings:set-shortcuts', settings),

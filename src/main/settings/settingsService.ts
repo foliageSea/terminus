@@ -3,15 +3,15 @@ import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import {
   AppSettings,
-  PathFavorite,
-  PathFavoritesSettings,
+  Project,
+  ProjectsSettings,
   ShortcutSettings,
   TabSessionSettings,
   TerminalSettings,
   ThemeSettings,
   WindowBoundsSettings,
   WindowControlsStyle,
-  defaultPathFavoritesSettings,
+  defaultProjectsSettings,
   defaultShortcutSettingsValue,
   defaultTabSessionSettings,
   defaultTerminalSettings,
@@ -33,7 +33,7 @@ import {
   shortcutActionIds
 } from '../../shared/shortcuts'
 
-const maxPathFavorites = 50
+const maxProjects = 100
 const maxTabSessionPaths = 50
 
 function normalizeFontSize(value: unknown): number {
@@ -97,25 +97,29 @@ function normalizeThemeSettings(value: unknown): ThemeSettings {
   }
 }
 
-function normalizePathFavoritesSettings(value: unknown): PathFavoritesSettings {
-  const settings =
-    value && typeof value === 'object' ? (value as Partial<PathFavoritesSettings>) : {}
-  const items = Array.isArray(settings.items) ? settings.items : defaultPathFavoritesSettings.items
+function normalizeProjectsSettings(value: unknown): ProjectsSettings {
+  const settings = value && typeof value === 'object' ? (value as Partial<ProjectsSettings>) : {}
+  const items = Array.isArray(settings.items) ? settings.items : defaultProjectsSettings.items
+  const seenIds = new Set<string>()
   const seenPaths = new Set<string>()
-  const normalizedItems: PathFavorite[] = []
+  const normalizedItems: Project[] = []
 
   for (const item of items) {
     if (!item || typeof item !== 'object') continue
 
-    const favorite = item as Partial<PathFavorite>
-    const id = favorite.id?.trim()
-    const name = favorite.name?.trim()
-    const path = favorite.path?.trim()
-    if (!id || !name || !path || seenPaths.has(path)) continue
+    const project = item as Partial<Project>
+    const id = project.id?.trim()
+    const name = project.name?.trim()
+    const path = project.path?.trim()
+    if (!id || !name || !path || seenIds.has(id)) continue
 
-    seenPaths.add(path)
+    const pathKey = process.platform === 'win32' ? path.toLowerCase() : path
+    if (seenPaths.has(pathKey)) continue
+
+    seenIds.add(id)
+    seenPaths.add(pathKey)
     normalizedItems.push({ id, name, path })
-    if (normalizedItems.length >= maxPathFavorites) break
+    if (normalizedItems.length >= maxProjects) break
   }
 
   return { items: normalizedItems }
@@ -238,7 +242,7 @@ function normalizeAppSettings(value: unknown): AppSettings {
   return {
     terminal: normalizeTerminalSettings(settings.terminal ?? legacyTerminalSettings),
     theme: normalizeThemeSettings(settings.theme),
-    pathFavorites: normalizePathFavoritesSettings(settings.pathFavorites),
+    projects: normalizeProjectsSettings(settings.projects),
     shortcuts: normalizeShortcutSettings(settings.shortcuts),
     zoomFactor: normalizeZoomFactor(settings.zoomFactor),
     windowControlsStyle: normalizeWindowControlsStyle(settings.windowControlsStyle),
@@ -289,13 +293,13 @@ export function writeThemeSettings(settings: ThemeSettings): ThemeSettings {
   return nextSettings.theme
 }
 
-export function readPathFavoritesSettings(): PathFavoritesSettings {
-  return readAppSettings().pathFavorites
+export function readProjectsSettings(): ProjectsSettings {
+  return readAppSettings().projects
 }
 
-export function writePathFavoritesSettings(settings: PathFavoritesSettings): PathFavoritesSettings {
-  const nextSettings = writeAppSettings({ ...readAppSettings(), pathFavorites: settings })
-  return nextSettings.pathFavorites
+export function writeProjectsSettings(settings: ProjectsSettings): ProjectsSettings {
+  const nextSettings = writeAppSettings({ ...readAppSettings(), projects: settings })
+  return nextSettings.projects
 }
 
 export function readZoomFactor(): number {
