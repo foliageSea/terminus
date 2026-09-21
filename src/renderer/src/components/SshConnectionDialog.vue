@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { KeyRound, LockKeyhole, Server, ShieldCheck } from '@lucide/vue'
+import { KeyRound, LoaderCircle, LockKeyhole, Server, ShieldCheck } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -281,7 +281,7 @@ function submitConnect(): void {
 
         <div v-if="form.hostKeyFingerprint" class="ssh-fingerprint">
           <ShieldCheck :size="14" aria-hidden="true" />
-          <span>已信任指纹：{{ form.hostKeyFingerprint }}</span>
+          <span :title="form.hostKeyFingerprint">已信任指纹：{{ form.hostKeyFingerprint }}</span>
         </div>
 
         <div v-if="pendingFingerprint" class="ssh-host-key-confirm">
@@ -304,7 +304,8 @@ function submitConnect(): void {
           信任并连接
         </Button>
         <Button v-else :disabled="!canConnect" @click="connect">
-          {{ connecting ? '连接中…' : '连接' }}
+          <LoaderCircle v-if="connecting" :size="14" class="animate-spin" aria-hidden="true" />
+          连接
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -414,12 +415,24 @@ function submitConnect(): void {
 
 .ssh-fingerprint {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 7px;
+  min-width: 0;
   color: rgba(255, 255, 255, 0.48);
   font-size: 11px;
   line-height: 1.45;
-  word-break: break-all;
+  white-space: nowrap;
+}
+
+.ssh-fingerprint svg {
+  flex-shrink: 0;
+}
+
+.ssh-fingerprint span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ssh-host-key-confirm {
