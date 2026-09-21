@@ -527,7 +527,9 @@ watch(
         <TableHeader>
           <TableRow>
             <TableHead class="sftp-checkbox-cell">
-              <Checkbox :model-value="allSelected" @update:model-value="toggleAll" />
+              <span class="sftp-checkbox-control">
+                <Checkbox :model-value="allSelected" @update:model-value="toggleAll" />
+              </span>
             </TableHead>
             <TableHead>名称</TableHead>
             <TableHead>大小</TableHead>
@@ -554,11 +556,13 @@ watch(
               @dblclick="openEntry(entry)"
             >
               <TableCell class="sftp-checkbox-cell" @click.stop="toggleSelection(entry)">
-                <Checkbox
-                  :model-value="selectedPaths.has(entry.path)"
-                  @update:model-value="toggleSelection(entry)"
-                  @click.stop
-                />
+                <span class="sftp-checkbox-control">
+                  <Checkbox
+                    :model-value="selectedPaths.has(entry.path)"
+                    @update:model-value="toggleSelection(entry)"
+                    @click.stop
+                  />
+                </span>
               </TableCell>
               <TableCell>
                 <Button class="sftp-entry" variant="ghost" type="button" @click="openEntry(entry)">
@@ -849,8 +853,19 @@ watch(
 }
 
 .sftp-checkbox-cell {
-  width: 36px;
+  box-sizing: border-box;
+  width: 40px !important;
+  min-width: 40px;
+  max-width: 40px;
+  padding-right: 4px !important;
+  padding-left: 4px !important;
   text-align: center !important;
+}
+
+.sftp-checkbox-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sftp-table tbody tr:hover,
