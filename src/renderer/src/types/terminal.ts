@@ -11,7 +11,13 @@ export type DropSide = PaneSide
 
 export type TabType = 'terminal' | 'ssh-terminal' | 'sftp' | 'settings'
 
-export type SettingsSection = 'appearance' | 'font' | 'render' | 'background' | 'shortcuts'
+export type SettingsSection =
+  | 'general'
+  | 'appearance'
+  | 'font'
+  | 'render'
+  | 'background'
+  | 'shortcuts'
 
 export interface PaneDropPayload {
   sourceNodeId: string

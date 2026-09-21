@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { Image, Keyboard, Monitor, Palette, RotateCcw, Type } from '@lucide/vue'
+import { Image, Keyboard, Monitor, Palette, RotateCcw, Settings2, Type } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { ColorField } from '@/components/ui/color-field'
 import {
@@ -85,6 +85,7 @@ const emit = defineEmits<{
 }>()
 
 const sections: { key: SettingsSection; label: string; icon: typeof Palette }[] = [
+  { key: 'general', label: '通用', icon: Settings2 },
   { key: 'appearance', label: '外观', icon: Palette },
   { key: 'font', label: '字体', icon: Type },
   { key: 'render', label: '渲染', icon: Monitor },
@@ -249,14 +250,8 @@ onBeforeUnmount(() => {
 
     <div class="settings-content">
       <form class="settings-form" @submit.prevent>
-        <template v-if="activeSection === 'appearance'">
-          <h3 class="settings-section-title">外观设置</h3>
-          <Field class="settings-compact-control"
-            ><FieldLabel>主题色</FieldLabel
-            ><ColorField
-              :model-value="primaryColor"
-              @update:model-value="emit('updatePrimaryColor', $event)"
-          /></Field>
+        <template v-if="activeSection === 'general'">
+          <h3 class="settings-section-title">通用设置</h3>
           <Field orientation="horizontal"
             ><FieldContent
               ><FieldTitle>新建标签路径</FieldTitle
@@ -277,24 +272,6 @@ onBeforeUnmount(() => {
               :model-value="commandCompleteNotification"
               @update:model-value="emit('updateCommandCompleteNotification', $event)"
           /></Field>
-          <Field class="settings-compact-control"
-            ><FieldLabel>窗口按钮风格</FieldLabel
-            ><Select
-              :model-value="windowControlsStyle"
-              @update:model-value="updateWindowControlsStyle($event)"
-              ><SelectTrigger class="ui-select-trigger"
-                ><SelectValue>{{ windowControlsStyleLabel }}</SelectValue></SelectTrigger
-              ><SelectContent class="ui-select-content"
-                ><SelectItem
-                  v-for="option in windowControlsStyleOptions"
-                  :key="option.value"
-                  :value="option.value"
-                  class="ui-select-item"
-                  >{{ option.label }}</SelectItem
-                ></SelectContent
-              ></Select
-            ></Field
-          >
           <Field orientation="horizontal"
             ><FieldContent
               ><FieldTitle>窗口大小缓存</FieldTitle
@@ -315,6 +292,34 @@ onBeforeUnmount(() => {
               :model-value="windowAlwaysOnTop"
               @update:model-value="emit('updateWindowAlwaysOnTop', $event)"
           /></Field>
+        </template>
+
+        <template v-else-if="activeSection === 'appearance'">
+          <h3 class="settings-section-title">外观设置</h3>
+          <Field class="settings-compact-control"
+            ><FieldLabel>主题色</FieldLabel
+            ><ColorField
+              :model-value="primaryColor"
+              @update:model-value="emit('updatePrimaryColor', $event)"
+          /></Field>
+          <Field class="settings-compact-control"
+            ><FieldLabel>窗口按钮风格</FieldLabel
+            ><Select
+              :model-value="windowControlsStyle"
+              @update:model-value="updateWindowControlsStyle($event)"
+              ><SelectTrigger class="ui-select-trigger"
+                ><SelectValue>{{ windowControlsStyleLabel }}</SelectValue></SelectTrigger
+              ><SelectContent class="ui-select-content"
+                ><SelectItem
+                  v-for="option in windowControlsStyleOptions"
+                  :key="option.value"
+                  :value="option.value"
+                  class="ui-select-item"
+                  >{{ option.label }}</SelectItem
+                ></SelectContent
+              ></Select
+            ></Field
+          >
         </template>
 
         <template v-else-if="activeSection === 'font'">
