@@ -635,8 +635,11 @@ function handleGlobalKeydown(event: KeyboardEvent): void {
     event.preventDefault()
     event.stopPropagation()
     const tab = activeTab.value
+    if (!tab) return
     if (isTerminalTab(tab)) {
       handleClosePane(tab.activePaneId)
+    } else {
+      closeTab(tab.id)
     }
     return
   }
