@@ -12,8 +12,10 @@ import {
   Link2,
   Pencil,
   RefreshCw,
+  Search,
   Trash2,
-  Upload
+  Upload,
+  X
 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -60,6 +62,7 @@ const pathEditing = ref(false)
 const pathInput = ref('')
 const pathInputRef = ref<HTMLInputElement>()
 const editingEntry = ref<SshFileEntry | undefined>()
+const searchQuery = ref('')
 let loadedOnce = false
 
 const breadcrumbs = computed(() => {
@@ -72,11 +75,18 @@ const breadcrumbs = computed(() => {
     }))
   ]
 })
+const visibleEntries = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return entries.value
+  return entries.value.filter((entry) => entry.name.toLowerCase().includes(query))
+})
 const selectedEntries = computed(() =>
   entries.value.filter((entry) => selectedPaths.value.has(entry.path))
 )
 const allSelected = computed(
-  () => entries.value.length > 0 && selectedEntries.value.length === entries.value.length
+  () =>
+    visibleEntries.value.length > 0 &&
+    visibleEntries.value.every((entry) => selectedPaths.value.has(entry.path))
 )
 
 function formatSize(size: number): string {
@@ -105,6 +115,7 @@ async function loadDirectory(path = currentPath.value): Promise<void> {
     currentPath.value = result.path
     entries.value = result.entries
     selectedPaths.value = new Set()
+    searchQuery.value = ''
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '无法读取远程目录'
   } finally {
@@ -167,9 +178,17 @@ function toggleSelection(entry: SshFileEntry): void {
 }
 
 function toggleAll(): void {
-  selectedPaths.value = allSelected.value
-    ? new Set()
-    : new Set(entries.value.map((entry) => entry.path))
+  const next = new Set(selectedPaths.value)
+  if (allSelected.value) {
+    visibleEntries.value.forEach((entry) => next.delete(entry.path))
+  } else {
+    visibleEntries.value.forEach((entry) => next.add(entry.path))
+  }
+  selectedPaths.value = next
+}
+
+function clearSearch(): void {
+  searchQuery.value = ''
 }
 
 function openCreateDirectory(): void {
@@ -380,6 +399,25 @@ watch(
         @keydown.esc.prevent="cancelPathEdit"
         @blur="cancelPathEdit"
       />
+      <div class="sftp-search" :class="{ filtering: searchQuery.trim() }">
+        <Search :size="13" class="sftp-search-icon" />
+        <input
+          v-model="searchQuery"
+          class="sftp-search-input"
+          placeholder="过滤当前目录"
+          spellcheck="false"
+          @keydown.esc.prevent="clearSearch"
+        />
+        <button
+          v-if="searchQuery"
+          type="button"
+          class="sftp-search-clear"
+          title="清除过滤"
+          @click="clearSearch"
+        >
+          <X :size="12" />
+        </button>
+      </div>
       <span v-if="transferMessage" class="sftp-transfer-message">{{ transferMessage }}</span>
     </div>
 
@@ -404,9 +442,14 @@ watch(
           <TableRow v-else-if="!entries.length">
             <TableCell colspan="4" class="sftp-empty">空目录</TableCell>
           </TableRow>
+          <TableRow v-else-if="!visibleEntries.length">
+            <TableCell colspan="4" class="sftp-empty">
+              无匹配 “{{ searchQuery.trim() }}” 的目录或文件
+            </TableCell>
+          </TableRow>
           <template v-else>
             <TableRow
-              v-for="entry in entries"
+              v-for="entry in visibleEntries"
               :key="entry.path"
               :class="selectedPaths.has(entry.path) ? 'selected' : ''"
               @dblclick="openEntry(entry)"
@@ -536,6 +579,66 @@ watch(
   height: 26px;
   font-family: monospace;
   font-size: 12px;
+}
+
+.sftp-search {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.sftp-search-icon {
+  position: absolute;
+  left: 8px;
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.sftp-search-input {
+  width: 170px;
+  height: 26px;
+  padding: 0 24px 0 26px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.sftp-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.sftp-search-input:focus,
+.sftp-search.filtering .sftp-search-input {
+  border-color: color-mix(in srgb, var(--terminal-active-color) 46%, transparent);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.sftp-search-clear {
+  position: absolute;
+  right: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+}
+
+.sftp-search-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .sftp-crumb-separator {
