@@ -305,4 +305,34 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow: hidden;
 }
+
+.sftp-editor-body :deep(.cm-scroller) {
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-width: thin;
+}
+
+.sftp-editor-body :deep(.cm-scroller)::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sftp-editor-body :deep(.cm-scroller)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sftp-editor-body :deep(.cm-scroller)::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.sftp-editor-body :deep(.cm-scroller)::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  background-clip: content-box;
+}
+
+.sftp-editor-body :deep(.cm-scroller)::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.34);
+  background-clip: content-box;
+}
 </style>
