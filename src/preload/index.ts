@@ -131,6 +131,10 @@ const api = {
       path: string,
       type: 'directory' | 'file' | 'symlink' | 'other'
     ) => ipcRenderer.invoke('sftp:remove', connectionId, path, type),
+    readFile: (connectionId: string, path: string) =>
+      ipcRenderer.invoke('sftp:read-file', connectionId, path),
+    writeFile: (connectionId: string, path: string, content: string) =>
+      ipcRenderer.invoke('sftp:write-file', connectionId, path, content),
     selectUploadFiles: () => ipcRenderer.invoke('sftp:select-upload-files'),
     selectDownloadDirectory: () => ipcRenderer.invoke('sftp:select-download-directory'),
     upload: (connectionId: string, localPaths: string[], remoteDirectory: string) =>

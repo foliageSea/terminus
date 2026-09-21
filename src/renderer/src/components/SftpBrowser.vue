@@ -5,6 +5,7 @@ import {
   ArrowUp,
   Download,
   File,
+  FilePen,
   Folder,
   FolderPlus,
   Home,
@@ -33,6 +34,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import SftpFileEditor from './SftpFileEditor.vue'
 import type { SshFileEntry } from '../types/terminal'
 
 const props = defineProps<{
@@ -57,6 +59,7 @@ const editorTarget = ref<SshFileEntry | undefined>()
 const pathEditing = ref(false)
 const pathInput = ref('')
 const pathInputRef = ref<HTMLInputElement>()
+const editingEntry = ref<SshFileEntry | undefined>()
 let loadedOnce = false
 
 const breadcrumbs = computed(() => {
@@ -111,6 +114,19 @@ async function loadDirectory(path = currentPath.value): Promise<void> {
 
 function openEntry(entry: SshFileEntry): void {
   if (entry.type === 'directory') void loadDirectory(entry.path)
+  else if (entry.type === 'file') openFileEditor(entry)
+}
+
+function openFileEditor(entry: SshFileEntry): void {
+  editingEntry.value = entry
+}
+
+function closeFileEditor(): void {
+  editingEntry.value = undefined
+}
+
+async function handleFileSaved(): Promise<void> {
+  await loadDirectory()
 }
 
 function goUp(): void {
@@ -300,6 +316,15 @@ watch(
         <Button
           size="icon"
           variant="ghost"
+          title="编辑文件"
+          :disabled="selectedEntries.length !== 1 || selectedEntries[0]?.type !== 'file'"
+          @click="selectedEntries[0] && openFileEditor(selectedEntries[0])"
+        >
+          <FilePen :size="15" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
           title="重命名"
           :disabled="selectedEntries.length !== 1"
           @click="selectedEntries[0] && openRename(selectedEntries[0])"
@@ -407,6 +432,16 @@ watch(
       </Table>
     </div>
 
+    <SftpFileEditor
+      v-if="editingEntry"
+      :key="editingEntry.path"
+      :connection-id="connectionId"
+      :path="editingEntry.path"
+      :name="editingEntry.name"
+      @close="closeFileEditor"
+      @saved="handleFileSaved"
+    />
+
     <Dialog :open="editorVisible" @update:open="editorVisible = $event">
       <DialogContent>
         <DialogHeader>
@@ -431,6 +466,7 @@ watch(
 
 <style scoped>
 .sftp-browser {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;

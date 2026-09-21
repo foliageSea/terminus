@@ -11,10 +11,12 @@ import {
   downloadSftpFiles,
   killSshShell,
   listSftpDirectory,
+  readSftpFile,
   removeSftpEntry,
   renameSftpEntry,
   resizeSshShell,
   uploadSftpFiles,
+  writeSftpFile,
   writeSshShell
 } from '../ssh/sshService'
 
@@ -104,6 +106,14 @@ export function registerSshIpc(): void {
     'sftp:remove',
     (event, connectionId: string, path: string, type: SshFileEntry['type']) =>
       removeSftpEntry(connectionId, event.sender.id, path, type)
+  )
+
+  ipcMain.handle('sftp:read-file', (event, connectionId: string, path: string) =>
+    readSftpFile(connectionId, event.sender.id, path)
+  )
+
+  ipcMain.handle('sftp:write-file', (event, connectionId: string, path: string, content: string) =>
+    writeSftpFile(connectionId, event.sender.id, path, content)
   )
 
   ipcMain.handle('sftp:select-upload-files', async (event) => {

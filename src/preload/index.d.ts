@@ -2,6 +2,7 @@ import { ElectronAPI } from '@electron-toolkit/preload'
 import type { ShortcutSettings } from '../shared/shortcuts'
 import type {
   SftpListResult,
+  SftpReadFileResult,
   SftpTransferResult,
   SshConnectRequest,
   SshConnectResult,
@@ -27,6 +28,8 @@ export interface SshApi {
   createDirectory: (connectionId: string, path: string) => Promise<void>
   rename: (connectionId: string, sourcePath: string, destinationPath: string) => Promise<void>
   remove: (connectionId: string, path: string, type: SshFileEntry['type']) => Promise<void>
+  readFile: (connectionId: string, path: string) => Promise<SftpReadFileResult>
+  writeFile: (connectionId: string, path: string, content: string) => Promise<void>
   selectUploadFiles: () => Promise<string[]>
   selectDownloadDirectory: () => Promise<string | undefined>
   upload: (

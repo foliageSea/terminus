@@ -51,6 +51,12 @@ export interface SftpListResult {
   entries: SshFileEntry[]
 }
 
+export interface SftpReadFileResult {
+  path: string
+  content: string
+  size: number
+}
+
 export interface SftpTransferResult {
   name: string
   path: string

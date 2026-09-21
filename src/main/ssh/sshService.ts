@@ -1,11 +1,12 @@
 import { Client } from 'ssh2'
-import type { ClientChannel, FileEntryWithStats, SFTPWrapper } from 'ssh2'
+import type { ClientChannel, FileEntryWithStats, SFTPWrapper, Stats } from 'ssh2'
 import { createHash, randomUUID } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { homedir } from 'os'
 import { basename, join as joinLocalPath, posix } from 'path'
 import type {
   SftpListResult,
+  SftpReadFileResult,
   SftpTransferResult,
   SshConnectRequest,
   SshConnectResult,
@@ -15,6 +16,7 @@ import type {
 
 const maxOutputChunkBytes = 100 * 1024
 const maxUnackedOutputBytes = maxOutputChunkBytes * 5
+const maxEditableFileBytes = 2 * 1024 * 1024
 
 interface SshConnectionState {
   id: string
@@ -465,6 +467,39 @@ export async function renameSftpEntry(
   const sftp = await getSftp(connectionId, ownerWebContentsId)
   await new Promise<void>((resolve, reject) => {
     sftp.rename(sourcePath, destinationPath, (error) => (error ? reject(error) : resolve()))
+  })
+}
+
+export async function readSftpFile(
+  connectionId: string,
+  ownerWebContentsId: number,
+  path: string
+): Promise<SftpReadFileResult> {
+  const sftp = await getSftp(connectionId, ownerWebContentsId)
+  const stats = await new Promise<Stats>((resolve, reject) => {
+    sftp.stat(path, (error, fileStats) => (error ? reject(error) : resolve(fileStats)))
+  })
+  if (!stats.isFile()) throw new Error('目标不是普通文件，无法编辑')
+  if (stats.size > maxEditableFileBytes) throw new Error('文件超过 2MB，无法在线编辑')
+
+  const content = await new Promise<Buffer>((resolve, reject) => {
+    sftp.readFile(path, (error, data) => (error ? reject(error) : resolve(data)))
+  })
+  return { path, content: content.toString('utf8'), size: content.length }
+}
+
+export async function writeSftpFile(
+  connectionId: string,
+  ownerWebContentsId: number,
+  path: string,
+  content: string
+): Promise<void> {
+  const data = Buffer.from(content, 'utf8')
+  if (data.length > maxEditableFileBytes) throw new Error('文件超过 2MB，无法保存')
+
+  const sftp = await getSftp(connectionId, ownerWebContentsId)
+  await new Promise<void>((resolve, reject) => {
+    sftp.writeFile(path, data, (error) => (error ? reject(error) : resolve()))
   })
 }
 
