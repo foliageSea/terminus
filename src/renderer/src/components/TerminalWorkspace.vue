@@ -149,7 +149,7 @@ function createSettingsTab(): SettingsTab {
     id: createId('tab'),
     title: '设置',
     type: 'settings',
-    activeSection: 'appearance'
+    activeSection: 'general'
   }
 }
 
