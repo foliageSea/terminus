@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import {
   ArrowUp,
@@ -54,6 +54,9 @@ const editorVisible = ref(false)
 const editorMode = ref<'create' | 'rename'>('create')
 const editorValue = ref('')
 const editorTarget = ref<SshFileEntry | undefined>()
+const pathEditing = ref(false)
+const pathInput = ref('')
+const pathInputRef = ref<HTMLInputElement>()
 let loadedOnce = false
 
 const breadcrumbs = computed(() => {
@@ -114,6 +117,30 @@ function goUp(): void {
   if (currentPath.value === '/') return
   const parent = currentPath.value.replace(/\/[^/]+\/?$/, '') || '/'
   void loadDirectory(parent)
+}
+
+async function startPathEdit(): Promise<void> {
+  pathInput.value = currentPath.value === '.' ? '/' : currentPath.value
+  pathEditing.value = true
+  await nextTick()
+  pathInputRef.value?.focus()
+  pathInputRef.value?.select()
+}
+
+function cancelPathEdit(): void {
+  pathEditing.value = false
+}
+
+function submitPathJump(): void {
+  let target = pathInput.value.trim()
+  if (!target) {
+    cancelPathEdit()
+    return
+  }
+  if (target === '~') target = '.'
+  else if (target.startsWith('~/')) target = `.${target.slice(1)}`
+  pathEditing.value = false
+  void loadDirectory(target)
 }
 
 function toggleSelection(entry: SshFileEntry): void {
@@ -298,7 +325,12 @@ watch(
       <Button size="icon" variant="ghost" title="远程主目录" @click="loadDirectory('.')">
         <Home :size="15" />
       </Button>
-      <div class="sftp-breadcrumbs">
+      <div
+        v-if="!pathEditing"
+        class="sftp-breadcrumbs"
+        title="点击空白处输入路径跳转"
+        @click.self="startPathEdit"
+      >
         <template v-for="(crumb, index) in breadcrumbs" :key="crumb.path">
           <span v-if="index > 1" class="sftp-crumb-separator">/</span>
           <Button
@@ -312,6 +344,17 @@ watch(
           </Button>
         </template>
       </div>
+      <input
+        v-else
+        ref="pathInputRef"
+        v-model="pathInput"
+        class="ui-input sftp-path-input"
+        placeholder="输入远程路径，回车跳转"
+        spellcheck="false"
+        @keydown.enter.prevent="submitPathJump"
+        @keydown.esc.prevent="cancelPathEdit"
+        @blur="cancelPathEdit"
+      />
       <span v-if="transferMessage" class="sftp-transfer-message">{{ transferMessage }}</span>
     </div>
 
@@ -442,10 +485,21 @@ watch(
 
 .sftp-breadcrumbs {
   display: flex;
+  flex: 1;
   align-items: center;
+  align-self: stretch;
   min-width: 0;
   overflow-x: auto;
+  cursor: text;
   scrollbar-width: none;
+}
+
+.sftp-path-input {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  font-family: monospace;
+  font-size: 12px;
 }
 
 .sftp-crumb-separator {
