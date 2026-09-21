@@ -3,9 +3,21 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import {
   ArrowUp,
+  Database,
   Download,
   File,
+  FileArchive,
+  FileCode,
+  FileCog,
+  FileImage,
+  FileKey,
+  FileLock,
+  FileMusic,
   FilePen,
+  FileSpreadsheet,
+  FileTerminal,
+  FileText,
+  FileVideoCamera,
   Folder,
   FolderPlus,
   Home,
@@ -104,6 +116,93 @@ function formatDate(timestamp: number): string {
 function getEntryIcon(entry: SshFileEntry): Component {
   if (entry.type === 'directory') return Folder
   if (entry.type === 'symlink') return Link2
+
+  const name = entry.name.toLowerCase()
+  const extension = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1) : ''
+
+  if (
+    ['dockerfile', 'makefile', 'cmakelists.txt', 'jenkinsfile', 'justfile', 'vagrantfile'].includes(
+      name
+    )
+  )
+    return FileCode
+  if (
+    ['.env', '.gitignore', '.gitattributes', '.npmrc', '.editorconfig'].includes(name) ||
+    ['conf', 'config', 'cfg', 'ini', 'json', 'toml', 'xml', 'yaml', 'yml'].includes(extension)
+  )
+    return FileCog
+  if (['lock', 'lockb'].includes(extension) || name.endsWith('-lock.json')) return FileLock
+  if (
+    [
+      'bash',
+      'bat',
+      'cmd',
+      'command',
+      'fish',
+      'ps1',
+      'sh',
+      'zsh',
+      'appimage',
+      'bin',
+      'exe',
+      'run'
+    ].includes(extension)
+  )
+    return FileTerminal
+  if (
+    [
+      'c',
+      'cc',
+      'cpp',
+      'cs',
+      'css',
+      'dart',
+      'go',
+      'h',
+      'hpp',
+      'html',
+      'java',
+      'js',
+      'jsx',
+      'kt',
+      'lua',
+      'php',
+      'py',
+      'rb',
+      'rs',
+      'scss',
+      'sql',
+      'swift',
+      'ts',
+      'tsx',
+      'vue'
+    ].includes(extension)
+  )
+    return FileCode
+  if (
+    ['bmp', 'gif', 'heic', 'ico', 'jpeg', 'jpg', 'png', 'svg', 'tif', 'tiff', 'webp'].includes(
+      extension
+    )
+  )
+    return FileImage
+  if (['aac', 'flac', 'm4a', 'mp3', 'ogg', 'opus', 'wav', 'wma'].includes(extension))
+    return FileMusic
+  if (['avi', 'flv', 'm4v', 'mkv', 'mov', 'mp4', 'mpeg', 'mpg', 'webm', 'wmv'].includes(extension))
+    return FileVideoCamera
+  if (
+    ['7z', 'bz2', 'gz', 'rar', 'tar', 'tgz', 'xz', 'zip', 'zst'].includes(extension) ||
+    name.endsWith('.tar.gz') ||
+    name.endsWith('.tar.xz')
+  )
+    return FileArchive
+  if (['csv', 'ods', 'tsv', 'xls', 'xlsm', 'xlsx'].includes(extension)) return FileSpreadsheet
+  if (['db', 'db3', 'mdb', 'sqlite', 'sqlite3'].includes(extension)) return Database
+  if (['cer', 'crt', 'der', 'key', 'pem', 'pfx', 'p12', 'pub'].includes(extension)) return FileKey
+  if (
+    ['doc', 'docx', 'log', 'md', 'mdx', 'odt', 'pdf', 'rtf', 'tex', 'txt'].includes(extension) ||
+    ['license', 'readme', 'changelog', 'authors'].includes(name)
+  )
+    return FileText
   return File
 }
 
