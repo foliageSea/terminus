@@ -180,6 +180,7 @@ const lastActiveTerminalTabId = ref(activeTabId.value)
 const mountedTerminalTabIds = reactive(new Set<string>())
 const tabSessionLoaded = ref(false)
 const inheritTabCwd = ref(true)
+const commandCompleteNotification = ref(true)
 const windowControlsStyle = ref<WindowControlsStyle>('system')
 const platform = ref('win32')
 const windowMaximized = ref(false)
@@ -540,6 +541,11 @@ function switchPane(): void {
 
 async function updateInheritTabCwd(value: boolean): Promise<void> {
   inheritTabCwd.value = await window.api.settings.setInheritTabCwd(value)
+}
+
+async function updateCommandCompleteNotification(value: boolean): Promise<void> {
+  commandCompleteNotification.value =
+    await window.api.settings.setCommandCompleteNotification(value)
 }
 
 async function updateWindowControlsStyle(value: WindowControlsStyle): Promise<void> {
@@ -1076,6 +1082,7 @@ onMounted(async () => {
   })
 
   inheritTabCwd.value = await window.api.settings.getInheritTabCwd()
+  commandCompleteNotification.value = await window.api.settings.getCommandCompleteNotification()
   windowControlsStyle.value = await window.api.settings.getWindowControlsStyle()
   platform.value = await window.api.window.getPlatform()
   await refreshWindowMaximized()
@@ -1367,6 +1374,7 @@ onBeforeUnmount(() => {
               :active-section="tab.activeSection"
               :primary-color="props.primaryColor"
               :inherit-tab-cwd="inheritTabCwd"
+              :command-complete-notification="commandCompleteNotification"
               :window-controls-style="windowControlsStyle"
               :window-always-on-top="windowAppearanceSettings.alwaysOnTop"
               :remember-window-bounds="windowBoundsSettings.rememberWindowBounds"
@@ -1376,6 +1384,7 @@ onBeforeUnmount(() => {
               @update-active-section="tab.activeSection = $event"
               @update-primary-color="updatePrimaryColor"
               @update-inherit-tab-cwd="updateInheritTabCwd"
+              @update-command-complete-notification="updateCommandCompleteNotification"
               @update-window-controls-style="updateWindowControlsStyle"
               @update-window-always-on-top="updateWindowAlwaysOnTop"
               @update-remember-window-bounds="updateRememberWindowBounds"

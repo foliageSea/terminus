@@ -61,6 +61,10 @@ const api = {
     getInheritTabCwd: () => ipcRenderer.invoke('settings:get-inherit-tab-cwd'),
     setInheritTabCwd: (inheritTabCwd: boolean) =>
       ipcRenderer.invoke('settings:set-inherit-tab-cwd', inheritTabCwd),
+    getCommandCompleteNotification: () =>
+      ipcRenderer.invoke('settings:get-command-complete-notification'),
+    setCommandCompleteNotification: (enabled: boolean) =>
+      ipcRenderer.invoke('settings:set-command-complete-notification', enabled),
     getWindowControlsStyle: () => ipcRenderer.invoke('settings:get-window-controls-style'),
     setWindowControlsStyle: (style: 'system' | 'mac' | 'windows') =>
       ipcRenderer.invoke('settings:set-window-controls-style', style),

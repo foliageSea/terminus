@@ -23,6 +23,7 @@ import {
   readWindowControlsStyle,
   readZoomFactor,
   readInheritTabCwd,
+  readCommandCompleteNotification,
   writeProjectsSettings,
   writeShortcutSettings,
   writeSshProfilesSettings,
@@ -33,7 +34,8 @@ import {
   writeWindowAlwaysOnTop,
   writeWindowControlsStyle,
   writeZoomFactor,
-  writeInheritTabCwd
+  writeInheritTabCwd,
+  writeCommandCompleteNotification
 } from '../settings/settingsService'
 
 const imageMimeTypes = new Map([
@@ -119,6 +121,12 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-inherit-tab-cwd', () => readInheritTabCwd())
   ipcMain.handle('settings:set-inherit-tab-cwd', (_, inheritTabCwd: boolean) =>
     writeInheritTabCwd(inheritTabCwd)
+  )
+  ipcMain.handle('settings:get-command-complete-notification', () =>
+    readCommandCompleteNotification()
+  )
+  ipcMain.handle('settings:set-command-complete-notification', (_, enabled: boolean) =>
+    writeCommandCompleteNotification(enabled)
   )
   ipcMain.handle('settings:get-window-controls-style', () => readWindowControlsStyle())
   ipcMain.handle('settings:set-window-controls-style', (_, style: WindowControlsStyle) =>

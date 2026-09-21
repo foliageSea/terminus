@@ -23,6 +23,7 @@ import {
   defaultWindowBoundsSettings,
   defaultZoomFactor,
   defaultInheritTabCwd,
+  defaultCommandCompleteNotification,
   maxZoomFactor,
   minZoomFactor
 } from './settingsTypes'
@@ -273,6 +274,10 @@ function normalizeInheritTabCwd(value: unknown): boolean {
   return typeof value === 'boolean' ? value : defaultInheritTabCwd
 }
 
+function normalizeCommandCompleteNotification(value: unknown): boolean {
+  return typeof value === 'boolean' ? value : defaultCommandCompleteNotification
+}
+
 function normalizeAppSettings(value: unknown): AppSettings {
   const settings = value && typeof value === 'object' ? (value as Partial<AppSettings>) : {}
   const legacyTerminalSettings =
@@ -289,7 +294,10 @@ function normalizeAppSettings(value: unknown): AppSettings {
     windowAlwaysOnTop: normalizeWindowAlwaysOnTop(settings.windowAlwaysOnTop),
     windowBounds: normalizeWindowBoundsSettings(settings.windowBounds),
     tabSession: normalizeTabSessionSettings(settings.tabSession),
-    inheritTabCwd: normalizeInheritTabCwd(settings.inheritTabCwd)
+    inheritTabCwd: normalizeInheritTabCwd(settings.inheritTabCwd),
+    commandCompleteNotification: normalizeCommandCompleteNotification(
+      settings.commandCompleteNotification
+    )
   }
 }
 
@@ -416,4 +424,13 @@ export function readInheritTabCwd(): boolean {
 
 export function writeInheritTabCwd(inheritTabCwd: boolean): boolean {
   return writeAppSettings({ ...readAppSettings(), inheritTabCwd }).inheritTabCwd
+}
+
+export function readCommandCompleteNotification(): boolean {
+  return readAppSettings().commandCompleteNotification
+}
+
+export function writeCommandCompleteNotification(enabled: boolean): boolean {
+  return writeAppSettings({ ...readAppSettings(), commandCompleteNotification: enabled })
+    .commandCompleteNotification
 }

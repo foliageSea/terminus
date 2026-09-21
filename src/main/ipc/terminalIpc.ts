@@ -1,4 +1,5 @@
 import { BrowserWindow, ipcMain, Notification, WebContents } from 'electron'
+import { readCommandCompleteNotification } from '../settings/settingsService'
 import { sendToRenderer } from '../shared/sendToRenderer'
 import {
   ackTerminalData,
@@ -23,6 +24,7 @@ function registerTerminalOwner(sender: WebContents): void {
 
 function notifyCommandComplete(sender: WebContents, exitCode: number): void {
   if (process.platform !== 'win32' || !Notification.isSupported()) return
+  if (!readCommandCompleteNotification()) return
 
   const window = BrowserWindow.fromWebContents(sender)
   if (!window || window.isFocused()) return

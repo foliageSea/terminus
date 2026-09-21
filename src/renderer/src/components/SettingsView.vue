@@ -53,6 +53,7 @@ const props = defineProps<{
   activeSection: SettingsSection
   primaryColor: string
   inheritTabCwd: boolean
+  commandCompleteNotification: boolean
   windowControlsStyle: WindowControlsStyle
   windowAlwaysOnTop: boolean
   rememberWindowBounds: boolean
@@ -65,6 +66,7 @@ const emit = defineEmits<{
   updateActiveSection: [section: SettingsSection]
   updatePrimaryColor: [color: string]
   updateInheritTabCwd: [value: boolean]
+  updateCommandCompleteNotification: [value: boolean]
   updateWindowControlsStyle: [value: WindowControlsStyle]
   updateWindowAlwaysOnTop: [value: boolean]
   updateRememberWindowBounds: [value: boolean]
@@ -264,6 +266,16 @@ onBeforeUnmount(() => {
             ><Switch
               :model-value="inheritTabCwd"
               @update:model-value="emit('updateInheritTabCwd', $event)"
+          /></Field>
+          <Field orientation="horizontal"
+            ><FieldContent
+              ><FieldTitle>命令完成通知</FieldTitle
+              ><FieldDescription>{{
+                commandCompleteNotification ? '命令执行完成后发送系统通知' : '命令执行完成后不通知'
+              }}</FieldDescription></FieldContent
+            ><Switch
+              :model-value="commandCompleteNotification"
+              @update:model-value="emit('updateCommandCompleteNotification', $event)"
           /></Field>
           <Field class="settings-compact-control"
             ><FieldLabel>窗口按钮风格</FieldLabel

@@ -56,6 +56,7 @@ export interface AppSettings {
   windowBounds: WindowBoundsSettings
   tabSession: TabSessionSettings
   inheritTabCwd: boolean
+  commandCompleteNotification: boolean
 }
 
 export const defaultTerminalSettings: TerminalSettings = {
@@ -100,3 +101,4 @@ export const defaultTabSessionSettings: TabSessionSettings = {
   activeIndex: 0
 }
 export const defaultInheritTabCwd = true
+export const defaultCommandCompleteNotification = true
