@@ -434,9 +434,6 @@ onBeforeUnmount(() => {
           <div class="settings-section-header">
             <div>
               <h3 class="settings-section-title">快捷键设置</h3>
-              <p class="settings-section-desc">
-                点击“修改”后直接按下新的组合键，按 `Esc` 可取消录制。
-              </p>
             </div>
             <Button variant="ghost" @click="resetAllShortcuts">
               <RotateCcw :size="15" aria-hidden="true" />
