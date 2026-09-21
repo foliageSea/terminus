@@ -1179,7 +1179,7 @@ onBeforeUnmount(() => {
           >
             <PanelLeftOpen :size="16" aria-hidden="true" />
           </Button>
-          <div class="workspace-app-title">Terminus</div>
+          <div v-if="sidebarCollapsed" class="workspace-app-title">Terminus</div>
           <div class="workspace-titlebar-drag-region" />
           <div class="header-actions">
             <div class="header-action-group">

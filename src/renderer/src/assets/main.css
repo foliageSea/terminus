@@ -477,11 +477,12 @@ button:focus-visible {
 }
 
 .workspace-header.window-controls-windows {
-  padding-right: 12px;
+  padding-right: 0;
 }
 
 .workspace-header.window-controls-windows .window-controls {
   order: 3;
+  margin-top: -6px;
 }
 
 .window-controls {
@@ -506,12 +507,13 @@ button:focus-visible {
 
 .window-controls-windows .window-controls {
   align-self: stretch;
+  align-items: flex-start;
   gap: 0;
 }
 
 .window-controls-windows .window-control {
   width: 46px;
-  height: 32px;
+  height: 36px;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -595,7 +597,7 @@ button:focus-visible {
 
 .window-controls-windows .window-control.close::before,
 .window-controls-windows .window-control.close::after {
-  top: 15px;
+  top: 17px;
   left: 17px;
   width: 12px;
   background: rgba(255, 255, 255, 0.9);
@@ -618,7 +620,7 @@ button:focus-visible {
 }
 
 .window-controls-windows .window-control.minimize::before {
-  top: 16px;
+  top: 18px;
   left: 17px;
   width: 12px;
   background: rgba(255, 255, 255, 0.86);
@@ -632,7 +634,7 @@ button:focus-visible {
 
 .window-controls-windows .window-control.maximize::before {
   inset: auto;
-  top: 10px;
+  top: 12px;
   left: 17px;
   width: 10px;
   height: 10px;
@@ -641,12 +643,12 @@ button:focus-visible {
 }
 
 .window-controls-windows.window-maximized .window-control.maximize::before {
-  top: 12px;
+  top: 14px;
   left: 16px;
 }
 
 .window-controls-windows.window-maximized .window-control.maximize::after {
-  top: 9px;
+  top: 11px;
   left: 19px;
   width: 10px;
   height: 10px;
