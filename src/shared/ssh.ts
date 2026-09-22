@@ -64,6 +64,17 @@ export interface SftpTransferResult {
   error?: string
 }
 
+export interface SftpTransferProgress {
+  connectionId: string
+  direction: 'upload' | 'download'
+  name: string
+  path: string
+  transferred: number
+  total: number
+  fileIndex: number
+  fileCount: number
+}
+
 export const defaultSshProfilesSettings: SshProfilesSettings = {
   items: []
 }

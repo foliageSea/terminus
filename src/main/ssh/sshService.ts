@@ -7,6 +7,7 @@ import { basename, join as joinLocalPath, posix } from 'path'
 import type {
   SftpListResult,
   SftpReadFileResult,
+  SftpTransferProgress,
   SftpTransferResult,
   SshConnectRequest,
   SshConnectResult,
@@ -17,6 +18,7 @@ import type {
 const maxOutputChunkBytes = 100 * 1024
 const maxUnackedOutputBytes = maxOutputChunkBytes * 5
 const maxEditableFileBytes = 2 * 1024 * 1024
+const transferProgressIntervalMs = 100
 
 interface SshConnectionState {
   id: string
@@ -517,25 +519,55 @@ export async function removeSftpEntry(
   })
 }
 
+type SftpProgressReporter = (progress: SftpTransferProgress) => void
+
+function createThrottledStep(
+  report: (transferred: number, total: number) => void
+): (transferred: number, chunk: number, total: number) => void {
+  let lastReportAt = 0
+  return (transferred, _chunk, total) => {
+    const now = Date.now()
+    if (transferred < total && now - lastReportAt < transferProgressIntervalMs) return
+    lastReportAt = now
+    report(transferred, total)
+  }
+}
+
 export async function uploadSftpFiles(
   connectionId: string,
   ownerWebContentsId: number,
   localPaths: string[],
-  remoteDirectory: string
+  remoteDirectory: string,
+  onProgress?: SftpProgressReporter
 ): Promise<SftpTransferResult[]> {
   const sftp = await getSftp(connectionId, ownerWebContentsId)
   const results: SftpTransferResult[] = []
 
-  for (const localPath of localPaths) {
-    const remotePath = joinRemotePath(remoteDirectory, basename(localPath))
+  for (const [index, localPath] of localPaths.entries()) {
+    const name = basename(localPath)
+    const remotePath = joinRemotePath(remoteDirectory, name)
+    const step = createThrottledStep((transferred, total) =>
+      onProgress?.({
+        connectionId,
+        direction: 'upload',
+        name,
+        path: remotePath,
+        transferred,
+        total,
+        fileIndex: index + 1,
+        fileCount: localPaths.length
+      })
+    )
     try {
       await new Promise<void>((resolve, reject) => {
-        sftp.fastPut(localPath, remotePath, (error) => (error ? reject(error) : resolve()))
+        sftp.fastPut(localPath, remotePath, { step }, (error) =>
+          error ? reject(error) : resolve()
+        )
       })
-      results.push({ name: basename(localPath), path: remotePath, ok: true })
+      results.push({ name, path: remotePath, ok: true })
     } catch (error) {
       results.push({
-        name: basename(localPath),
+        name,
         path: remotePath,
         ok: false,
         error: error instanceof Error ? error.message : '上传失败'
@@ -550,21 +582,37 @@ export async function downloadSftpFiles(
   connectionId: string,
   ownerWebContentsId: number,
   remotePaths: string[],
-  localDirectory: string
+  localDirectory: string,
+  onProgress?: SftpProgressReporter
 ): Promise<SftpTransferResult[]> {
   const sftp = await getSftp(connectionId, ownerWebContentsId)
   const results: SftpTransferResult[] = []
 
-  for (const remotePath of remotePaths) {
-    const localPath = joinLocalPath(localDirectory, posix.basename(remotePath))
+  for (const [index, remotePath] of remotePaths.entries()) {
+    const name = posix.basename(remotePath)
+    const localPath = joinLocalPath(localDirectory, name)
+    const step = createThrottledStep((transferred, total) =>
+      onProgress?.({
+        connectionId,
+        direction: 'download',
+        name,
+        path: localPath,
+        transferred,
+        total,
+        fileIndex: index + 1,
+        fileCount: remotePaths.length
+      })
+    )
     try {
       await new Promise<void>((resolve, reject) => {
-        sftp.fastGet(remotePath, localPath, (error) => (error ? reject(error) : resolve()))
+        sftp.fastGet(remotePath, localPath, { step }, (error) =>
+          error ? reject(error) : resolve()
+        )
       })
-      results.push({ name: posix.basename(remotePath), path: localPath, ok: true })
+      results.push({ name, path: localPath, ok: true })
     } catch (error) {
       results.push({
-        name: posix.basename(remotePath),
+        name,
         path: localPath,
         ok: false,
         error: error instanceof Error ? error.message : '下载失败'

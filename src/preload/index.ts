@@ -1,7 +1,7 @@
 import { clipboard, contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { ShortcutSettings } from '../shared/shortcuts'
-import type { SshConnectRequest, SshProfilesSettings } from '../shared/ssh'
+import type { SftpTransferProgress, SshConnectRequest, SshProfilesSettings } from '../shared/ssh'
 
 // Custom APIs for renderer
 const api = {
@@ -140,7 +140,14 @@ const api = {
     upload: (connectionId: string, localPaths: string[], remoteDirectory: string) =>
       ipcRenderer.invoke('sftp:upload', connectionId, localPaths, remoteDirectory),
     download: (connectionId: string, remotePaths: string[], localDirectory: string) =>
-      ipcRenderer.invoke('sftp:download', connectionId, remotePaths, localDirectory)
+      ipcRenderer.invoke('sftp:download', connectionId, remotePaths, localDirectory),
+    onTransferProgress: (callback: (payload: SftpTransferProgress) => void) => {
+      const listener = (_: Electron.IpcRendererEvent, payload: SftpTransferProgress): void =>
+        callback(payload)
+
+      ipcRenderer.on('sftp:transfer-progress', listener)
+      return () => ipcRenderer.removeListener('sftp:transfer-progress', listener)
+    }
   },
   terminal: {
     create: (id: string, cols?: number, rows?: number, cwd?: string) =>

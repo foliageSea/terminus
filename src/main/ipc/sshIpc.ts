@@ -143,12 +143,16 @@ export function registerSshIpc(): void {
   ipcMain.handle(
     'sftp:upload',
     (event, connectionId: string, localPaths: string[], remoteDirectory: string) =>
-      uploadSftpFiles(connectionId, event.sender.id, localPaths, remoteDirectory)
+      uploadSftpFiles(connectionId, event.sender.id, localPaths, remoteDirectory, (progress) =>
+        sendToRenderer(event.sender, 'sftp:transfer-progress', progress)
+      )
   )
 
   ipcMain.handle(
     'sftp:download',
     (event, connectionId: string, remotePaths: string[], localDirectory: string) =>
-      downloadSftpFiles(connectionId, event.sender.id, remotePaths, localDirectory)
+      downloadSftpFiles(connectionId, event.sender.id, remotePaths, localDirectory, (progress) =>
+        sendToRenderer(event.sender, 'sftp:transfer-progress', progress)
+      )
   )
 }

@@ -3,6 +3,7 @@ import type { ShortcutSettings } from '../shared/shortcuts'
 import type {
   SftpListResult,
   SftpReadFileResult,
+  SftpTransferProgress,
   SftpTransferResult,
   SshConnectRequest,
   SshConnectResult,
@@ -42,6 +43,7 @@ export interface SshApi {
     remotePaths: string[],
     localDirectory: string
   ) => Promise<SftpTransferResult[]>
+  onTransferProgress: (callback: (payload: SftpTransferProgress) => void) => () => void
 }
 
 export interface TerminalApi {

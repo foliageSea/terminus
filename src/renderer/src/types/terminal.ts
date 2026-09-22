@@ -1,5 +1,11 @@
 import type { ShortcutBinding, ShortcutSettings } from '../../../shared/shortcuts'
-import type { SshConnectionProfile, SshFileEntry, SshProfilesSettings } from '../../../shared/ssh'
+import type {
+  SftpTransferProgress,
+  SftpTransferResult,
+  SshConnectionProfile,
+  SshFileEntry,
+  SshProfilesSettings
+} from '../../../shared/ssh'
 
 export type SplitDirection = 'horizontal' | 'vertical'
 
@@ -105,7 +111,13 @@ export interface ProjectsSettings {
   items: Project[]
 }
 
-export type { SshConnectionProfile, SshFileEntry, SshProfilesSettings }
+export type {
+  SftpTransferProgress,
+  SftpTransferResult,
+  SshConnectionProfile,
+  SshFileEntry,
+  SshProfilesSettings
+}
 
 export interface WindowBoundsSettings {
   rememberWindowBounds: boolean

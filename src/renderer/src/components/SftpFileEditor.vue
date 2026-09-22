@@ -16,6 +16,16 @@ import { toml } from '@codemirror/legacy-modes/mode/toml'
 import { yaml } from '@codemirror/legacy-modes/mode/yaml'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { FileCode2, Save, X } from '@lucide/vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 
 const props = defineProps<{
@@ -33,6 +43,7 @@ const status = ref<'loading' | 'ready' | 'error'>('loading')
 const saving = ref(false)
 const dirty = ref(false)
 const errorMessage = ref('')
+const closeConfirmVisible = ref(false)
 const editorHost = ref<HTMLElement>()
 let view: EditorView | undefined
 let originalContent = ''
@@ -153,7 +164,14 @@ async function saveFile(): Promise<void> {
 }
 
 function closeEditor(): void {
-  if (dirty.value && !window.confirm('文件有未保存的修改，确定关闭吗？')) return
+  if (dirty.value) {
+    closeConfirmVisible.value = true
+    return
+  }
+  emit('close')
+}
+
+function confirmCloseEditor(): void {
   emit('close')
 }
 
@@ -216,6 +234,23 @@ onBeforeUnmount(() => {
       <Button size="sm" variant="secondary" @click="closeEditor">返回</Button>
     </div>
     <div v-show="status === 'ready'" ref="editorHost" class="sftp-editor-body"></div>
+
+    <AlertDialog v-model:open="closeConfirmVisible">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>关闭文件</AlertDialogTitle>
+          <AlertDialogDescription>文件有未保存的修改，确定关闭吗？</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel as-child>
+            <Button variant="secondary">取消</Button>
+          </AlertDialogCancel>
+          <AlertDialogAction as-child>
+            <Button variant="destructive" @click="confirmCloseEditor">关闭</Button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 

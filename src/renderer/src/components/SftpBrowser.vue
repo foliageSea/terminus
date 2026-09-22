@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import {
   ArrowUp,
+  ArrowUpDown,
+  Check,
+  CircleAlert,
   Database,
   Download,
   File,
@@ -29,6 +32,16 @@ import {
   Upload,
   X
 } from '@lucide/vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -40,6 +53,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Table,
   TableBody,
@@ -49,7 +63,17 @@ import {
   TableRow
 } from '@/components/ui/table'
 import SftpFileEditor from './SftpFileEditor.vue'
-import type { SshFileEntry } from '../types/terminal'
+import type { SftpTransferResult, SshFileEntry } from '../types/terminal'
+
+interface TransferTask {
+  id: string
+  direction: 'upload' | 'download'
+  name: string
+  transferred: number
+  total: number
+  status: 'transferring' | 'done' | 'error'
+  error?: string
+}
 
 const props = defineProps<{
   connectionId: string
@@ -64,7 +88,7 @@ const entries = ref<SshFileEntry[]>([])
 const loading = ref(false)
 const transferring = ref(false)
 const errorMessage = ref('')
-const transferMessage = ref('')
+const transferTasks = ref<TransferTask[]>([])
 const selectedPaths = ref(new Set<string>())
 const editorVisible = ref(false)
 const editorMode = ref<'create' | 'rename'>('create')
@@ -75,6 +99,7 @@ const pathInput = ref('')
 const pathInputRef = ref<HTMLInputElement>()
 const editingEntry = ref<SshFileEntry | undefined>()
 const searchQuery = ref('')
+const deleteConfirmVisible = ref(false)
 let loadedOnce = false
 
 const breadcrumbs = computed(() => {
@@ -100,6 +125,49 @@ const allSelected = computed(
     visibleEntries.value.length > 0 &&
     visibleEntries.value.every((entry) => selectedPaths.value.has(entry.path))
 )
+const activeTransferCount = computed(
+  () => transferTasks.value.filter((task) => task.status === 'transferring').length
+)
+const hasFinishedTransfers = computed(() =>
+  transferTasks.value.some((task) => task.status !== 'transferring')
+)
+
+function taskPercent(task: TransferTask): number {
+  if (task.status !== 'transferring') return 100
+  if (task.total <= 0) return 0
+  return Math.min(100, Math.round((task.transferred / task.total) * 100))
+}
+
+function applyTransferResults(
+  direction: TransferTask['direction'],
+  results: SftpTransferResult[]
+): void {
+  for (const result of results) {
+    const id = `${direction}:${result.path}`
+    const task = transferTasks.value.find(
+      (item) => item.id === id && item.status === 'transferring'
+    )
+    if (task) {
+      task.status = result.ok ? 'done' : 'error'
+      task.error = result.error
+      if (result.ok && task.total > 0) task.transferred = task.total
+    } else {
+      transferTasks.value.unshift({
+        id,
+        direction,
+        name: result.name,
+        transferred: 0,
+        total: 0,
+        status: result.ok ? 'done' : 'error',
+        error: result.error
+      })
+    }
+  }
+}
+
+function clearFinishedTransfers(): void {
+  transferTasks.value = transferTasks.value.filter((task) => task.status === 'transferring')
+}
 
 function formatSize(size: number): string {
   if (size < 1024) return `${size} B`
@@ -324,10 +392,14 @@ async function submitEditor(): Promise<void> {
   }
 }
 
-async function removeSelected(): Promise<void> {
+function removeSelected(): void {
+  if (!selectedEntries.value.length) return
+  deleteConfirmVisible.value = true
+}
+
+async function confirmRemoveSelected(): Promise<void> {
   const targets = selectedEntries.value
   if (!targets.length) return
-  if (!window.confirm(`确定删除选中的 ${targets.length} 项吗？`)) return
 
   try {
     for (const entry of targets) {
@@ -344,11 +416,9 @@ async function uploadFiles(): Promise<void> {
   if (!localPaths.length) return
 
   transferring.value = true
-  transferMessage.value = ''
   try {
     const results = await window.api.ssh.upload(props.connectionId, localPaths, currentPath.value)
-    const successCount = results.filter((result) => result.ok).length
-    transferMessage.value = `已上传 ${successCount}/${results.length} 个文件`
+    applyTransferResults('upload', results)
     await loadDirectory()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '上传失败'
@@ -365,15 +435,13 @@ async function downloadSelected(): Promise<void> {
   if (!localDirectory) return
 
   transferring.value = true
-  transferMessage.value = ''
   try {
     const results = await window.api.ssh.download(
       props.connectionId,
       targets.map((entry) => entry.path),
       localDirectory
     )
-    const successCount = results.filter((result) => result.ok).length
-    transferMessage.value = `已下载 ${successCount}/${results.length} 个文件`
+    applyTransferResults('download', results)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '下载失败'
   } finally {
@@ -381,7 +449,28 @@ async function downloadSelected(): Promise<void> {
   }
 }
 
+const stopTransferProgress = window.api.ssh.onTransferProgress((progress) => {
+  if (progress.connectionId !== props.connectionId) return
+  const id = `${progress.direction}:${progress.path}`
+  const task = transferTasks.value.find((item) => item.id === id && item.status === 'transferring')
+  if (task) {
+    task.transferred = progress.transferred
+    task.total = progress.total
+  } else {
+    transferTasks.value.unshift({
+      id,
+      direction: progress.direction,
+      name: progress.name,
+      transferred: progress.transferred,
+      total: progress.total,
+      status: 'transferring'
+    })
+  }
+})
+
 onMounted(() => void loadDirectory('.'))
+
+onBeforeUnmount(() => stopTransferProgress())
 
 watch(
   () => props.active,
@@ -458,6 +547,67 @@ watch(
         >
           <Trash2 :size="15" />
         </Button>
+        <Popover>
+          <PopoverTrigger as-child>
+            <Button size="icon" variant="ghost" title="传输任务" class="sftp-transfer-trigger">
+              <ArrowUpDown :size="15" />
+              <span v-if="activeTransferCount" class="sftp-transfer-badge">
+                {{ activeTransferCount }}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            class="sftp-transfer-popover"
+            side="bottom"
+            align="end"
+            aria-label="传输任务列表"
+          >
+            <div class="sftp-transfer-popover-header">
+              <span>传输任务</span>
+              <button
+                v-if="hasFinishedTransfers"
+                type="button"
+                class="sftp-transfer-clear"
+                @click="clearFinishedTransfers"
+              >
+                清除已完成
+              </button>
+            </div>
+            <p v-if="!transferTasks.length" class="sftp-transfer-empty">暂无传输任务</p>
+            <div v-else class="sftp-transfer-list">
+              <div v-for="task in transferTasks" :key="task.id" class="sftp-transfer-task">
+                <div class="sftp-transfer-task-row">
+                  <component
+                    :is="task.direction === 'upload' ? Upload : Download"
+                    :size="13"
+                    aria-hidden="true"
+                  />
+                  <span class="sftp-transfer-task-name" :title="task.name">{{ task.name }}</span>
+                  <span class="sftp-transfer-task-status" :data-status="task.status">
+                    <template v-if="task.status === 'transferring'"
+                      >{{ taskPercent(task) }}%</template
+                    >
+                    <Check v-else-if="task.status === 'done'" :size="13" aria-label="已完成" />
+                    <CircleAlert v-else :size="13" aria-label="失败" />
+                  </span>
+                </div>
+                <span class="sftp-transfer-task-track">
+                  <span
+                    class="sftp-transfer-task-bar"
+                    :data-status="task.status"
+                    :style="{ width: `${taskPercent(task)}%` }"
+                  />
+                </span>
+                <div class="sftp-transfer-task-meta">
+                  <span>{{ formatSize(task.transferred) }} / {{ formatSize(task.total) }}</span>
+                  <span v-if="task.error" class="sftp-transfer-task-error" :title="task.error">
+                    {{ task.error }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </header>
 
@@ -517,7 +667,6 @@ watch(
           <X :size="12" />
         </button>
       </div>
-      <span v-if="transferMessage" class="sftp-transfer-message">{{ transferMessage }}</span>
     </div>
 
     <p v-if="errorMessage" class="sftp-error">{{ errorMessage }}</p>
@@ -607,6 +756,25 @@ watch(
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog v-model:open="deleteConfirmVisible">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>删除选中项</AlertDialogTitle>
+          <AlertDialogDescription>
+            确定删除选中的 {{ selectedEntries.length }} 项吗？此操作不可恢复。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel as-child>
+            <Button variant="secondary">取消</Button>
+          </AlertDialogCancel>
+          <AlertDialogAction as-child>
+            <Button variant="destructive" @click="confirmRemoveSelected">删除</Button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </section>
 </template>
 
@@ -769,11 +937,27 @@ watch(
   color: white;
 }
 
-.sftp-transfer-message {
-  margin-left: auto;
-  color: color-mix(in srgb, var(--terminal-active-color) 76%, white);
-  font-size: 11px;
-  white-space: nowrap;
+.sftp-transfer-trigger {
+  position: relative;
+}
+
+.sftp-transfer-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--terminal-active-color);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .sftp-error {
@@ -899,5 +1083,143 @@ watch(
   height: 160px;
   color: rgba(255, 255, 255, 0.38);
   text-align: center !important;
+}
+</style>
+
+<!-- 传输任务浮窗通过 Popover portal 挂载到 body，样式不能 scoped -->
+<style>
+.sftp-transfer-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 320px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(20, 20, 20, 0.96);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(16px);
+}
+
+.sftp-transfer-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sftp-transfer-clear {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.sftp-transfer-clear:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.sftp-transfer-empty {
+  margin: 0;
+  padding: 16px 0;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 12px;
+  text-align: center;
+}
+
+.sftp-transfer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-width: thin;
+}
+
+.sftp-transfer-task {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sftp-transfer-task-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+}
+
+.sftp-transfer-task-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sftp-transfer-task-status {
+  display: flex;
+  flex: none;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+
+.sftp-transfer-task-status[data-status='done'] {
+  color: #4ade80;
+}
+
+.sftp-transfer-task-status[data-status='error'] {
+  color: #f87171;
+}
+
+.sftp-transfer-task-track {
+  display: block;
+  overflow: hidden;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sftp-transfer-task-bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--terminal-active-color);
+  transition: width 0.1s linear;
+}
+
+.sftp-transfer-task-bar[data-status='done'] {
+  background: #4ade80;
+}
+
+.sftp-transfer-task-bar[data-status='error'] {
+  background: #f87171;
+}
+
+.sftp-transfer-task-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+}
+
+.sftp-transfer-task-error {
+  min-width: 0;
+  overflow: hidden;
+  color: #f87171;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
