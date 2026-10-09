@@ -286,8 +286,10 @@ const resolvedWindowControlsStyle = computed<'mac' | 'windows'>(() => {
   if (windowControlsStyle.value === 'system') return platform.value === 'darwin' ? 'mac' : 'windows'
   return windowControlsStyle.value
 })
+const usesNativeWindowControls = computed(() => platform.value === 'darwin')
 const workspaceHeaderClass = computed(() => [
   `window-controls-${resolvedWindowControlsStyle.value}`,
+  { 'workspace-native-window-controls': usesNativeWindowControls.value },
   { 'window-maximized': windowMaximized.value }
 ])
 const workspaceBackgroundStyle = computed(() => {
@@ -1152,7 +1154,9 @@ onBeforeUnmount(() => {
     >
       <template #window-controls>
         <WindowControls
-          v-if="!sidebarCollapsed && resolvedWindowControlsStyle === 'mac'"
+          v-if="
+            !usesNativeWindowControls && !sidebarCollapsed && resolvedWindowControlsStyle === 'mac'
+          "
           :controls-style="resolvedWindowControlsStyle"
           :maximized="windowMaximized"
           @minimize="minimizeWindow"
@@ -1171,7 +1175,10 @@ onBeforeUnmount(() => {
       >
         <div class="workspace-titlebar">
           <WindowControls
-            v-if="sidebarCollapsed || resolvedWindowControlsStyle === 'windows'"
+            v-if="
+              !usesNativeWindowControls &&
+              (sidebarCollapsed || resolvedWindowControlsStyle === 'windows')
+            "
             :controls-style="resolvedWindowControlsStyle"
             :maximized="windowMaximized"
             @minimize="minimizeWindow"

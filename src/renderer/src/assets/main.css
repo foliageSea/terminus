@@ -485,6 +485,10 @@ button:focus-visible {
   margin-top: -6px;
 }
 
+.workspace-header.workspace-native-window-controls .sidebar-expand-button {
+  margin-left: 72px;
+}
+
 .window-controls {
   display: flex;
   align-items: center;

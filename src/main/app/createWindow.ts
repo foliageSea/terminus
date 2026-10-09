@@ -20,7 +20,12 @@ export function createWindow(): void {
     title: 'Terminus',
     ...getRestorableWindowBounds(windowBounds),
     show: false,
-    frame: false,
+    ...(process.platform === 'darwin'
+      ? {
+          titleBarStyle: 'hiddenInset' as const,
+          trafficLightPosition: { x: 12, y: 12 }
+        }
+      : { frame: false }),
     autoHideMenuBar: true,
     icon,
     webPreferences: {
