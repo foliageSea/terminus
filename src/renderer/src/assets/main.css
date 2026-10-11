@@ -664,7 +664,8 @@ button:focus-visible {
   margin-right: 8px;
 }
 
-.workspace-header.window-controls-mac .sidebar-expand-button {
+.workspace-header.window-controls-mac:not(.workspace-native-window-controls)
+  .sidebar-expand-button {
   margin-left: 10px;
 }
 
