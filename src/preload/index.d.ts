@@ -66,6 +66,8 @@ export interface WindowApi {
   minimize: () => void
   toggleMaximize: () => void
   close: () => void
+  confirmClose: () => void
+  onCloseRequested: (callback: () => void) => () => void
   setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<boolean>
   toggleAlwaysOnTop: () => Promise<boolean>
   openExternal: (url: string) => void

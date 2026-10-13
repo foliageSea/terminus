@@ -219,6 +219,7 @@ const shortcutsLoaded = ref(false)
 const shortcutRecording = ref(false)
 const windowBoundsSettings = reactive<WindowBoundsSettings>({ ...defaultWindowBoundsSettings })
 let removeCwdListener: (() => void) | undefined
+let removeCloseRequestedListener: (() => void) | undefined
 let layoutAnimationTimer: number | undefined
 let fontSizeWheelDelta = 0
 let fontSizeWheelResetTimer: number | undefined
@@ -839,16 +840,16 @@ async function toggleWindowAlwaysOnTop(): Promise<void> {
 }
 
 function closeWindow(): void {
-  if (tabs.value.length > 1) {
-    requestCloseConfirmation(
-      '关闭窗口',
-      () => window.api.window.close(),
-      '当前窗口存在多个 Tab，确定要关闭整个窗口吗？'
-    )
-    return
-  }
-
   window.api.window.close()
+}
+
+function confirmWindowClose(): void {
+  requestCloseConfirmation(
+    '关闭窗口',
+    () => window.api.window.confirmClose(),
+    '关闭窗口将结束所有终端会话，确定要关闭吗？',
+    '关闭窗口'
+  )
 }
 
 async function zoomIn(): Promise<void> {
@@ -1074,6 +1075,7 @@ watch(
 )
 
 onMounted(async () => {
+  removeCloseRequestedListener = window.api.window.onCloseRequested(confirmWindowClose)
   window.addEventListener('keydown', handleGlobalKeydown, true)
   window.addEventListener('wheel', handleGlobalWheel, { capture: true, passive: false })
   window.addEventListener('resize', refreshWindowMaximized)
@@ -1123,6 +1125,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('wheel', handleGlobalWheel, true)
   window.removeEventListener('resize', refreshWindowMaximized)
   removeCwdListener?.()
+  removeCloseRequestedListener?.()
 })
 </script>
 

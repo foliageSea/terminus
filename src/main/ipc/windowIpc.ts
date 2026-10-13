@@ -7,6 +7,7 @@ import {
 } from '../settings/settingsTypes'
 import { writeWindowAlwaysOnTop, writeZoomFactor } from '../settings/settingsService'
 import { openExternalUrl } from '../shared/externalUrl'
+import { confirmWindowClose } from '../app/windowClose'
 
 export function registerWindowIpc(): void {
   ipcMain.handle('window:get-platform', () => process.platform)
@@ -36,6 +37,11 @@ export function registerWindowIpc(): void {
 
   ipcMain.on('window:close', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.close()
+  })
+
+  ipcMain.on('window:confirm-close', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window) confirmWindowClose(window)
   })
 
   ipcMain.handle('window:set-always-on-top', (event, alwaysOnTop: boolean) => {

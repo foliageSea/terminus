@@ -12,6 +12,12 @@ const api = {
     minimize: () => ipcRenderer.send('window:minimize'),
     toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
     close: () => ipcRenderer.send('window:close'),
+    confirmClose: () => ipcRenderer.send('window:confirm-close'),
+    onCloseRequested: (callback: () => void) => {
+      const listener = (): void => callback()
+      ipcRenderer.on('window:close-requested', listener)
+      return () => ipcRenderer.removeListener('window:close-requested', listener)
+    },
     setAlwaysOnTop: (alwaysOnTop: boolean) =>
       ipcRenderer.invoke('window:set-always-on-top', alwaysOnTop),
     toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggle-always-on-top'),

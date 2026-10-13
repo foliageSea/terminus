@@ -11,6 +11,7 @@ import {
 } from '../settings/settingsService'
 import type { WindowBoundsSettings } from '../settings/settingsTypes'
 import { openExternalUrl } from '../shared/externalUrl'
+import { registerWindowCloseConfirmation } from './windowClose'
 
 export function createWindow(): void {
   const windowBounds = readWindowBoundsSettings()
@@ -34,6 +35,7 @@ export function createWindow(): void {
     }
   })
   const persistWindowBounds = createWindowBoundsPersistor(mainWindow)
+  registerWindowCloseConfirmation(mainWindow)
 
   mainWindow.setAlwaysOnTop(alwaysOnTop)
   mainWindow.webContents.setZoomFactor(zoomFactor)
@@ -54,7 +56,8 @@ export function createWindow(): void {
   mainWindow.on('move', () => persistWindowBounds())
   mainWindow.on('maximize', () => persistWindowBounds())
   mainWindow.on('unmaximize', () => persistWindowBounds())
-  mainWindow.on('close', () => {
+  mainWindow.on('close', (event) => {
+    if (event.defaultPrevented) return
     persistWindowBounds(true)
   })
 
