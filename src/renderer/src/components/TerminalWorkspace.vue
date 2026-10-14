@@ -159,9 +159,7 @@ function openSettingsTab(): void {
     activeTabId.value = existing.id
     return
   }
-  const tab = createSettingsTab()
-  tabs.value.push(tab)
-  activeTabId.value = tab.id
+  insertTabAfterActive(createSettingsTab())
 }
 
 function normalizeFontSize(value: unknown): number {
@@ -361,10 +359,15 @@ function getPaneTeleportTarget(tab: TerminalTab, paneId: string): string {
   return `#terminal-pane-slot-${paneId}-${tab.layoutVersion}`
 }
 
-function openTab(cwd?: string, title?: string, projectId?: string): void {
-  const tab = createTab(cwd, title, projectId)
-  tabs.value.push(tab)
+function insertTabAfterActive(tab: Tab): void {
+  const activeIndex = tabs.value.findIndex((item) => item.id === activeTabId.value)
+  const insertIndex = activeIndex >= 0 ? activeIndex + 1 : tabs.value.length
+  tabs.value.splice(insertIndex, 0, tab)
   activeTabId.value = tab.id
+}
+
+function openTab(cwd?: string, title?: string, projectId?: string): void {
+  insertTabAfterActive(createTab(cwd, title, projectId))
 }
 
 function getNewTabCwd(): string {
@@ -458,8 +461,7 @@ function handleSshConnected(profile: SshConnectionProfile, connectionId: string)
       host: profile.host,
       username: profile.username
     }
-    tabs.value.push(tab)
-    activeTabId.value = tab.id
+    insertTabAfterActive(tab)
     return
   }
 
@@ -472,8 +474,7 @@ function handleSshConnected(profile: SshConnectionProfile, connectionId: string)
     host: profile.host,
     username: profile.username
   }
-  tabs.value.push(tab)
-  activeTabId.value = tab.id
+  insertTabAfterActive(tab)
 }
 
 function openProject(project: Project): void {
