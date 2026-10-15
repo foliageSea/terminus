@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { importTerminalBackground } from './terminalBackground'
 import {
   AppSettings,
   Project,
@@ -328,7 +329,16 @@ export function readTerminalSettings(): TerminalSettings {
 }
 
 export function writeTerminalSettings(settings: TerminalSettings): TerminalSettings {
-  const nextSettings = writeAppSettings({ ...readAppSettings(), terminal: settings })
+  const terminal = normalizeTerminalSettings(settings)
+  if (terminal.backgroundImageEnabled && terminal.backgroundImagePath) {
+    try {
+      terminal.backgroundImagePath = importTerminalBackground(terminal.backgroundImagePath)
+    } catch (error) {
+      console.warn('Failed to import terminal background image.', error)
+    }
+  }
+
+  const nextSettings = writeAppSettings({ ...readAppSettings(), terminal })
   return nextSettings.terminal
 }
 

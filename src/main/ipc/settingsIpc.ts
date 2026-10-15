@@ -1,6 +1,8 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
-import { extname } from 'path'
-import { existsSync, readFileSync, statSync } from 'fs'
+import {
+  importTerminalBackground,
+  readTerminalBackgroundDataUrl
+} from '../settings/terminalBackground'
 import type {
   ProjectsSettings,
   ShortcutSettings,
@@ -38,33 +40,6 @@ import {
   writeCommandCompleteNotification
 } from '../settings/settingsService'
 
-const imageMimeTypes = new Map([
-  ['.gif', 'image/gif'],
-  ['.jpg', 'image/jpeg'],
-  ['.jpeg', 'image/jpeg'],
-  ['.png', 'image/png'],
-  ['.webp', 'image/webp']
-])
-const maxBackgroundImageSize = 10 * 1024 * 1024
-
-function getImageMimeType(filePath: string): string | undefined {
-  return imageMimeTypes.get(extname(filePath).toLowerCase())
-}
-
-function readImageDataUrl(filePath: string): string {
-  try {
-    const mimeType = getImageMimeType(filePath)
-    if (!mimeType || !existsSync(filePath)) return ''
-
-    const stat = statSync(filePath)
-    if (!stat.isFile() || stat.size > maxBackgroundImageSize) return ''
-
-    return `data:${mimeType};base64,${readFileSync(filePath).toString('base64')}`
-  } catch {
-    return ''
-  }
-}
-
 export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get-terminal', () => readTerminalSettings())
   ipcMain.handle('settings:set-terminal', (_, settings: TerminalSettings) =>
@@ -81,10 +56,23 @@ export function registerSettingsIpc(): void {
       ? await dialog.showOpenDialog(window, options)
       : await dialog.showOpenDialog(options)
 
-    return result.canceled ? undefined : result.filePaths[0]
+    const filePath = result.filePaths[0]
+    if (result.canceled || !filePath) return undefined
+
+    try {
+      return importTerminalBackground(filePath)
+    } catch (error) {
+      await dialog.showMessageBox({
+        type: 'error',
+        title: '无法导入背景图',
+        message: '无法导入背景图，请选择可读取且不超过 10 MB 的图片文件。',
+        detail: error instanceof Error ? error.message : String(error)
+      })
+      return undefined
+    }
   })
   ipcMain.handle('settings:get-terminal-background-data-url', (_, filePath: string) =>
-    readImageDataUrl(filePath)
+    readTerminalBackgroundDataUrl(filePath)
   )
   ipcMain.handle('settings:get-theme', () => readThemeSettings())
   ipcMain.handle('settings:set-theme', (_, settings: ThemeSettings) => writeThemeSettings(settings))

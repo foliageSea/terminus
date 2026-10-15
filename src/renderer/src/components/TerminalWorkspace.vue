@@ -882,8 +882,9 @@ function updateWebglEnabled(value: boolean): void {
   terminalSettings.webglEnabled = value
 }
 
-function updateBackgroundImageEnabled(value: boolean): void {
+async function updateBackgroundImageEnabled(value: boolean): Promise<void> {
   terminalSettings.backgroundImageEnabled = value
+  await refreshTerminalBackground()
 }
 
 function updateBackgroundOpacity(value: number): void {
@@ -895,10 +896,29 @@ function updateBackgroundBlur(value: number): void {
 }
 
 async function refreshTerminalBackground(): Promise<void> {
+  terminalBackgroundUrl.value = ''
   const path = terminalSettings.backgroundImagePath.trim()
-  terminalBackgroundUrl.value = path
-    ? await window.api.settings.getTerminalBackgroundDataUrl(path)
-    : ''
+  if (!terminalSettings.backgroundImageEnabled || !path) return
+
+  try {
+    // 保存时将旧版本的外部路径迁移为应用数据目录中的副本。
+    const savedSettings = await window.api.settings.setTerminal({ ...terminalSettings })
+    if (!terminalSettings.backgroundImageEnabled || terminalSettings.backgroundImagePath !== path) {
+      return
+    }
+
+    const importedPath = savedSettings.backgroundImagePath
+    terminalSettings.backgroundImagePath = importedPath
+    const dataUrl = await window.api.settings.getTerminalBackgroundDataUrl(importedPath)
+    if (
+      terminalSettings.backgroundImageEnabled &&
+      terminalSettings.backgroundImagePath === importedPath
+    ) {
+      terminalBackgroundUrl.value = dataUrl
+    }
+  } catch (error) {
+    console.warn('Failed to load terminal background image.', error)
+  }
 }
 
 async function selectTerminalBackground(): Promise<void> {
