@@ -1404,6 +1404,7 @@ onBeforeUnmount(() => {
             />
             <SettingsView
               v-else-if="tab.type === 'settings'"
+              :platform="platform"
               :active="tab.id === activeTabId"
               :active-section="tab.activeSection"
               :primary-color="props.primaryColor"

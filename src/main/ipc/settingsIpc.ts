@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { openMacosFullDiskAccessSettings } from '../shared/externalUrl'
 import {
   importTerminalBackground,
   readTerminalBackgroundDataUrl
@@ -41,6 +42,7 @@ import {
 } from '../settings/settingsService'
 
 export function registerSettingsIpc(): void {
+  ipcMain.handle('settings:open-macos-full-disk-access', () => openMacosFullDiskAccessSettings())
   ipcMain.handle('settings:get-terminal', () => readTerminalSettings())
   ipcMain.handle('settings:set-terminal', (_, settings: TerminalSettings) =>
     writeTerminalSettings(settings)

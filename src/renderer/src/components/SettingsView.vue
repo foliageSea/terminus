@@ -50,6 +50,7 @@ import type { ShortcutActionId, ShortcutGroupId } from '../../../shared/shortcut
 
 const props = defineProps<{
   active: boolean
+  platform: string
   activeSection: SettingsSection
   primaryColor: string
   inheritTabCwd: boolean
@@ -130,6 +131,25 @@ function changeSection(section: SettingsSection): void {
     cancelShortcutRecording()
   }
   emit('updateActiveSection', section)
+}
+
+const openingPrivacySettings = ref(false)
+const privacySettingsError = ref('')
+
+async function openMacosFullDiskAccess(): Promise<void> {
+  if (openingPrivacySettings.value) return
+
+  openingPrivacySettings.value = true
+  privacySettingsError.value = ''
+  try {
+    if (!(await window.api.settings.openMacosFullDiskAccess())) {
+      privacySettingsError.value = '无法打开系统设置，请按上方路径手动前往。'
+    }
+  } catch {
+    privacySettingsError.value = '无法打开系统设置，请按上方路径手动前往。'
+  } finally {
+    openingPrivacySettings.value = false
+  }
 }
 
 const recordingActionId = ref<ShortcutActionId>()
@@ -292,6 +312,30 @@ onBeforeUnmount(() => {
               :model-value="windowAlwaysOnTop"
               @update:model-value="emit('updateWindowAlwaysOnTop', $event)"
           /></Field>
+          <Field v-if="platform === 'darwin'">
+            <FieldContent>
+              <FieldTitle>macOS 文件访问权限</FieldTitle>
+              <FieldDescription>
+                如果频繁提示“想访问其他 App 的数据”，可以按需开启完全磁盘访问权限。
+                此权限也会扩大终端内命令对受保护文件的访问范围，请仅在信任所运行命令时开启。
+              </FieldDescription>
+              <FieldDescription>
+                前往“系统设置 → 隐私与安全性 → 完全磁盘访问权限”，点击“＋”添加并开启
+                Terminus，然后退出并重新打开应用。
+              </FieldDescription>
+            </FieldContent>
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="openingPrivacySettings"
+              @click="openMacosFullDiskAccess"
+            >
+              {{ openingPrivacySettings ? '正在打开…' : '打开完全磁盘访问设置' }}
+            </Button>
+            <Alert v-if="privacySettingsError" variant="warning" role="alert">
+              <AlertDescription>{{ privacySettingsError }}</AlertDescription>
+            </Alert>
+          </Field>
         </template>
 
         <template v-else-if="activeSection === 'appearance'">

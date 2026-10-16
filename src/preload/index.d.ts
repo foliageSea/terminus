@@ -126,6 +126,7 @@ export interface TabSessionSettings {
 }
 
 export interface SettingsApi {
+  openMacosFullDiskAccess: () => Promise<boolean>
   getTerminal: () => Promise<TerminalSettings>
   setTerminal: (settings: TerminalSettings) => Promise<TerminalSettings>
   selectTerminalBackground: () => Promise<string | undefined>

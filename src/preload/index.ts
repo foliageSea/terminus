@@ -33,6 +33,7 @@ const api = {
     writeText: (text: string) => clipboard.writeText(text)
   },
   settings: {
+    openMacosFullDiskAccess: () => ipcRenderer.invoke('settings:open-macos-full-disk-access'),
     getTerminal: () => ipcRenderer.invoke('settings:get-terminal'),
     setTerminal: (settings: {
       fontFamily: string

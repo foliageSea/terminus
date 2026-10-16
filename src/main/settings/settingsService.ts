@@ -298,7 +298,8 @@ function normalizeAppSettings(value: unknown): AppSettings {
     inheritTabCwd: normalizeInheritTabCwd(settings.inheritTabCwd),
     commandCompleteNotification: normalizeCommandCompleteNotification(
       settings.commandCompleteNotification
-    )
+    ),
+    macosPrivacyNoticeShown: settings.macosPrivacyNoticeShown === true
   }
 }
 
@@ -322,6 +323,14 @@ function writeAppSettings(settings: AppSettings): AppSettings {
   mkdirSync(app.getPath('userData'), { recursive: true })
   writeFileSync(getSettingsPath(), JSON.stringify(normalizedSettings, null, 2), 'utf-8')
   return normalizedSettings
+}
+
+export function hasShownMacosPrivacyNotice(): boolean {
+  return readAppSettings().macosPrivacyNoticeShown
+}
+
+export function markMacosPrivacyNoticeShown(): void {
+  writeAppSettings({ ...readAppSettings(), macosPrivacyNoticeShown: true })
 }
 
 export function readTerminalSettings(): TerminalSettings {

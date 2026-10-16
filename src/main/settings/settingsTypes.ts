@@ -57,6 +57,7 @@ export interface AppSettings {
   tabSession: TabSessionSettings
   inheritTabCwd: boolean
   commandCompleteNotification: boolean
+  macosPrivacyNoticeShown: boolean
 }
 
 export const defaultTerminalSettings: TerminalSettings = {

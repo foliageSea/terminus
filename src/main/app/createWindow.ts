@@ -12,6 +12,7 @@ import {
 import type { WindowBoundsSettings } from '../settings/settingsTypes'
 import { openExternalUrl } from '../shared/externalUrl'
 import { registerWindowCloseConfirmation } from './windowClose'
+import { showMacosPrivacyNotice } from './macosPrivacy'
 
 export function createWindow(): void {
   const windowBounds = readWindowBoundsSettings()
@@ -50,6 +51,9 @@ export function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     if (windowBounds.rememberWindowBounds && windowBounds.isMaximized) mainWindow.maximize()
     mainWindow.show()
+    showMacosPrivacyNotice(mainWindow).catch((error) => {
+      console.error('[Terminus] Failed to show macOS privacy notice:', error)
+    })
   })
 
   mainWindow.on('resize', () => persistWindowBounds())
