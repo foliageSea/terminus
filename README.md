@@ -8,13 +8,13 @@
 
 ## 功能特性
 
-- 原生终端能力：主进程通过 `node-pty` 启动系统 Shell，渲染进程使用 `xterm.js` 展示和交互。
+- 原生终端能力：主进程通过 `node-pty` 启动系统 Shell，本地和 SSH 终端在渲染进程共用 Ghostty VT（WASM）。
 - 多 Tab 工作区：支持新建、关闭、中键关闭、拖拽排序、双击重命名和 `Ctrl+Tab` / `Ctrl+Shift+Tab` 切换。
 - 分屏布局：支持左右分屏、上下分屏、拖动分隔条调整比例。
 - 拖拽重排：支持拖动单个终端 Pane 或整个分屏组到目标 Pane 的上下左右位置。
 - 路径继承：新建分屏和新建 Tab 可以继承当前工作目录。
 - 路径收藏：收藏当前路径、搜索过滤、拖拽排序，点击可在新 Tab 打开。
-- 终端渲染：可选 WebGL 加速渲染，关闭时回退 Canvas。
+- 终端渲染：默认使用 Canvas 2D；可为新建或重新加载的终端启用 WebGL2，不可用时回退到 Canvas 2D。
 - 外观设置：可配置字体、字号、主题色、背景图、背景遮罩透明度和模糊，全部持久化。
 - 窗口能力：无边框窗口、窗口置顶、窗口大小与位置记忆（含多显示器可见性校验）、`F11` 全屏、界面缩放。
 - 快捷键设置：可视化修改全部快捷键，带冲突检测和恢复默认。
@@ -31,7 +31,7 @@
 - Tailwind CSS 4
 - reka-ui（shadcn-vue 风格的自绘组件）
 - lucide 图标
-- xterm.js
+- Ghostty VT（`@gkoreli/ghostty-vt-js`）
 - node-pty
 - pnpm
 
@@ -63,7 +63,7 @@ src/
 - `src/preload/index.ts`：暴露 `window.api`，渲染进程通过它访问终端、设置、剪贴板和窗口能力。
 - `src/renderer/src/App.vue`：应用根组件，注入主题色变量并显示启动动画。
 - `src/renderer/src/components/TerminalWorkspace.vue`：管理 Tab、分屏布局、窗口控制和快捷键分发。
-- `src/renderer/src/components/TerminalPane.vue`：单个终端 Pane，集成 xterm.js。
+- `src/renderer/src/lib/useTerminalView.ts`：本地和 SSH 面板共用的 Ghostty VT 初始化、尺寸和输入适配。
 - `src/renderer/src/components/SettingsView.vue`：设置面板。
 - `src/shared/shortcuts.ts`：主进程与渲染进程共用的快捷键定义、校验和匹配逻辑。
 
@@ -82,11 +82,15 @@ src/
 pnpm install
 ```
 
+Windows 上如果安装报 `MSB8036`，请在 Visual Studio Installer 的「单个组件」中安装日志指定版本的 Windows SDK，然后重新执行 `pnpm install`。
+
 ## 本地开发
 
 ```bash
 pnpm dev
 ```
+
+如果较新版本的 pnpm 提示 `node_modules` 与锁文件不一致，建议切回项目使用的 pnpm 10。开发命令只提示，不会自动重装依赖或重编译 `node-pty`。
 
 ## 预览构建产物
 
@@ -138,12 +142,12 @@ GitHub Actions 当前发布构建使用 Windows x64：`pnpm build:win -- --x64`�
 
 ## 终端行为
 
-- Windows 默认启动 `powershell.exe -NoLogo -NoExit -Command <cwd prompt hook>`。
+- Windows 优先使用 PowerShell 7（`pwsh.exe`），找不到时回退到 Windows PowerShell 5.1（`powershell.exe`）。本地终端和启动时的系统环境读取都使用这一顺序。
 - 非 Windows 平台默认使用 `process.env.SHELL`，未配置时回退到 `/bin/bash`。
 - 终端 Pane 的 ID 由渲染进程生成，并作为主进程 PTY Map 的 key。
 - 主进程通过 PowerShell prompt hook 追踪当前工作目录，新建分屏会继承来源 Pane 的 cwd。
 - 输出中的 OSC 633（Windows）与 OSC 7 序列用于解析 cwd 和命令退出码，跨包截断的序列会被缓存后重新拼接。
-- PTY 输出按 100KB 分块发送，并带字节级背压：渲染进程写入 xterm 后回传 `ackData`，未确认数据超过阈值时主进程会暂停 PTY。
+- PTY 输出按 100KB 分块发送，并带字节级背压：Ghostty VT 解析后，渲染进程按原字节数回传 `ackData`；未确认数据超过阈值时主进程会暂停 PTY。
 - Windows 下 PTY 退出后会自动重建，采用指数退避（最多连续 5 次，稳定运行 10 秒后计数清零）；面板已关闭或已被同一 ID 重建时不会重建。
 - 关闭 Tab 或 Pane 时会调用 `window.api.terminal.kill` 清理对应 PTY，避免残留进程。
 

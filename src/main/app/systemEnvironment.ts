@@ -1,5 +1,6 @@
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { resolveWindowsPowerShell } from '../shared/windowsPowerShell'
 
 const execFileAsync = promisify(execFile)
 const maxEnvironmentOutputBuffer = 8 * 1024 * 1024
@@ -80,6 +81,7 @@ function mergeSystemEnvironment(environment: EnvironmentVariables): void {
 
 async function loadWindowsSystemEnvironment(): Promise<EnvironmentVariables> {
   const command = `
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $machine = [Environment]::GetEnvironmentVariables('Machine')
 $user = [Environment]::GetEnvironmentVariables('User')
 $result = @{}
@@ -116,7 +118,7 @@ if ($pathParts.Count -gt 0) {
 $result | ConvertTo-Json -Compress
 `
   const { stdout } = await execFileAsync(
-    'powershell.exe',
+    resolveWindowsPowerShell(),
     ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
     {
       maxBuffer: maxEnvironmentOutputBuffer,

@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { Columns2, RefreshCw, Rows2, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
-import { Terminal } from '@xterm/xterm'
-import { FitAddon } from '@xterm/addon-fit'
-import { WebLinksAddon } from '@xterm/addon-web-links'
-import { WebglAddon } from '@xterm/addon-webgl'
-import type { ITheme } from '@xterm/xterm'
+import { useTerminalView } from '@/lib/useTerminalView'
 import {
   clearDraggingNodeId,
   dragDataType,
@@ -14,7 +10,6 @@ import {
   setDraggingNodeId
 } from './paneDragState'
 import type { DropSide, PaneDropPayload, PaneSide, TerminalSettings } from '../types/terminal'
-import { matchesShortcut, matchesShortcutWithShiftAlias } from '../../../shared/shortcuts'
 import type { ShortcutSettings } from '../types/terminal'
 
 const props = defineProps<{
@@ -39,18 +34,37 @@ const emit = defineEmits<{
 const host = ref<HTMLDivElement>()
 const dropSide = ref<DropSide>()
 const dragging = ref(false)
-const copyBubbleVisible = ref(false)
-const reloading = ref(false)
-let terminal: Terminal | undefined
-let fitAddon: FitAddon | undefined
-let webglAddon: WebglAddon | undefined
-let resizeObserver: ResizeObserver | undefined
-let removeDataListener: (() => void) | undefined
-let removeExitListener: (() => void) | undefined
-let copyBubbleTimer: number | undefined
-let resizeTimer: number | undefined
-let suppressedExitMessages = 0
-const maxCreateFitAttempts = 8
+const api = window.api.terminal
+const {
+  copyBubbleVisible,
+  starting,
+  startError,
+  reload: reloadTerminal
+} = useTerminalView({
+  host,
+  isActive: () => props.active,
+  settings: () => props.terminalSettings,
+  shortcuts: () => props.shortcuts,
+  startErrorMessage: '本地终端启动失败',
+  transport: {
+    create: (cols, rows) => api.create(props.paneId, cols, rows, props.cwd),
+    resize: (cols, rows) => api.resize(props.paneId, cols, rows),
+    write: (data) => api.write(props.paneId, data),
+    kill: () => api.kill(props.paneId),
+    listen: (terminal) => {
+      const removeData = api.onData(({ id, data, byteLength }) => {
+        if (id === props.paneId) terminal.write(data, () => api.ackData(id, byteLength))
+      })
+      const removeExit = api.onExit(({ id }) => {
+        if (id === props.paneId && !starting.value) terminal.writeln('\r\n[process exited]')
+      })
+      return () => {
+        removeData()
+        removeExit()
+      }
+    }
+  }
+})
 
 function splitTo(side: PaneSide): void {
   emit('split', props.paneId, side)
@@ -112,238 +126,6 @@ function handleDragEnd(): void {
   dropSide.value = undefined
   clearDraggingNodeId()
 }
-
-function hasMeasurableHost(): boolean {
-  if (!host.value) return false
-
-  const rect = host.value.getBoundingClientRect()
-  return rect.width > 0 && rect.height > 0
-}
-
-function fit(): boolean {
-  if (!terminal || !fitAddon || !hasMeasurableHost()) return false
-
-  try {
-    fitAddon.fit()
-    window.api.terminal.resize(props.paneId, terminal.cols, terminal.rows)
-    return true
-  } catch {
-    // xterm fit can run before the pane has a measurable size.
-    return false
-  }
-}
-
-function waitForAnimationFrame(): Promise<void> {
-  return new Promise((resolve) => window.requestAnimationFrame(() => resolve()))
-}
-
-async function fitBeforeCreate(): Promise<void> {
-  for (let attempt = 0; attempt < maxCreateFitAttempts; attempt += 1) {
-    await nextTick()
-    await waitForAnimationFrame()
-    if (fit()) return
-  }
-}
-
-function createTerminalTheme(): ITheme {
-  return {
-    background: '#00000000'
-  }
-}
-
-function applyTerminalSettings(): void {
-  if (!terminal) return
-
-  terminal.options.fontFamily = props.terminalSettings.fontFamily
-  terminal.options.fontSize = props.terminalSettings.fontSize
-  terminal.options.theme = createTerminalTheme()
-  syncWebglAddon()
-  fit()
-}
-
-function disableWebgl(): void {
-  webglAddon?.dispose()
-  webglAddon = undefined
-}
-
-function syncWebglAddon(): void {
-  if (!terminal) return
-
-  if (!props.terminalSettings.webglEnabled) {
-    disableWebgl()
-    return
-  }
-
-  if (webglAddon) return
-
-  try {
-    webglAddon = new WebglAddon()
-    terminal.loadAddon(webglAddon)
-  } catch {
-    disableWebgl()
-  }
-}
-
-function showCopyBubble(): void {
-  copyBubbleVisible.value = true
-  if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
-  copyBubbleTimer = window.setTimeout(() => {
-    copyBubbleVisible.value = false
-    copyBubbleTimer = undefined
-  }, 1200)
-}
-
-function copySelectedText(): void {
-  const text = terminal?.getSelection()
-  if (!text) return
-
-  window.api.clipboard.writeText(text)
-  showCopyBubble()
-}
-
-function pasteClipboardText(): void {
-  const text = window.api.clipboard.readText()
-  if (!text) return
-
-  terminal?.paste(text)
-}
-
-function handleTerminalKey(event: KeyboardEvent): boolean {
-  if (event.type !== 'keydown' || event.repeat) return true
-
-  if (matchesShortcut(event, props.shortcuts.copy)) {
-    event.preventDefault()
-    copySelectedText()
-    return false
-  }
-
-  const allowLegacyAltPaste =
-    event.key.toLowerCase() === 'v' &&
-    event.altKey &&
-    !event.ctrlKey &&
-    !event.metaKey &&
-    !event.shiftKey
-
-  if (matchesShortcut(event, props.shortcuts.paste) || allowLegacyAltPaste) {
-    event.preventDefault()
-    pasteClipboardText()
-    return false
-  }
-
-  if (
-    matchesShortcutWithShiftAlias(event, props.shortcuts.zoomIn) ||
-    matchesShortcut(event, props.shortcuts.zoomOut) ||
-    matchesShortcut(event, props.shortcuts.zoomReset)
-  ) {
-    return false
-  }
-
-  return true
-}
-
-async function createPty(): Promise<void> {
-  if (!terminal) return
-
-  await fitBeforeCreate()
-  await window.api.terminal.create(props.paneId, terminal.cols, terminal.rows, props.cwd)
-}
-
-async function reloadTerminal(): Promise<void> {
-  if (!terminal || reloading.value) return
-
-  reloading.value = true
-  suppressedExitMessages += 1
-  window.api.terminal.kill(props.paneId)
-  terminal.clear()
-  terminal.reset()
-
-  try {
-    await createPty()
-    terminal.focus()
-  } finally {
-    reloading.value = false
-  }
-}
-
-onMounted(async () => {
-  if (!host.value) return
-
-  terminal = new Terminal({
-    allowTransparency: true,
-    cursorBlink: true,
-    cursorStyle: 'bar',
-    fontFamily: props.terminalSettings.fontFamily,
-    fontSize: props.terminalSettings.fontSize,
-    lineHeight: 1.2,
-    theme: createTerminalTheme()
-  })
-  fitAddon = new FitAddon()
-  terminal.loadAddon(fitAddon)
-  terminal.loadAddon(
-    new WebLinksAddon((event, uri) => {
-      event.preventDefault()
-      window.api.window.openExternal(uri)
-    })
-  )
-  terminal.attachCustomKeyEventHandler(handleTerminalKey)
-  terminal.open(host.value)
-  syncWebglAddon()
-
-  terminal.onData((data) => window.api.terminal.write(props.paneId, data))
-
-  removeDataListener = window.api.terminal.onData(({ id, data, byteLength }) => {
-    if (id !== props.paneId) return
-
-    terminal?.write(data, () => window.api.terminal.ackData(id, byteLength))
-  })
-  removeExitListener = window.api.terminal.onExit(({ id }) => {
-    if (id !== props.paneId) return
-    if (suppressedExitMessages > 0) {
-      suppressedExitMessages -= 1
-      return
-    }
-
-    terminal?.writeln('\r\n[process exited]')
-  })
-
-  resizeObserver = new ResizeObserver(() => {
-    if (resizeTimer) window.clearTimeout(resizeTimer)
-    resizeTimer = window.setTimeout(() => {
-      resizeTimer = undefined
-      fit()
-    }, 16)
-  })
-  resizeObserver.observe(host.value)
-
-  await createPty()
-  terminal.focus()
-})
-
-watch(
-  () => props.active,
-  async (active) => {
-    if (!active) return
-    await nextTick()
-    terminal?.focus()
-    fit()
-  }
-)
-
-watch(
-  () => props.terminalSettings,
-  () => applyTerminalSettings(),
-  { deep: true }
-)
-
-onBeforeUnmount(() => {
-  if (copyBubbleTimer) window.clearTimeout(copyBubbleTimer)
-  if (resizeTimer) window.clearTimeout(resizeTimer)
-  removeDataListener?.()
-  removeExitListener?.()
-  resizeObserver?.disconnect()
-  disableWebgl()
-  terminal?.dispose()
-})
 </script>
 
 <template>
@@ -402,8 +184,8 @@ onBeforeUnmount(() => {
           v-if="!hideActions || showReloadAction"
           size="icon"
           variant="ghost"
-          :disabled="reloading"
-          @click.stop="reloadTerminal"
+          :disabled="starting"
+          @click.stop="reloadTerminal()"
         >
           <RefreshCw :size="13" />
         </Button>
@@ -417,7 +199,9 @@ onBeforeUnmount(() => {
         </Button>
       </div>
     </div>
-    <div ref="host" class="terminal-host" />
+    <div ref="host" class="terminal-host">
+      <p v-if="startError" class="terminal-start-error" role="alert">{{ startError }}</p>
+    </div>
   </section>
 </template>
 

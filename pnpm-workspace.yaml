@@ -7,3 +7,7 @@ allowBuilds:
   vue-demi: true
 ignoredOptionalDependencies:
   - cpu-features
+# Keep script execution separate from installs that can trigger native rebuilds.
+verifyDepsBeforeRun: warn
+patchedDependencies:
+  '@gkoreli/ghostty-vt-js@0.6.0': patches/@gkoreli__ghostty-vt-js@0.6.0.patch

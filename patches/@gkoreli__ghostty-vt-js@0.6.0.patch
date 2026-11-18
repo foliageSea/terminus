@@ -1,0 +1,164 @@
+diff --git a/dist/browser-terminal/gpu/adapter.js b/dist/browser-terminal/gpu/adapter.js
+index 65151bec521ecc1820e88566ec3ed8b9ba0a9bb8..d008161557dad187f0ef3b26de988286a3ebb2bd 100644
+--- a/dist/browser-terminal/gpu/adapter.js
++++ b/dist/browser-terminal/gpu/adapter.js
+@@ -70,6 +70,7 @@ export class GpuRenderer {
+             geometry: renderGeometry,
+             fontFamily: this.fontFamily,
+             fontSize: this.fontSize,
++            transparentBackground: theme.background === 'transparent',
+             onContextLossTimeout: (message) => {
+                 options.onBackendFailure?.({
+                     backend: this.backend,
+diff --git a/dist/browser-terminal/gpu/core/webgl2-renderer.js b/dist/browser-terminal/gpu/core/webgl2-renderer.js
+index 16c059fd5a8fb5dd57b77a6e580926c95b8a92e0..08e8b15cbeffed0d7fcb058139c3300178d74267 100644
+--- a/dist/browser-terminal/gpu/core/webgl2-renderer.js
++++ b/dist/browser-terminal/gpu/core/webgl2-renderer.js
+@@ -18,7 +18,7 @@ const MINIMUM_CONTRAST_RATIO = 1.5;
+ const LINK_COLOR = packRgba(74, 144, 226);
+ export const WEBGL2_CONTEXT_LOSS_TIMEOUT_MS = 10_000;
+ export const WEBGL2_CONTEXT_ATTRIBUTES = {
+-    alpha: false,
++    alpha: true,
+     antialias: false,
+     depth: false,
+     stencil: false,
+@@ -167,6 +167,7 @@ export class WebGl2RendererCore {
+             throw new Error('WebGL2 is unavailable');
+         this.gl = gl;
+         this.geometry = options.geometry;
++        this.transparentBackground = options.transparentBackground ?? false;
+         this.fontFamily = options.fontFamily;
+         this.fontSize = options.fontSize;
+         this.maxAtlasPages = Math.max(1, Math.min(options.atlasPages ?? 4, gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS)));
+@@ -372,7 +373,10 @@ export class WebGl2RendererCore {
+         const gl = this.gl;
+         const [r, green, b] = unpackRgba(frame.defaultBackground);
+         gl.disable(gl.SCISSOR_TEST);
+-        gl.clearColor(r / 255, green / 255, b / 255, 1);
++        if (this.transparentBackground)
++            gl.clearColor(0, 0, 0, 0);
++        else
++            gl.clearColor(r / 255, green / 255, b / 255, 1);
+         gl.clear(gl.COLOR_BUFFER_BIT);
+         const gridRight = Math.round((g.gridOriginX + g.gridCssWidth) * dpr);
+         const gridBottom = Math.round((g.gridOriginY + g.gridCssHeight) * dpr);
+@@ -395,7 +399,10 @@ export class WebGl2RendererCore {
+             return;
+         const [r, g, b] = unpackRgba(color);
+         this.gl.disable(this.gl.SCISSOR_TEST);
+-        this.gl.clearColor(r / 255, g / 255, b / 255, 1);
++        if (this.transparentBackground)
++            this.gl.clearColor(0, 0, 0, 0);
++        else
++            this.gl.clearColor(r / 255, g / 255, b / 255, 1);
+         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+     }
+     dispose() {
+@@ -572,13 +579,15 @@ export class WebGl2RendererCore {
+         const x = this.geometry.deviceWidth - width - 4 * dpr;
+         const padding = 4 * dpr;
+         const trackHeight = this.geometry.deviceHeight - padding * 2;
+-        rectangles.push({
+-            x: x - 2 * dpr,
+-            y: 0,
+-            width: width + 6 * dpr,
+-            height: this.geometry.deviceHeight,
+-            color: frame.defaultBackground,
+-        });
++        if (!this.transparentBackground) {
++            rectangles.push({
++                x: x - 2 * dpr,
++                y: 0,
++                width: width + 6 * dpr,
++                height: this.geometry.deviceHeight,
++                color: frame.defaultBackground,
++            });
++        }
+         if (view.scrollbarOpacity <= 0)
+             return;
+         const totalLines = view.scrollbackLength + frame.rows;
+diff --git a/dist/browser-terminal/renderer.js b/dist/browser-terminal/renderer.js
+index 06d38293513b8af992208e53858db1beacf59b2e..4b00952adf8bbde675788789e749d3bedfcde85d 100644
+--- a/dist/browser-terminal/renderer.js
++++ b/dist/browser-terminal/renderer.js
+@@ -421,7 +421,7 @@ export class CanvasRenderer {
+             }
+         });
+         // Render scrollbar if scrolled or scrollback exists (with opacity for fade effect)
+-        if (scrollbackProvider && scrollbarOpacity > 0) {
++        if (scrollbackProvider && (scrollbarOpacity > 0 || this.theme.background === 'transparent')) {
+             this.renderScrollbar(viewportY, scrollbackLength, dims.rows, scrollbarOpacity);
+         }
+         // Update last cursor position
+@@ -484,8 +484,19 @@ export class CanvasRenderer {
+         // moment the element behind the canvas has a color. The theme background
+         // is opaque and the surface was filled opaque at resize, so a plain
+         // composite fully covers; nothing here may punch alpha out of the surface.
+-        this.ctx.fillStyle = this.theme.background;
+-        this.ctx.fillRect(0, lineY, lineWidth, this.metrics.height);
++        if (this.theme.background === 'transparent') {
++            // Transparent source-over fills leave old glyphs behind. Snap row
++            // boundaries to device pixels so clearing doesn't leave partial pixels.
++            const dpr = this.devicePixelRatio;
++            const originY = this.geometry.canvasBox().gridOriginY;
++            const top = Math.round((originY + lineY) * dpr) / dpr - originY;
++            const bottom = Math.round((originY + lineY + this.metrics.height) * dpr) / dpr - originY;
++            this.ctx.clearRect(0, top, lineWidth, bottom - top);
++        }
++        else {
++            this.ctx.fillStyle = this.theme.background;
++            this.ctx.fillRect(0, lineY, lineWidth, this.metrics.height);
++        }
+         // PASS 1: Draw all cell backgrounds first
+         // This ensures all backgrounds are painted before any text, allowing text
+         // to "bleed" across cell boundaries without being covered by adjacent backgrounds
+@@ -790,8 +801,19 @@ export class CanvasRenderer {
+         // Reset the strip with an opaque background fill (covers the faded thumb
+         // without clearRect — punching alpha leaves translucent seams at the
+         // strip's antialiased edges, same defect as the per-line path).
+-        ctx.fillStyle = this.theme.background;
+-        ctx.fillRect(scrollbarX - 2, 0, scrollbarWidth + 6, canvasHeight);
++        if (this.theme.background === 'transparent') {
++            // Keep the track out of the grid so fading doesn't erase cells.
++            const box = this.geometry.canvasBox();
++            const gutterX = Math.max(scrollbarX - 2, box.gridOriginX + box.gridCssWidth);
++            ctx.beginPath();
++            ctx.rect(gutterX, 0, Math.max(0, canvasWidth - gutterX), canvasHeight);
++            ctx.clip();
++            ctx.clearRect(gutterX, 0, canvasWidth - gutterX, canvasHeight);
++        }
++        else {
++            ctx.fillStyle = this.theme.background;
++            ctx.fillRect(scrollbarX - 2, 0, scrollbarWidth + 6, canvasHeight);
++        }
+         // Don't draw scrollbar if fully transparent or no scrollback
+         if (opacity <= 0 || scrollbackLength === 0) {
+             ctx.restore();
+diff --git a/dist/browser-terminal/terminal.js b/dist/browser-terminal/terminal.js
+index 470db0d146f8e09fd87bdc44eb7c3e2b86df589d..45e5dc06ff006ea2e5fa1650f226a4a3e172e726 100644
+--- a/dist/browser-terminal/terminal.js
++++ b/dist/browser-terminal/terminal.js
+@@ -484,10 +484,11 @@ export class Terminal {
+                     + '(CSS height/width, flex, or grid track). The terminal fills its host; '
+                     + 'it does not invent a size.', { host: parent });
+             }
++            const optionsRef = this.options;
+             this.geometry = new TerminalGeometry({
+                 measureCell: measureCellWithCanvas({
+-                    fontSize: this.options.fontSize,
+-                    fontFamily: this.options.fontFamily,
++                    get fontSize() { return optionsRef.fontSize; },
++                    get fontFamily() { return optionsRef.fontFamily; },
+                     lineHeight: this.options.lineHeight,
+                 }),
+                 readHostBox: () => hostBox,
+@@ -648,8 +649,6 @@ export class Terminal {
+             this.renderer.render(this.wasmTerm, true, this.viewportY, this, this.scrollbar.opacity);
+             // Start render loop
+             this.startRenderLoop();
+-            // Focus input (auto-focus so user can start typing immediately)
+-            this.focus();
+         }
+         catch (error) {
+             // Clean up on error

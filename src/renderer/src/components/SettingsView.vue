@@ -397,9 +397,9 @@ onBeforeUnmount(() => {
           <Field orientation="horizontal"
             ><FieldContent
               ><FieldTitle>WebGL 渲染</FieldTitle
-              ><FieldDescription>{{
-                terminalSettings.webglEnabled ? '启用 GPU 加速渲染' : '关闭 GPU 加速渲染'
-              }}</FieldDescription></FieldContent
+              ><FieldDescription
+                >为新建或重新加载的终端启用 GPU 加速</FieldDescription
+              ></FieldContent
             ><Switch
               :model-value="terminalSettings.webglEnabled"
               @update:model-value="emit('updateWebglEnabled', $event)"

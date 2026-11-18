@@ -26,9 +26,10 @@
 - The terminal backend lives in the main process and uses `node-pty`; renderer code must go through `window.api.terminal` exposed by preload.
 - Keep IPC channel names/types synchronized across `src/main/ipc/*`, `src/preload/index.ts`, `src/preload/index.d.ts`, and the renderer-side copies in `src/renderer/src/types/terminal.ts`.
 - Terminal pane IDs are renderer-generated IDs used as keys in the main-process pty map; closing tabs/panes should call `window.api.terminal.kill` to avoid orphaned ptys.
-- On Windows the spawned shell is `powershell.exe -NoLogo -NoExit -Command <cwd prompt hook>`; non-Windows uses `process.env.SHELL || '/bin/bash'`.
+- On Windows the local shell and system environment loader prefer PowerShell 7 (`pwsh.exe`), falling back to Windows PowerShell (`powershell.exe`) when not found. Local panes keep the `-NoLogo -NoExit -Command <cwd prompt hook>` arguments. Non-Windows uses `process.env.SHELL || '/bin/bash'` for local panes.
 - Terminal cwd is tracked from PTY output (OSC 633 on Windows, OSC 7 as fallback) and stored on pane nodes; new splits inherit the source pane `cwd`.
-- PTY output is chunked at 100 KB with byte-level backpressure: the renderer must keep calling `window.api.terminal.ackData` after writing to xterm, otherwise the pty stays paused.
+- PTY output is chunked at 100 KB with byte-level backpressure: ACK the original byte count after the Ghostty VT write callback, otherwise the PTY stays paused. SSH uses the same pattern through `window.api.ssh.ackData`.
+- Local and SSH panes share `src/renderer/src/lib/useTerminalView.ts`. The WASM asset is inlined so it loads offline under Electron's `file://` renderer. The pinned dependency patch keeps terminal backgrounds transparent and makes font changes remeasure the grid.
 - On Windows a dead PTY is recreated automatically with exponential backoff (at most 5 consecutive attempts, counter reset after 10s of uptime). `TerminalState.closed` is set by every kill path so a pending restart cannot resurrect a closed pane — keep that invariant.
 - All external URL opening goes through `isSafeExternalUrl` / `openExternalUrl` in `src/main/shared/externalUrl.ts` (http/https only). Do not call `shell.openExternal` directly.
 

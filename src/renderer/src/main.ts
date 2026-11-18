@@ -1,4 +1,3 @@
-import '@xterm/xterm/css/xterm.css'
 import './assets/main.css'
 
 import { createApp } from 'vue'

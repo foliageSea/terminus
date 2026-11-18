@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@gkoreli/ghostty-vt-js@0.6.0':
+    hash: 6304f9e90c455e9b4883895fa126f7eca0ad94baef0e8e8bc29d572119ae94c4
+    path: patches/@gkoreli__ghostty-vt-js@0.6.0.patch
+
 importers:
 
   .:
@@ -41,21 +46,12 @@ importers:
       '@electron-toolkit/utils':
         specifier: ^4.0.0
         version: 4.0.0(electron@39.8.10)
+      '@gkoreli/ghostty-vt-js':
+        specifier: 0.6.0
+        version: 0.6.0(patch_hash=6304f9e90c455e9b4883895fa126f7eca0ad94baef0e8e8bc29d572119ae94c4)
       '@lucide/vue':
         specifier: ^1.21.0
         version: 1.21.0(vue@3.5.34(typescript@5.9.3))
-      '@xterm/addon-fit':
-        specifier: ^0.11.0
-        version: 0.11.0
-      '@xterm/addon-web-links':
-        specifier: ^0.12.0
-        version: 0.12.0
-      '@xterm/addon-webgl':
-        specifier: ^0.19.0
-        version: 0.19.0
-      '@xterm/xterm':
-        specifier: ^6.0.0
-        version: 6.0.0
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -693,6 +689,15 @@ packages:
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
 
+  '@gkoreli/ghostty-vt-js@0.6.0':
+    resolution: {integrity: sha512-YBefIQsh9jzFoy/0Nj1VHMAtwTlDan0LuTioTPuNnn9QoQWDMPd/IdJAPjFd2ZpAji6fHwVimwXSyIbuVpdyTA==}
+    engines: {bun: '>=1.4.2', node: '>=22'}
+    peerDependencies:
+      react: '>=18'
+    peerDependenciesMeta:
+      react:
+        optional: true
+
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
     engines: {node: '>=18.18.0'}
@@ -1215,18 +1220,6 @@ packages:
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
-
-  '@xterm/addon-fit@0.11.0':
-    resolution: {integrity: sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==}
-
-  '@xterm/addon-web-links@0.12.0':
-    resolution: {integrity: sha512-4Smom3RPyVp7ZMYOYDoC/9eGJJJqYhnPLGGqJ6wOBfB8VxPViJNSKdgRYb8NpaM6YSelEKbA2SStD7lGyqaobw==}
-
-  '@xterm/addon-webgl@0.19.0':
-    resolution: {integrity: sha512-b3fMOsyLVuCeNJWxolACEUED0vm7qC0cy4wRvf3oURSzDTYVQiGPhTnhWZwIHdvC48Y+oLhvYXnY4XDXPoJo6A==}
-
-  '@xterm/xterm@6.0.0':
-    resolution: {integrity: sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==}
 
   abbrev@4.0.0:
     resolution: {integrity: sha512-a1wflyaL0tHtJSmLSOVybYhy22vRih4eduhhrkcjgrWGnRfrZtovJ2FRjxuTtkkj47O/baf0R86QU5OuYpz8fA==}
@@ -3329,6 +3322,8 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
+  '@gkoreli/ghostty-vt-js@0.6.0(patch_hash=6304f9e90c455e9b4883895fa126f7eca0ad94baef0e8e8bc29d572119ae94c4)': {}
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -3846,14 +3841,6 @@ snapshots:
 
   '@xmldom/xmldom@0.9.10':
     optional: true
-
-  '@xterm/addon-fit@0.11.0': {}
-
-  '@xterm/addon-web-links@0.12.0': {}
-
-  '@xterm/addon-webgl@0.19.0': {}
-
-  '@xterm/xterm@6.0.0': {}
 
   abbrev@4.0.0: {}
 

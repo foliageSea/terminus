@@ -1,5 +1,6 @@
 import { spawn, IPty } from 'node-pty'
 import type { Socket } from 'net'
+import { resolveWindowsPowerShell } from '../shared/windowsPowerShell'
 import {
   extractTerminalCommandComplete,
   extractTerminalCwd,
@@ -263,7 +264,7 @@ export function createTerminal({
 
   const initialCwd = resolveTerminalCwd(cwd)
   const shellPath =
-    process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || '/bin/bash'
+    process.platform === 'win32' ? resolveWindowsPowerShell() : process.env.SHELL || '/bin/bash'
   const shellArgs =
     process.platform === 'win32'
       ? ['-NoLogo', '-NoExit', '-Command', powershellCwdPromptCommand()]
