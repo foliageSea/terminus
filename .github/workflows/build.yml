@@ -24,15 +24,16 @@ jobs:
             build_command: pnpm build:win -- --x64
             artifact_files: |
               dist/*.exe
-          # - platform: macos
-          #   os: macos-14
-          #   arch: arm64
-          #   build_command: pnpm build:mac -- --arm64
-          #   artifact_files: |
-          #     dist/*.dmg
-          #     dist/*.zip
-          #     dist/*.blockmap
-          #     dist/latest-mac.yml
+          - platform: macos
+            os: macos-15
+            arch: arm64
+            # Ad hoc signatures have no Team ID for hardened runtime library validation.
+            build_command: pnpm build:mac --arm64 -c.mac.identity=- -c.mac.hardenedRuntime=false
+            artifact_files: |
+              dist/*.dmg
+              dist/*.zip
+              dist/*.blockmap
+              dist/latest-mac.yml
 
     steps:
       - name: Checkout
