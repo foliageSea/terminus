@@ -92,6 +92,8 @@ pnpm dev
 
 如果较新版本的 pnpm 提示 `node_modules` 与锁文件不一致，建议切回项目使用的 pnpm 10。开发命令只提示，不会自动重装依赖或重编译 `node-pty`。
 
+`pnpm dev` 和 `pnpm start` 会在启动时清除继承的 `ELECTRON_RUN_AS_NODE`。如果绕过这些脚本直接启动 Electron 并遇到 `electron.app` 为 `undefined` 的错误，请先在当前 shell 中清除该变量（macOS/Linux：`unset ELECTRON_RUN_AS_NODE`；PowerShell：`Remove-Item Env:ELECTRON_RUN_AS_NODE`）。
+
 ## 预览构建产物
 
 ```bash
