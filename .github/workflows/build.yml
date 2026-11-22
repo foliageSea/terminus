@@ -27,8 +27,11 @@ jobs:
           - platform: macos
             os: macos-15
             arch: arm64
-            # Ad hoc signatures have no Team ID for hardened runtime library validation.
-            build_command: pnpm build:mac --arm64 -c.mac.identity=- -c.mac.hardenedRuntime=false
+            # Use upstream downloads for DMG tools and ad hoc signing without a Team ID.
+            build_command: >-
+              pnpm build && env -u npm_config_electron_mirror
+              node_modules/.bin/electron-builder --mac --arm64
+              -c.mac.identity=- -c.mac.hardenedRuntime=false
             artifact_files: |
               dist/*.dmg
               dist/*.zip
