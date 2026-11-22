@@ -312,27 +312,20 @@ onBeforeUnmount(() => {
               :model-value="windowAlwaysOnTop"
               @update:model-value="emit('updateWindowAlwaysOnTop', $event)"
           /></Field>
-          <Field v-if="platform === 'darwin'">
+          <Field v-if="platform === 'darwin'" orientation="horizontal">
             <FieldContent>
               <FieldTitle>macOS 文件访问权限</FieldTitle>
-              <FieldDescription>
-                如果频繁提示“想访问其他 App 的数据”，可以按需开启完全磁盘访问权限。
-                此权限也会扩大终端内命令对受保护文件的访问范围，请仅在信任所运行命令时开启。
-              </FieldDescription>
-              <FieldDescription>
-                前往“系统设置 → 隐私与安全性 → 完全磁盘访问权限”，点击“＋”添加并开启
-                Terminus，然后退出并重新打开应用。
-              </FieldDescription>
             </FieldContent>
             <Button
               type="button"
               variant="outline"
+              size="sm"
               :disabled="openingPrivacySettings"
               @click="openMacosFullDiskAccess"
             >
               {{ openingPrivacySettings ? '正在打开…' : '打开完全磁盘访问设置' }}
             </Button>
-            <Alert v-if="privacySettingsError" variant="warning" role="alert">
+            <Alert v-if="privacySettingsError" class="col-span-full" variant="warning" role="alert">
               <AlertDescription>{{ privacySettingsError }}</AlertDescription>
             </Alert>
           </Field>
